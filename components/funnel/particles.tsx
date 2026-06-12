@@ -1,10 +1,22 @@
 "use client"
 
-import { useMemo } from "react"
+import { useEffect, useState } from "react"
+
+type Dot = {
+  id: number
+  left: number
+  top: number
+  size: number
+  delay: number
+  duration: number
+}
 
 export function Particles({ count = 24 }: { count?: number }) {
-  const dots = useMemo(
-    () =>
+  const [dots, setDots] = useState<Dot[]>([])
+
+  // Generate only on the client after mount to avoid hydration mismatch
+  useEffect(() => {
+    setDots(
       Array.from({ length: count }, (_, i) => ({
         id: i,
         left: Math.random() * 100,
@@ -13,8 +25,8 @@ export function Particles({ count = 24 }: { count?: number }) {
         delay: Math.random() * 5,
         duration: Math.random() * 6 + 6,
       })),
-    [count],
-  )
+    )
+  }, [count])
 
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">

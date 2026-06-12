@@ -404,7 +404,7 @@ export function SalesPage() {
       {/* FAQ */}
       <Section>
         <h2 className="mb-5 text-center font-serif text-2xl text-gold">Preguntas frecuentes</h2>
-        <Accordion type="single" collapsible className="w-full">
+        <Accordion className="w-full">
           {FAQ.map((item, i) => (
             <AccordionItem key={i} value={`faq-${i}`} className="border-border">
               <AccordionTrigger className="text-left text-sm font-medium text-foreground hover:no-underline">
