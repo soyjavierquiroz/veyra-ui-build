@@ -1,8 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import Image from "next/image"
 import { Phone, PhoneOff, Mic, MicOff, Volume2 } from "lucide-react"
-import { VeyraOrb } from "./veyra-orb"
 import { Particles } from "./particles"
 
 type CallState = "incoming" | "active" | "ending"
@@ -42,29 +42,78 @@ export function Exp2Call({ onComplete }: { onComplete: () => void }) {
 
   return (
     <section className="relative flex min-h-screen flex-col items-center justify-between overflow-hidden px-6 py-12">
-      <Particles count={20} />
+      {/* Cinematic full-screen background */}
+      <div className="absolute inset-0 -z-10">
+        <Image
+          src="/veyra-perfil.webp"
+          alt=""
+          fill
+          priority
+          aria-hidden="true"
+          className="scale-110 object-cover blur-2xl"
+        />
+        <div className="absolute inset-0 bg-background/80" />
+        <div className="absolute inset-0 bg-[radial-gradient(70%_55%_at_50%_38%,oklch(0.32_0.12_300_/_0.45),transparent_70%)]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-transparent to-background" />
+      </div>
+      <Particles count={18} />
 
-      {/* Header / name */}
-      <div className="relative z-10 mt-6 flex flex-col items-center gap-2">
-        <span className="text-xs uppercase tracking-[0.35em] text-muted-foreground">
-          {state === "incoming"
-            ? "Llamada entrante"
-            : state === "ending"
-              ? "Finalizando"
-              : "En llamada"}
+      {/* Brand mark */}
+      <div className="relative z-10 mt-2 self-start">
+        <span className="text-[0.65rem] uppercase tracking-[0.4em] text-muted-foreground">
+          GranDiosa Mujer
         </span>
-        <h1 className="font-serif text-5xl tracking-wide text-gold">VEYRA</h1>
-        {state === "active" && (
-          <span className="font-mono text-sm text-muted-foreground">
-            {fmt(timer)}
-          </span>
-        )}
       </div>
 
-      {/* Orb */}
-      <div className="relative z-10 flex flex-col items-center gap-8">
-        <div className={state === "incoming" ? "animate-ring-vibrate" : ""}>
-          <VeyraOrb size={200} active />
+      {/* Avatar + identity */}
+      <div className="relative z-10 flex flex-1 flex-col items-center justify-center gap-7">
+        <div className="relative">
+          {/* Glowing rotating ring */}
+          <div
+            className={`absolute -inset-3 rounded-full ${state === "incoming" ? "animate-halo-spin" : ""}`}
+            style={{
+              background:
+                "conic-gradient(from 0deg, transparent, var(--gold), transparent 30%, transparent 60%, var(--primary), transparent)",
+              opacity: 0.85,
+            }}
+            aria-hidden="true"
+          />
+          <div
+            className={`relative overflow-hidden rounded-full border-2 border-gold/60 glow-violet ${
+              state === "incoming" ? "animate-mystic-pulse" : ""
+            }`}
+            style={{ width: 168, height: 168 }}
+          >
+            <Image
+              src="/veyra-perfil.webp"
+              alt="Veyra"
+              fill
+              priority
+              className="object-cover"
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-col items-center gap-2 text-center">
+          <h1 className="font-serif text-5xl tracking-wide text-gold text-glow">
+            VEYRA
+          </h1>
+          <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">
+            Guardiana del Método P.A.U.S.A.
+          </p>
+          <span
+            className={`mt-3 text-sm uppercase tracking-[0.3em] ${
+              state === "active"
+                ? "font-mono text-primary"
+                : "text-gold animate-soft-blink"
+            }`}
+          >
+            {state === "incoming"
+              ? "Llamada entrante…"
+              : state === "ending"
+                ? "Finalizando…"
+                : fmt(timer)}
+          </span>
         </div>
 
         {state === "active" && (
@@ -86,21 +135,17 @@ export function Exp2Call({ onComplete }: { onComplete: () => void }) {
       {/* Controls */}
       <div className="relative z-10 mb-6 w-full max-w-xs">
         {state === "incoming" ? (
-          <div className="flex items-center justify-around">
-            <button
-              onClick={endCall}
-              aria-label="Rechazar llamada"
-              className="flex size-16 items-center justify-center rounded-full bg-destructive text-white shadow-lg transition-transform active:scale-90"
-            >
-              <PhoneOff className="size-7" />
-            </button>
+          <div className="flex flex-col items-center gap-4">
             <button
               onClick={() => setState("active")}
-              aria-label="Aceptar llamada"
-              className="flex size-16 items-center justify-center rounded-full bg-emerald-500 text-white glow-violet animate-mystic-pulse transition-transform active:scale-90"
+              aria-label="Contestar llamada"
+              className="flex size-[72px] items-center justify-center rounded-full bg-emerald-500 text-white shadow-lg glow-violet animate-mystic-pulse transition-transform active:scale-90"
             >
-              <Phone className="size-7" />
+              <Phone className="size-8" />
             </button>
+            <span className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
+              Desliza para contestar
+            </span>
           </div>
         ) : (
           <div className="flex items-center justify-around">
