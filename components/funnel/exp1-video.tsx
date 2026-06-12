@@ -1,95 +1,75 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { Play, PhoneCall, ArrowRight } from "lucide-react"
-import { VeyraOrb } from "./veyra-orb"
+import { PhoneCall, ArrowRight } from "lucide-react"
 import { Particles } from "./particles"
 
 const YT_ID = "CUc-yP8aGiU"
-// Time (s) after pressing play before the "continue" path is offered.
+// Time (s) after the experience begins before the "continue" path is offered.
 const REVEAL_AT = 6
 
 export function Exp1Video({ onComplete }: { onComplete: () => void }) {
-  const [playing, setPlaying] = useState(false)
   const [elapsed, setElapsed] = useState(0)
   const timer = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
-    if (!playing) return
     timer.current = setInterval(() => {
       setElapsed((e) => e + 1)
     }, 1000)
     return () => {
       if (timer.current) clearInterval(timer.current)
     }
-  }, [playing])
+  }, [])
 
-  const showSignal = playing && elapsed >= REVEAL_AT
+  const showSignal = elapsed >= REVEAL_AT
 
   return (
-    <section className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-5 py-10">
-      <Particles count={24} />
+    <section className="relative flex min-h-screen flex-col items-center justify-end overflow-hidden">
+      {/* Full-screen muted, autoplaying background video */}
+      <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden bg-black">
+        <iframe
+          className="absolute left-1/2 top-1/2 h-[100vh] w-[177.78vh] min-w-full -translate-x-1/2 -translate-y-1/2"
+          src={`https://www.youtube.com/embed/${YT_ID}?autoplay=1&mute=1&loop=1&playlist=${YT_ID}&controls=0&playsinline=1&rel=0&modestbranding=1&showinfo=0&iv_load_policy=3`}
+          title="La consciencia de sanar"
+          frameBorder="0"
+          allow="autoplay; encrypted-media; picture-in-picture"
+          referrerPolicy="strict-origin-when-cross-origin"
+        />
+      </div>
 
-      <div className="relative z-10 flex w-full max-w-sm flex-col items-center">
-        <p className="mb-5 text-center text-xs uppercase tracking-[0.35em] text-muted-foreground">
-          Antes de escribirle…
-        </p>
+      {/* Darkening + mystical gradient overlays for legibility */}
+      <div className="absolute inset-0 z-10 bg-gradient-to-b from-background/70 via-background/30 to-background/95" />
+      <div className="absolute inset-0 z-10 bg-[radial-gradient(70%_60%_at_50%_40%,transparent_30%,oklch(0.13_0.03_295/0.55)_100%)]" />
+      <Particles count={20} />
 
-        {/* Vertical 9:16 video frame */}
-        <div className="relative w-full max-w-[300px] overflow-hidden rounded-[1.75rem] border border-primary/30 glow-violet">
-          <div className="relative aspect-[9/16] w-full bg-black">
-            {playing ? (
-              <iframe
-                className="absolute inset-0 h-full w-full"
-                src={`https://www.youtube.com/embed/${YT_ID}?autoplay=1&playsinline=1&rel=0&modestbranding=1`}
-                title="La consciencia de sanar"
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                referrerPolicy="strict-origin-when-cross-origin"
-                allowFullScreen
-              />
-            ) : (
-              <button
-                onClick={() => setPlaying(true)}
-                aria-label="Reproducir video"
-                className="group absolute inset-0 flex flex-col items-center justify-center gap-5 bg-gradient-to-b from-primary/20 via-background/40 to-background/80"
-              >
-                <VeyraOrb size={120} active={false} />
-                <span className="flex size-16 items-center justify-center rounded-full bg-primary/90 glow-violet transition-transform group-hover:scale-105">
-                  <Play className="size-7 translate-x-0.5 fill-primary-foreground text-primary-foreground" />
-                </span>
-                <span className="font-serif text-lg text-glow">
-                  La consciencia de sanar
-                </span>
-              </button>
-            )}
-          </div>
-        </div>
+      {/* Top label */}
+      <p className="absolute top-10 left-1/2 z-20 -translate-x-1/2 text-center text-xs uppercase tracking-[0.4em] text-foreground/70">
+        Antes de escribirle…
+      </p>
 
-        {/* Signal + advance */}
+      {/* Bottom overlay content */}
+      <div className="relative z-20 flex w-full max-w-sm flex-col items-center px-5 pb-16 text-center">
         {showSignal ? (
-          <div className="animate-float-up mt-8 flex flex-col items-center gap-3 text-center">
-            <span className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
+          <div className="animate-float-up flex flex-col items-center gap-3">
+            <span className="text-xs uppercase tracking-[0.3em] text-foreground/70">
               Hay una señal emocional activa
             </span>
-            <span className="flex items-center gap-2 font-serif text-3xl tracking-wide text-gold">
+            <span className="flex items-center gap-2 font-serif text-3xl tracking-wide text-gold text-glow">
               <PhoneCall className="size-6 animate-soft-blink text-primary" />
               VEYRA
             </span>
             <button
               onClick={onComplete}
-              className="mt-2 flex items-center gap-2 rounded-full bg-primary px-7 py-3 text-sm font-medium uppercase tracking-wider text-primary-foreground glow-violet transition-transform hover:scale-[1.03]"
+              className="mt-3 flex items-center gap-2 rounded-full bg-primary px-7 py-3 text-sm font-medium uppercase tracking-wider text-primary-foreground glow-violet transition-transform hover:scale-[1.03]"
             >
               Recibir la llamada
               <ArrowRight className="size-4" />
             </button>
           </div>
         ) : (
-          playing && (
-            <p className="animate-soft-blink mt-8 text-center text-sm text-muted-foreground">
-              Respira mientras escuchas…
-            </p>
-          )
+          <p className="animate-soft-blink font-serif text-2xl text-foreground/85 text-glow">
+            Respira mientras escuchas…
+          </p>
         )}
       </div>
     </section>
