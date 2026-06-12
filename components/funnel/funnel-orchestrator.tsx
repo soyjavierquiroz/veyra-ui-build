@@ -58,6 +58,21 @@ export function FunnelOrchestrator() {
     }
   }, [])
 
+  const stopIntroAudio = useCallback(() => {
+    const audio = introAudioRef.current
+    if (!audio) return
+
+    try {
+      audio.pause()
+      audio.currentTime = 0
+    } catch (error) {
+      if (process.env.NODE_ENV !== "production") {
+        console.warn("[funnel] intro audio stop failed", error)
+      }
+    }
+    introAudioStarted.current = false
+  }, [])
+
   return (
     <main className="relative min-h-screen w-full overflow-x-hidden bg-mystic text-foreground">
       <audio ref={introAudioRef} src="/audio/intro-rings.mp3" preload="auto" />
@@ -68,7 +83,12 @@ export function FunnelOrchestrator() {
           startIntroAudio={startIntroAudio}
         />
       )}
-      {stage === "call" && <Exp2Call onComplete={() => go("scanner")} />}
+      {stage === "call" && (
+        <Exp2Call
+          onComplete={() => go("scanner")}
+          stopIntroAudio={stopIntroAudio}
+        />
+      )}
       {stage === "scanner" && <Exp3Scanner onComplete={() => go("quiz")} />}
       {stage === "quiz" && (
         <Exp4Quiz
