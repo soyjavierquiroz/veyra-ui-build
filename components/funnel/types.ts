@@ -1,4 +1,5 @@
 export type Stage =
+  | "landing"
   | "video"
   | "call"
   | "scanner"
