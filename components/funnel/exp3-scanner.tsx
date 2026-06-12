@@ -1,141 +1,312 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
-import { ScanLine, Sparkles } from "lucide-react"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { Fingerprint, Sparkles } from "lucide-react"
 import { Particles } from "./particles"
 
-type Line = { at: number; text: string; kind?: "muted" | "result" | "chips" }
+type ScannerPhase = "idle" | "scanning" | "revelation" | "complete"
 
-const SCRIPT: Line[] = [
-  { at: 0, text: "Inicializando lectura emocional…", kind: "muted" },
-  { at: 6, text: "Detectando impulso de contacto…", kind: "muted" },
-  { at: 14, text: "Señal emocional encontrada." },
-  { at: 22, text: "Analizando emoción dominante detrás del mensaje…", kind: "muted" },
-  { at: 32, text: "Posibles patrones activos:" },
-  { at: 38, text: "chips", kind: "chips" },
-  { at: 52, text: "Separando impulso de identidad…", kind: "muted" },
-  { at: 62, text: "Resultado parcial:", kind: "muted" },
-  { at: 66, text: "No eres débil.", kind: "result" },
-  { at: 72, text: "Algo en ti está buscando alivio.", kind: "result" },
-  { at: 86, text: "Scanner finalizado." },
-  { at: 92, text: "Responde para revelar tu patrón.", kind: "muted" },
+type ScannerStep =
+  | {
+      from: number
+      to: number
+      kind: "scan" | "reveal"
+      text: string
+    }
+  | {
+      from: number
+      to: number
+      kind: "progress"
+      percent: number
+      bar: string
+      text: string
+    }
+
+const SCANNER_AUDIO_SRC = process.env.NEXT_PUBLIC_SCANNER_AUDIO_SRC?.trim() ?? ""
+
+const scannerSteps: ScannerStep[] = [
+  { from: 0, to: 3, kind: "scan", text: "Iniciando lectura emocional…" },
+  { from: 3, to: 6, kind: "scan", text: "Detectando actividad en el chat pendiente…" },
+  {
+    from: 6,
+    to: 10,
+    kind: "progress",
+    percent: 20,
+    bar: "[██░░░░░░░░]",
+    text: "Señal encontrada: impulso de escribir desde ansiedad.",
+  },
+  {
+    from: 10,
+    to: 15,
+    kind: "progress",
+    percent: 40,
+    bar: "[████░░░░░░]",
+    text: "Nivel de urgencia emocional: alto.",
+  },
+  {
+    from: 15,
+    to: 20,
+    kind: "progress",
+    percent: 60,
+    bar: "[██████░░░░]",
+    text: "Necesidad detectada: respuesta, cierre o alivio inmediato.",
+  },
+  {
+    from: 20,
+    to: 25,
+    kind: "progress",
+    percent: 80,
+    bar: "[████████░░]",
+    text: "Riesgo actual: enviar un mensaje que después puede doler.",
+  },
+  {
+    from: 25,
+    to: 31,
+    kind: "progress",
+    percent: 100,
+    bar: "[██████████]",
+    text: "Lectura completada.",
+  },
+  {
+    from: 31,
+    to: 39,
+    kind: "reveal",
+    text: "“No estás fallando por falta de amor propio.\nEstás intentando actuar mientras tu emoción está activada.”",
+  },
+  {
+    from: 39,
+    to: 47,
+    kind: "reveal",
+    text: "“El impulso no siempre significa amor.\nA veces significa ansiedad buscando calma.”",
+  },
 ]
 
-const CHIPS = [
-  "abandono",
-  "validación",
-  "culpa",
-  "nostalgia",
-  "cierre",
-  "ansiedad por silencio",
-]
+function getActiveStep(elapsedSeconds: number) {
+  return (
+    scannerSteps.find(
+      (step) => elapsedSeconds >= step.from && elapsedSeconds < step.to,
+    ) ?? scannerSteps[scannerSteps.length - 1]
+  )
+}
+
+function getPhase(elapsedSeconds: number): ScannerPhase {
+  if (elapsedSeconds >= 47) return "complete"
+  if (elapsedSeconds >= 31) return "revelation"
+  return "scanning"
+}
+
+function getVisualProgress(step: ScannerStep, elapsedSeconds: number) {
+  if (step.kind === "progress") return step.percent
+  if (elapsedSeconds >= 31) return 100
+  if (elapsedSeconds >= 6) return 20
+  return Math.max(4, Math.round((elapsedSeconds / 6) * 18))
+}
 
 export function Exp3Scanner({ onComplete }: { onComplete: () => void }) {
-  const [progress, setProgress] = useState(0)
-  const scrollRef = useRef<HTMLDivElement>(null)
+  const [phase, setPhase] = useState<ScannerPhase>("idle")
+  const [elapsedSeconds, setElapsedSeconds] = useState(0)
+  const [isActivating, setIsActivating] = useState(false)
+  const [isScannerAudioReady, setIsScannerAudioReady] = useState(false)
+  const startTimeRef = useRef<number | null>(null)
+  const activationTimeoutRef = useRef<number | null>(null)
+  const scannerAudioRef = useRef<HTMLAudioElement>(null)
+
+  const activeStep = useMemo(() => getActiveStep(elapsedSeconds), [elapsedSeconds])
+  const visualProgress = getVisualProgress(activeStep, elapsedSeconds)
+  const isLocked = phase === "scanning" || phase === "revelation"
 
   useEffect(() => {
-    const id = setInterval(() => {
-      setProgress((p) => {
-        if (p >= 100) {
-          clearInterval(id)
-          return 100
-        }
-        return p + 1
-      })
-    }, 70)
-    return () => clearInterval(id)
+    if (phase === "idle" || phase === "complete") return
+
+    const id = window.setInterval(() => {
+      if (!startTimeRef.current) return
+
+      const nextElapsed = (Date.now() - startTimeRef.current) / 1000
+      setElapsedSeconds(nextElapsed)
+      setPhase(getPhase(nextElapsed))
+    }, 250)
+
+    return () => window.clearInterval(id)
+  }, [phase])
+
+  useEffect(() => {
+    return () => {
+      if (activationTimeoutRef.current) {
+        window.clearTimeout(activationTimeoutRef.current)
+      }
+
+      const audio = scannerAudioRef.current
+      if (!audio) return
+      audio.pause()
+    }
   }, [])
 
-  useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
-  }, [progress])
+  function startScanner() {
+    if (phase !== "idle") return
 
-  const done = progress >= 100
-  const visible = SCRIPT.filter((l) => l.at <= progress)
+    setIsActivating(true)
 
-  const bar = (pct: number) => {
-    const filled = Math.round((pct / 100) * 10)
-    return "[" + "█".repeat(filled) + "░".repeat(10 - filled) + "]"
+    activationTimeoutRef.current = window.setTimeout(() => {
+      startTimeRef.current = Date.now()
+      setElapsedSeconds(0)
+      setPhase("scanning")
+    }, 360)
+
+    const audio = scannerAudioRef.current
+    if (!audio || !SCANNER_AUDIO_SRC || !isScannerAudioReady) return
+
+    audio.currentTime = 0
+    void audio.play().catch((error: unknown) => {
+      if (process.env.NODE_ENV !== "production") {
+        console.warn("[funnel] scanner audio playback failed", error)
+      }
+    })
   }
 
   return (
-    <section className="relative flex min-h-screen flex-col items-center px-5 py-10">
-      <Particles count={18} />
+    <section className="relative flex h-[100dvh] w-full min-w-[320px] justify-center overflow-hidden bg-mystic text-foreground">
+      <Particles count={14} />
       <div
-        className="pointer-events-none absolute inset-0 opacity-[0.07]"
+        className="pointer-events-none absolute inset-0 opacity-[0.08]"
         style={{
           backgroundImage:
             "linear-gradient(oklch(0.7 0.16 300) 1px, transparent 1px), linear-gradient(90deg, oklch(0.7 0.16 300) 1px, transparent 1px)",
-          backgroundSize: "32px 32px",
+          backgroundSize: "34px 34px",
+          maskImage: "radial-gradient(circle at center, black, transparent 76%)",
         }}
         aria-hidden="true"
       />
+      <div
+        className="pointer-events-none absolute inset-x-[-30%] top-[16%] h-80 rounded-full bg-primary/25 blur-3xl"
+        aria-hidden="true"
+      />
+      <div
+        className="pointer-events-none absolute bottom-[-28%] left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-gold/10 blur-3xl"
+        aria-hidden="true"
+      />
 
-      <div className="relative z-10 flex w-full max-w-md flex-1 flex-col">
-        <div className="mb-6 flex flex-col items-center gap-3 text-center">
-          <ScanLine className="size-10 text-primary animate-soft-blink" />
-          <h1 className="font-serif text-2xl text-gold">Scanner de herida activa</h1>
-        </div>
+      {SCANNER_AUDIO_SRC && (
+        <audio
+          ref={scannerAudioRef}
+          src={SCANNER_AUDIO_SRC}
+          preload="metadata"
+          onCanPlayThrough={() => setIsScannerAudioReady(true)}
+          onError={() => setIsScannerAudioReady(false)}
+        />
+      )}
 
-        {/* Progress */}
-        <div className="mb-2 flex items-center justify-between font-mono text-xs text-muted-foreground">
-          <span>{bar(progress)}</span>
-          <span>{progress}%</span>
-        </div>
-        <div className="mb-6 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
-          <div
-            className="h-full bg-gradient-to-r from-primary to-gold transition-[width] duration-100"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
+      <div
+        className={`relative z-10 flex h-full w-full max-w-[430px] flex-col px-5 py-7 sm:border-x sm:border-white/10 sm:bg-black/10 ${
+          isLocked ? "pointer-events-none select-none" : ""
+        }`}
+      >
+        <header className="shrink-0 text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.32em] text-primary/80">
+            SCANNER EMOCIONAL
+          </p>
+          {phase === "idle" && (
+            <p className="mx-auto mt-4 max-w-xs text-balance text-sm leading-relaxed text-muted-foreground">
+              Coloca tu dedo pulgar sobre el scanner para iniciar.
+            </p>
+          )}
+        </header>
 
-        {/* Terminal */}
-        <div
-          ref={scrollRef}
-          className="min-h-[280px] flex-1 space-y-3 overflow-y-auto rounded-2xl border border-border bg-card/60 p-5 font-mono text-sm leading-relaxed backdrop-blur"
-        >
-          {visible.map((l, i) =>
-            l.kind === "chips" ? (
-              <div key={i} className="flex flex-wrap gap-2 py-1">
-                {CHIPS.map((c) => (
-                  <span
-                    key={c}
-                    className="animate-float-up rounded-full border border-primary/40 bg-primary/15 px-3 py-1 text-xs text-foreground break-words"
-                  >
-                    {c}
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <p
-                key={i}
-                className={`animate-float-up break-words ${
-                  l.kind === "result"
-                    ? "font-serif text-base text-gold"
-                    : l.kind === "muted"
-                      ? "text-muted-foreground"
-                      : "text-foreground"
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-7 py-6 text-center">
+          {phase === "idle" ? (
+            <button
+              type="button"
+              aria-label="Iniciar scanner emocional"
+              onClick={startScanner}
+              className={`relative flex size-44 shrink-0 items-center justify-center rounded-full border border-primary/60 bg-primary/15 text-primary glow-violet transition duration-300 active:scale-95 motion-safe:animate-mystic-pulse ${
+                isActivating ? "scale-125 opacity-0 blur-sm" : ""
+              }`}
+            >
+              <span
+                className="absolute inset-4 rounded-full border border-primary/30"
+                aria-hidden="true"
+              />
+              <span
+                className="absolute inset-[-14px] rounded-full border border-primary/20 opacity-70"
+                aria-hidden="true"
+              />
+              <Fingerprint className="size-24" strokeWidth={1.25} />
+            </button>
+          ) : (
+            <div className="flex w-full flex-col items-center gap-7">
+              <div
+                className={`relative flex size-44 items-center justify-center rounded-full border border-primary/40 ${
+                  phase === "revelation" || phase === "complete"
+                    ? "bg-primary/10"
+                    : "bg-primary/15 glow-violet"
                 }`}
               >
-                {l.text}
-              </p>
-            ),
+                <div
+                  className={`absolute inset-[-16px] rounded-full border border-primary/20 ${
+                    phase === "scanning" ? "motion-safe:animate-halo-spin" : ""
+                  }`}
+                  style={{
+                    background: `conic-gradient(oklch(0.62 0.18 300) ${visualProgress * 3.6}deg, transparent 0deg)`,
+                    mask: "radial-gradient(farthest-side, transparent calc(100% - 2px), black calc(100% - 1px))",
+                  }}
+                  aria-hidden="true"
+                />
+                <div
+                  className="absolute inset-8 rounded-full bg-primary/10 blur-md"
+                  aria-hidden="true"
+                />
+                <Fingerprint
+                  className={`relative size-20 text-primary ${
+                    phase === "scanning" ? "animate-soft-blink" : "opacity-55"
+                  }`}
+                  strokeWidth={1.25}
+                />
+              </div>
+
+              <div className="w-full max-w-sm">
+                <div className="mb-5 h-1.5 overflow-hidden rounded-full bg-white/10">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-primary via-primary to-gold transition-[width] duration-300"
+                    style={{ width: `${visualProgress}%` }}
+                  />
+                </div>
+
+                <div
+                  key={`${activeStep.from}-${activeStep.text}`}
+                  className={`animate-float-up whitespace-pre-line text-balance ${
+                    activeStep.kind === "reveal" || phase === "complete"
+                      ? "font-serif text-2xl leading-tight text-gold text-glow"
+                      : "font-sans text-lg leading-relaxed text-foreground"
+                  }`}
+                >
+                  {activeStep.kind === "progress" && (
+                    <p className="mb-3 font-mono text-sm tracking-[0.18em] text-primary/90">
+                      {activeStep.bar} {activeStep.percent}%
+                    </p>
+                  )}
+                  <p>{activeStep.text}</p>
+                </div>
+              </div>
+            </div>
           )}
         </div>
 
-        {/* CTA */}
-        <div className="mt-6 min-h-[60px]">
-          {done && (
-            <button
-              onClick={onComplete}
-              className="animate-float-up flex w-full items-center justify-center gap-2 rounded-full bg-primary py-4 font-medium uppercase tracking-wide text-primary-foreground glow-violet transition-transform active:scale-95"
-            >
-              <Sparkles className="size-5" />
-              Revelar mi patrón
-            </button>
+        <footer className="flex min-h-[112px] shrink-0 flex-col justify-end gap-4 pb-2">
+          {phase === "complete" && (
+            <>
+              <button
+                type="button"
+                onClick={onComplete}
+                className="animate-float-up flex w-full items-center justify-center gap-2 rounded-full bg-primary py-4 text-sm font-semibold uppercase tracking-wide text-primary-foreground glow-violet transition-transform active:scale-95"
+              >
+                <Sparkles className="size-5" />
+                Ver mi ruta emocional
+              </button>
+              <p className="animate-float-up text-center text-xs leading-relaxed text-muted-foreground">
+                Esto no es un diagnóstico. Es una lectura simbólica para ayudarte a pausar antes de actuar.
+              </p>
+            </>
           )}
-        </div>
+        </footer>
       </div>
     </section>
   )
