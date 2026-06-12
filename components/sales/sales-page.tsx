@@ -19,6 +19,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
+import { funnelConfig } from "@/components/funnel/config"
+import { trackFunnelEvent } from "@/components/funnel/lib/analytics"
 import { Particles } from "@/components/funnel/particles"
 import { VeyraOrb } from "@/components/funnel/veyra-orb"
 
@@ -128,6 +130,7 @@ function CtaButton({ children }: { children: React.ReactNode }) {
   return (
     <Link
       href={PRIMARY_HREF}
+      onClick={() => trackFunnelEvent("sales_cta_clicked", { href: PRIMARY_HREF })}
       className="flex w-full items-center justify-center gap-2 rounded-full bg-primary px-5 py-4 text-center text-sm font-semibold uppercase tracking-wide text-primary-foreground glow-violet transition-transform active:scale-95"
     >
       {children}
@@ -349,7 +352,7 @@ export function SalesPage() {
             El primer portal del Método P.A.U.S.A. dentro de GranDiosa Mujer.
           </p>
           <p className="mt-4 text-xs uppercase tracking-wide text-muted-foreground">Por solo</p>
-          <p className="font-serif text-5xl text-gold">Bs 69</p>
+          <p className="font-serif text-5xl text-gold">{funnelConfig.priceLabel}</p>
 
           <div className="mt-6 rounded-2xl border border-primary/30 bg-primary/10 p-4">
             <p className="font-serif text-lg text-foreground">No es solo un PDF</p>
@@ -370,7 +373,7 @@ export function SalesPage() {
           </ul>
 
           <div className="mt-8">
-            <CtaButton>Quiero volver a mí — Bs 69</CtaButton>
+            <CtaButton>Quiero volver a mí — {funnelConfig.priceLabel}</CtaButton>
             <p className="mt-2 text-xs text-muted-foreground break-words">
               Pago por QR. Acceso confirmado por WhatsApp.
             </p>
@@ -434,10 +437,11 @@ export function SalesPage() {
             Mujer, No Le Escribas — Reto 7 Días para Volver a Ti
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Acceso especial de lanzamiento: <span className="text-gold">Bs 69</span>
+            Acceso especial de lanzamiento:{" "}
+            <span className="text-gold">{funnelConfig.priceLabel}</span>
           </p>
           <div className="mt-6">
-            <CtaButton>Sí, quiero volver a mí — Bs 69</CtaButton>
+            <CtaButton>Sí, quiero volver a mí — {funnelConfig.priceLabel}</CtaButton>
           </div>
           <p className="mt-5 text-sm leading-relaxed text-muted-foreground break-words">
             Una pausa no borra tu historia. Pero puede cambiar desde dónde decides tu próximo
@@ -449,7 +453,9 @@ export function SalesPage() {
       {/* Sticky CTA */}
       <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-background/90 px-4 py-3 backdrop-blur">
         <div className="mx-auto w-full max-w-md">
-          <CtaButton>Quiero empezar mi P.A.U.S.A. — Bs 69</CtaButton>
+          <CtaButton>
+            Quiero empezar mi P.A.U.S.A. — {funnelConfig.priceLabel}
+          </CtaButton>
         </div>
       </div>
     </main>

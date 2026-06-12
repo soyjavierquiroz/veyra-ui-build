@@ -1,0 +1,47 @@
+export type FunnelMode = "demo" | "production"
+
+export type FunnelConfig = {
+  mode: FunnelMode
+  vslVideoUrl: string
+  whatsappNumber: string
+  whatsappBaseUrl: string
+  accessLink: string
+  qrImageUrl: string
+  analyticsEnabled: boolean
+  priceLabel: "Bs 69"
+  portalPassword: "PAUSA7"
+}
+
+function cleanPublicEnv(value: string | undefined): string | undefined {
+  return value && value.trim().length > 0 ? value.trim() : undefined
+}
+
+function readMode(): FunnelMode {
+  return cleanPublicEnv(process.env.NEXT_PUBLIC_FUNNEL_MODE) === "production"
+    ? "production"
+    : "demo"
+}
+
+function readBoolean(value: string | undefined, fallback: boolean): boolean {
+  value = cleanPublicEnv(value)
+  if (!value) return fallback
+  return ["1", "true", "yes", "on"].includes(value.toLowerCase())
+}
+
+const mode = readMode()
+
+export const funnelConfig: FunnelConfig = {
+  mode,
+  vslVideoUrl: cleanPublicEnv(process.env.NEXT_PUBLIC_VSL_VIDEO_URL) ?? "",
+  whatsappNumber: cleanPublicEnv(process.env.NEXT_PUBLIC_WHATSAPP_NUMBER) ?? "",
+  whatsappBaseUrl:
+    cleanPublicEnv(process.env.NEXT_PUBLIC_WHATSAPP_BASE_URL) ?? "https://wa.me",
+  accessLink: cleanPublicEnv(process.env.NEXT_PUBLIC_ACCESS_LINK) ?? "/reto/",
+  qrImageUrl: cleanPublicEnv(process.env.NEXT_PUBLIC_QR_IMAGE_URL) ?? "",
+  analyticsEnabled: readBoolean(
+    process.env.NEXT_PUBLIC_FUNNEL_ANALYTICS_ENABLED,
+    mode === "demo",
+  ),
+  priceLabel: "Bs 69",
+  portalPassword: "PAUSA7",
+}

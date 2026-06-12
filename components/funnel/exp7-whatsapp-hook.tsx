@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react"
 import { ArrowRight } from "lucide-react"
+import { funnelConfig } from "./config"
 import { WhatsappFrame, Bubble, Typing } from "./whatsapp-ui"
 
 const BLOCKS = [
   "Hola, hermosa.",
   "Tu portal privado ya está listo.",
-  "Para entrar al Feed Secreto de Veyra usa esta contraseña:\n\nPAUSA7\n\nEscríbela exactamente así en la siguiente pantalla.",
+  `Para entrar al Feed Secreto de Veyra usa esta contraseña:\n\n${funnelConfig.portalPassword}\n\nEscríbela exactamente así en la siguiente pantalla.`,
   "Mira los 3 mensajes en orden.\nEl último te mostrará cómo empezar tu P.A.U.S.A.",
 ]
 

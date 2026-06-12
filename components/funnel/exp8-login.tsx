@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react"
 import { Lock, ArrowRight, RotateCcw, Check } from "lucide-react"
+import { funnelConfig } from "./config"
+import { trackFunnelEvent } from "./lib/analytics"
 import { Particles } from "./particles"
 
 type Phase = "input" | "error" | "unlocking" | "success"
@@ -34,10 +36,12 @@ export function Exp8Login({ onComplete }: { onComplete: () => void }) {
   }, [phase])
 
   const submit = () => {
-    if (value.trim().toUpperCase() === "PAUSA7") {
+    if (value.trim().toUpperCase() === funnelConfig.portalPassword) {
+      trackFunnelEvent("login_success")
       setPhase("unlocking")
       setStep(0)
     } else {
+      trackFunnelEvent("login_failed")
       setPhase("error")
     }
   }
@@ -106,7 +110,7 @@ export function Exp8Login({ onComplete }: { onComplete: () => void }) {
                   if (phase === "error") setPhase("input")
                 }}
                 onKeyDown={(e) => e.key === "Enter" && submit()}
-                placeholder="PAUSA7"
+                placeholder={funnelConfig.portalPassword}
                 aria-label="Contraseña"
                 className="mb-4 w-full rounded-xl border border-border bg-input/40 px-4 py-3 text-center font-mono tracking-[0.3em] text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none"
               />
@@ -119,7 +123,9 @@ export function Exp8Login({ onComplete }: { onComplete: () => void }) {
                   <p className="break-words text-muted-foreground">
                     Revisa que esté escrita exactamente así:
                   </p>
-                  <p className="mt-1 font-mono tracking-[0.2em] text-gold">PAUSA7</p>
+                  <p className="mt-1 font-mono tracking-[0.2em] text-gold">
+                    {funnelConfig.portalPassword}
+                  </p>
                 </div>
               )}
 

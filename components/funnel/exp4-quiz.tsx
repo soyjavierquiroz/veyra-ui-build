@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { ArrowRight } from "lucide-react"
 import type { PatternKey } from "./types"
+import { trackFunnelEvent } from "./lib/analytics"
 import { VeyraOrb } from "./veyra-orb"
 import { Particles } from "./particles"
 
@@ -124,6 +125,10 @@ export function Exp4Quiz({
 
   const handleAnswer = (q: Q, key: PatternKey) => {
     const next = [...answers, key]
+    trackFunnelEvent("quiz_answered", {
+      questionIndex: index,
+      answer: key,
+    })
     setAnswers(next)
     if (q.micro) {
       setMicro(q.micro)
@@ -164,7 +169,10 @@ export function Exp4Quiz({
             Responde para verte.
           </p>
           <button
-            onClick={() => setPhase("quiz")}
+            onClick={() => {
+              trackFunnelEvent("quiz_started")
+              setPhase("quiz")
+            }}
             className="flex w-full items-center justify-center gap-2 rounded-full bg-primary py-4 font-medium uppercase tracking-wide text-primary-foreground glow-violet transition-transform active:scale-95"
           >
             Empezar lectura

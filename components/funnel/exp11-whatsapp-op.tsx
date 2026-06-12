@@ -2,9 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { QrCode, Link2, Send, FileCheck2 } from "lucide-react"
+import { funnelConfig } from "./config"
+import { trackFunnelEvent } from "./lib/analytics"
+import type { WhatsappMode } from "./types"
 import { WhatsappFrame, Bubble, Typing } from "./whatsapp-ui"
 
-export type OpEntry = "buy" | "doubt"
+export type OpEntry = WhatsappMode
 
 type Msg =
   | { id: string; kind: "in"; text: string }
@@ -19,13 +22,13 @@ const SEQ = {
   A: [
     "Hola, hermosa.",
     "Estás a un paso de activar tu acceso al reto Mujer, No Le Escribas — 7 Días para Volver a Ti.",
-    "El acceso especial de lanzamiento es de Bs 69.",
+    `El acceso especial de lanzamiento es de ${funnelConfig.priceLabel}.`,
     "Puedes realizar el pago mediante QR.",
     "Te lo envío ahora.",
   ],
   B: [
     "Aquí tienes tu QR.",
-    "Monto: Bs 69",
+    `Monto: ${funnelConfig.priceLabel}`,
     "Concepto: Reto Mujer, No Le Escribas",
     "Cuando tengas el comprobante, mándalo por este chat.",
     "Estamos aquí para ayudarte con el acceso.",
@@ -91,19 +94,27 @@ function QrCard() {
     <div className="flex justify-start animate-float-up">
       <div className="max-w-[80%] rounded-2xl rounded-tl-sm bg-[oklch(0.22_0.04_295)] p-3">
         <div className="flex aspect-square w-44 items-center justify-center rounded-xl bg-white p-3">
-          <div
-            className="size-full"
-            style={{
-              backgroundImage:
-                "repeating-linear-gradient(0deg,#000 0 8px,#fff 8px 16px), repeating-linear-gradient(90deg,#000 0 8px,transparent 8px 16px)",
-              backgroundBlendMode: "multiply",
-            }}
-            aria-label="Código QR de pago"
-            role="img"
-          />
+          {funnelConfig.qrImageUrl ? (
+            <img
+              src={funnelConfig.qrImageUrl}
+              alt="Código QR de pago"
+              className="size-full object-contain"
+            />
+          ) : (
+            <div
+              className="size-full"
+              style={{
+                backgroundImage:
+                  "repeating-linear-gradient(0deg,#000 0 8px,#fff 8px 16px), repeating-linear-gradient(90deg,#000 0 8px,transparent 8px 16px)",
+                backgroundBlendMode: "multiply",
+              }}
+              aria-label="Código QR de pago"
+              role="img"
+            />
+          )}
         </div>
         <p className="mt-2 text-center text-xs text-foreground/70">
-          Monto: Bs 69 · Reto Mujer, No Le Escribas
+          Monto: {funnelConfig.priceLabel} · Reto Mujer, No Le Escribas
         </p>
       </div>
     </div>
@@ -116,7 +127,7 @@ function LinkCard() {
       <div className="flex max-w-[80%] items-center gap-2 rounded-2xl rounded-tl-sm border border-gold/40 bg-[oklch(0.22_0.04_295)] px-3.5 py-3">
         <Link2 className="size-5 shrink-0 text-gold" />
         <span className="break-all font-mono text-sm text-gold">
-          [ENLACE DE ACCESO]
+          {funnelConfig.accessLink}
         </span>
       </div>
     </div>
@@ -167,6 +178,7 @@ export function Exp11WhatsappOp({ entry }: { entry: OpEntry }) {
 
   // initial sequence
   useEffect(() => {
+    trackFunnelEvent("whatsapp_flow_started", { entry })
     if (entry === "buy") {
       pushBot(SEQ.A)
       pushBot([{ id: uid(), kind: "qr" }, ...SEQ.B])

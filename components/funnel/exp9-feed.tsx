@@ -9,6 +9,7 @@ import {
   ChevronUp,
   ArrowRight,
 } from "lucide-react"
+import { trackFunnelEvent } from "./lib/analytics"
 import { VeyraOrb } from "./veyra-orb"
 
 type Video = {
@@ -193,7 +194,10 @@ export function Exp9Feed({ onComplete }: { onComplete: () => void }) {
       <div className="sticky bottom-0 z-20 bg-background/80 px-4 py-4 backdrop-blur">
         {lastDone ? (
           <button
-            onClick={onComplete}
+            onClick={() => {
+              trackFunnelEvent("feed_completed")
+              onComplete()
+            }}
             className="animate-float-up flex w-full items-center justify-center gap-2 rounded-full bg-primary py-4 font-medium uppercase tracking-wide text-primary-foreground glow-violet transition-transform active:scale-95"
           >
             Ver el reto

@@ -13,7 +13,31 @@ export type Stage =
   | "offer"
   | "whatsapp-op"
 
+export type FunnelStep = Stage
+
 export type PatternKey = "A" | "B" | "C" | "D" | "E" | "F"
+
+export type EmotionalPattern = PatternKey
+
+export type QuizAnswer = {
+  questionIndex: number
+  pattern: PatternKey
+}
+
+export type WhatsappMode = "buy" | "doubt"
+
+export type FunnelEventName =
+  | "funnel_started"
+  | "exp_completed"
+  | "quiz_started"
+  | "quiz_answered"
+  | "pattern_revealed"
+  | "login_success"
+  | "login_failed"
+  | "feed_completed"
+  | "offer_cta_clicked"
+  | "whatsapp_flow_started"
+  | "sales_cta_clicked"
 
 export const PATTERNS: Record<
   PatternKey,

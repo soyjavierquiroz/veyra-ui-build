@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState } from "react"
 import type { PatternKey, Stage } from "./types"
+import { trackFunnelEvent } from "./lib/analytics"
 import { FunnelLanding } from "./funnel-landing"
 import { Exp1Video } from "./exp1-video"
 import { Exp2Call } from "./exp2-call"
@@ -22,12 +23,17 @@ export function FunnelOrchestrator() {
   const [opEntry, setOpEntry] = useState<OpEntry>("buy")
   const audioRef = useRef<HTMLAudioElement>(null)
 
-  const go = useCallback((s: Stage) => {
-    setStage(s)
-    window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior })
-  }, [])
+  const go = useCallback(
+    (s: Stage) => {
+      trackFunnelEvent("exp_completed", { from: stage, to: s })
+      setStage(s)
+      window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior })
+    },
+    [stage],
+  )
 
   const startExperience = useCallback(() => {
+    trackFunnelEvent("funnel_started", { entry: "landing" })
     const audio = audioRef.current
     if (audio) {
       audio.volume = 0.85
@@ -50,6 +56,7 @@ export function FunnelOrchestrator() {
         <Exp4Quiz
           onComplete={(p) => {
             setPattern(p)
+            trackFunnelEvent("pattern_revealed", { pattern: p })
             go("reading")
           }}
         />
@@ -67,10 +74,12 @@ export function FunnelOrchestrator() {
       {stage === "offer" && (
         <Exp10Offer
           onPrimary={() => {
+            trackFunnelEvent("offer_cta_clicked", { intent: "buy" })
             setOpEntry("buy")
             go("whatsapp-op")
           }}
           onSecondary={() => {
+            trackFunnelEvent("offer_cta_clicked", { intent: "doubt" })
             setOpEntry("doubt")
             go("whatsapp-op")
           }}

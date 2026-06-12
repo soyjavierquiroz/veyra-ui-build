@@ -7,6 +7,7 @@ import {
   ShieldCheck,
   MessageCircleQuestion,
 } from "lucide-react"
+import { funnelConfig } from "./config"
 import { Particles } from "./particles"
 
 const INCLUDES = [
@@ -113,7 +114,9 @@ export function Exp10Offer({
           <span className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
             Acceso especial de lanzamiento
           </span>
-          <span className="font-serif text-5xl text-gold">Bs 69</span>
+          <span className="font-serif text-5xl text-gold">
+            {funnelConfig.priceLabel}
+          </span>
         </div>
 
         {/* Guarantee mini */}
@@ -132,7 +135,7 @@ export function Exp10Offer({
             onClick={onPrimary}
             className="flex w-full items-center justify-center gap-2 rounded-full bg-primary py-4 text-sm font-semibold uppercase tracking-wide text-primary-foreground glow-violet transition-transform active:scale-95"
           >
-            Quiero empezar mi P.A.U.S.A. — Bs 69
+            Quiero empezar mi P.A.U.S.A. — {funnelConfig.priceLabel}
           </button>
           <button
             onClick={onSecondary}
