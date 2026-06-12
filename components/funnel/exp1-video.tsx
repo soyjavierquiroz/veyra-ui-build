@@ -1,10 +1,9 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { funnelConfig } from "./config"
 import { FunnelLanding } from "./funnel-landing"
 
-const YT_ID = "CUc-yP8aGiU"
+const YT_ID = "qHvLv7pj5LE"
 const INTRO_AUDIO_SRC = "/audio/intro-rings.mp3"
 // The first scene plays the background video for this long, then advances.
 const SCENE_DURATION = 10_000
@@ -14,26 +13,25 @@ type Exp1VideoProps = {
   onComplete: () => void
 }
 
-function warnPlaybackFailure(target: "video" | "audio", error: unknown) {
+function warnPlaybackFailure(target: "audio", error: unknown) {
   if (process.env.NODE_ENV !== "production") {
     console.warn(`[funnel] EXP 1 ${target} playback failed`, error)
   }
 }
 
-function buildYoutubeSrc(started: boolean) {
+function buildYoutubeSrc() {
   const params = new URLSearchParams({
-    autoplay: started ? "1" : "0",
+    autoplay: "1",
     mute: "1",
-    loop: "1",
-    playlist: YT_ID,
     controls: "0",
-    playsinline: "1",
     rel: "0",
-    modestbranding: "1",
-    showinfo: "0",
-    iv_load_policy: "3",
+    playsinline: "1",
     disablekb: "1",
     fs: "0",
+    iv_load_policy: "3",
+    modestbranding: "1",
+    loop: "1",
+    playlist: YT_ID,
   })
 
   return `https://www.youtube.com/embed/${YT_ID}?${params.toString()}`
@@ -41,10 +39,8 @@ function buildYoutubeSrc(started: boolean) {
 
 export function Exp1Video({ onStart, onComplete }: Exp1VideoProps) {
   const done = useRef(false)
-  const videoRef = useRef<HTMLVideoElement>(null)
   const audioRef = useRef<HTMLAudioElement>(null)
   const [started, setStarted] = useState(false)
-  const html5VideoUrl = funnelConfig.exp1VideoUrl
 
   useEffect(() => {
     if (!started) return
@@ -60,19 +56,6 @@ export function Exp1Video({ onStart, onComplete }: Exp1VideoProps) {
 
   const handleStart = useCallback(() => {
     if (started) return
-
-    const video = videoRef.current
-    if (video) {
-      try {
-        video.currentTime = 0
-        video.muted = true
-        void video.play().catch((error: unknown) => {
-          warnPlaybackFailure("video", error)
-        })
-      } catch (error) {
-        warnPlaybackFailure("video", error)
-      }
-    }
 
     const audio = audioRef.current
     if (audio) {
@@ -95,34 +78,27 @@ export function Exp1Video({ onStart, onComplete }: Exp1VideoProps) {
     <section className="relative min-h-screen w-full overflow-hidden bg-black">
       <audio ref={audioRef} src={INTRO_AUDIO_SRC} preload="auto" />
 
-      {/* Full-screen muted background video. If an MP4 URL is supplied later,
-          the HTML5 branch starts from the same user gesture as the audio. */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        {html5VideoUrl ? (
-          <video
-            ref={videoRef}
-            className="absolute inset-0 h-full w-full object-cover"
-            src={html5VideoUrl}
-            muted
-            playsInline
-            preload="auto"
-            controls={false}
-            loop={false}
-          />
-        ) : (
-          <iframe
-            className="absolute left-1/2 top-1/2 h-[100vh] w-[177.78vh] min-w-full -translate-x-1/2 -translate-y-1/2"
-            src={buildYoutubeSrc(started)}
-            title="La consciencia de sanar"
-            frameBorder="0"
-            allow="autoplay; encrypted-media; picture-in-picture"
-            loading="eager"
-            referrerPolicy="strict-origin-when-cross-origin"
-          />
-        )}
+        <iframe
+          className="absolute left-1/2 top-1/2 min-h-full min-w-full -translate-x-1/2 -translate-y-1/2 border-0"
+          style={{
+            width: "max(100vw, calc(100vh * 9 / 16))",
+            height: "max(100vh, calc(100vw * 16 / 9))",
+          }}
+          src={buildYoutubeSrc()}
+          title="Veyra llamando"
+          frameBorder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          loading="eager"
+          referrerPolicy="strict-origin-when-cross-origin"
+          aria-hidden="true"
+        />
       </div>
 
+      <div className="pointer-events-none absolute inset-0 bg-black/10" />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(75%_70%_at_50%_45%,transparent_35%,oklch(0.05_0.02_295/0.6)_100%)]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/45 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/55 to-transparent" />
 
       {!started && <FunnelLanding onStart={handleStart} />}
     </section>
