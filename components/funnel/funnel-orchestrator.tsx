@@ -1,9 +1,8 @@
 "use client"
 
-import { useCallback, useRef, useState } from "react"
+import { useCallback, useState } from "react"
 import type { PatternKey, Stage } from "./types"
 import { trackFunnelEvent } from "./lib/analytics"
-import { FunnelLanding } from "./funnel-landing"
 import { Exp1Video } from "./exp1-video"
 import { Exp2Call } from "./exp2-call"
 import { Exp3Scanner } from "./exp3-scanner"
@@ -18,10 +17,9 @@ import { Exp10Offer } from "./exp10-offer"
 import { Exp11WhatsappOp, type OpEntry } from "./exp11-whatsapp-op"
 
 export function FunnelOrchestrator() {
-  const [stage, setStage] = useState<Stage>("landing")
+  const [stage, setStage] = useState<Stage>("video")
   const [pattern, setPattern] = useState<PatternKey>("A")
   const [opEntry, setOpEntry] = useState<OpEntry>("buy")
-  const audioRef = useRef<HTMLAudioElement>(null)
 
   const go = useCallback(
     (s: Stage) => {
@@ -33,23 +31,14 @@ export function FunnelOrchestrator() {
   )
 
   const startExperience = useCallback(() => {
-    trackFunnelEvent("funnel_started", { entry: "landing" })
-    const audio = audioRef.current
-    if (audio) {
-      audio.volume = 0.85
-      audio.currentTime = 0
-      void audio.play().catch(() => {})
-    }
-    go("video")
-  }, [go])
+    trackFunnelEvent("funnel_started", { entry: "exp1_overlay" })
+  }, [])
 
   return (
     <main className="relative min-h-screen w-full overflow-x-hidden bg-mystic text-foreground">
-      {/* Persistent audio — lives across every stage so sound never cuts */}
-      <audio ref={audioRef} src="/audio/intro-rings.mp3" preload="auto" playsInline />
-
-      {stage === "landing" && <FunnelLanding onStart={startExperience} />}
-      {stage === "video" && <Exp1Video onComplete={() => go("call")} />}
+      {stage === "video" && (
+        <Exp1Video onStart={startExperience} onComplete={() => go("call")} />
+      )}
       {stage === "call" && <Exp2Call onComplete={() => go("scanner")} />}
       {stage === "scanner" && <Exp3Scanner onComplete={() => go("quiz")} />}
       {stage === "quiz" && (

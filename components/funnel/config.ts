@@ -2,6 +2,7 @@ export type FunnelMode = "demo" | "production"
 
 export type FunnelConfig = {
   mode: FunnelMode
+  exp1VideoUrl: string
   vslVideoUrl: string
   whatsappNumber: string
   whatsappBaseUrl: string
@@ -32,6 +33,7 @@ const mode = readMode()
 
 export const funnelConfig: FunnelConfig = {
   mode,
+  exp1VideoUrl: cleanPublicEnv(process.env.NEXT_PUBLIC_EXP1_VIDEO_URL) ?? "",
   vslVideoUrl: cleanPublicEnv(process.env.NEXT_PUBLIC_VSL_VIDEO_URL) ?? "",
   whatsappNumber: cleanPublicEnv(process.env.NEXT_PUBLIC_WHATSAPP_NUMBER) ?? "",
   whatsappBaseUrl:
