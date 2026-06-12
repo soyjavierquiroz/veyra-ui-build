@@ -3,104 +3,95 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { FunnelLanding } from "./funnel-landing"
 
-const YT_ID = "qHvLv7pj5LE"
-const INTRO_AUDIO_SRC = "/audio/intro-rings.mp3"
-// The first scene plays the background video for this long, then advances.
-const SCENE_DURATION = 10_000
+const INTRO_VIDEO_SRC = "/videos/veyra-llamando-final.mp4"
 
 type Exp1VideoProps = {
   onStart: () => void
   onComplete: () => void
+  startIntroAudio: () => void
 }
 
-function warnPlaybackFailure(target: "audio", error: unknown) {
+function warnPlaybackFailure(error: unknown) {
   if (process.env.NODE_ENV !== "production") {
-    console.warn(`[funnel] EXP 1 ${target} playback failed`, error)
+    console.warn("[funnel] EXP 1 video playback failed", error)
   }
 }
 
-function buildYoutubeSrc() {
-  const params = new URLSearchParams({
-    autoplay: "1",
-    mute: "1",
-    controls: "0",
-    rel: "0",
-    playsinline: "1",
-    disablekb: "1",
-    fs: "0",
-    iv_load_policy: "3",
-    modestbranding: "1",
-    loop: "1",
-    playlist: YT_ID,
-  })
-
-  return `https://www.youtube.com/embed/${YT_ID}?${params.toString()}`
-}
-
-export function Exp1Video({ onStart, onComplete }: Exp1VideoProps) {
+export function Exp1Video({
+  onStart,
+  onComplete,
+  startIntroAudio,
+}: Exp1VideoProps) {
   const done = useRef(false)
-  const audioRef = useRef<HTMLAudioElement>(null)
+  const startLocked = useRef(false)
+  const videoRef = useRef<HTMLVideoElement>(null)
   const [started, setStarted] = useState(false)
 
   useEffect(() => {
-    if (!started) return
+    const video = videoRef.current
+    if (!video) return
 
-    const t = setTimeout(() => {
-      if (!done.current) {
-        done.current = true
-        onComplete()
-      }
-    }, SCENE_DURATION)
-    return () => clearTimeout(t)
-  }, [onComplete, started])
+    video.pause()
+    video.currentTime = 0
+  }, [])
 
   const handleStart = useCallback(() => {
-    if (started) return
+    if (startLocked.current) return
+    startLocked.current = true
 
-    const audio = audioRef.current
-    if (audio) {
+    startIntroAudio()
+
+    const video = videoRef.current
+    if (video) {
       try {
-        audio.currentTime = 0
-        audio.volume = 1
-        void audio.play().catch((error: unknown) => {
-          warnPlaybackFailure("audio", error)
+        video.currentTime = 0
+        void video.play().catch((error: unknown) => {
+          warnPlaybackFailure(error)
         })
       } catch (error) {
-        warnPlaybackFailure("audio", error)
+        warnPlaybackFailure(error)
       }
     }
 
     setStarted(true)
     onStart()
-  }, [onStart, started])
+  }, [onStart, startIntroAudio])
+
+  const handleEnded = useCallback(() => {
+    if (done.current) return
+
+    done.current = true
+    onComplete()
+  }, [onComplete])
 
   return (
-    <section className="relative min-h-screen w-full overflow-hidden bg-black">
-      <audio ref={audioRef} src={INTRO_AUDIO_SRC} preload="auto" />
-
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <iframe
-          className="absolute left-1/2 top-1/2 min-h-full min-w-full -translate-x-1/2 -translate-y-1/2 border-0"
-          style={{
-            width: "max(100vw, calc(100vh * 9 / 16))",
-            height: "max(100vh, calc(100vw * 16 / 9))",
-          }}
-          src={buildYoutubeSrc()}
-          title="Veyra llamando"
-          frameBorder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          loading="eager"
-          referrerPolicy="strict-origin-when-cross-origin"
+    <section className="relative flex min-h-screen w-full min-w-[320px] justify-center overflow-hidden bg-mystic">
+      <div className="relative min-h-screen w-full max-w-[460px] overflow-hidden bg-black shadow-[0_0_80px_oklch(0.13_0.03_295_/_0.8)] md:border-x md:border-gold/10">
+        <video
+          ref={videoRef}
+          src={INTRO_VIDEO_SRC}
+          muted
+          playsInline
+          preload="auto"
+          controls={false}
+          onEnded={handleEnded}
+          className="absolute inset-0 h-full w-full object-cover"
           aria-hidden="true"
         />
+
+        <div className="pointer-events-none absolute inset-0 bg-black/10" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(75%_70%_at_50%_45%,transparent_35%,oklch(0.05_0.02_295/0.6)_100%)]" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/45 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/55 to-transparent" />
+
+        <div
+          className={`absolute inset-0 z-20 break-words transition-opacity duration-700 ease-out ${
+            started ? "pointer-events-none opacity-0" : "opacity-100"
+          }`}
+        >
+          <FunnelLanding onStart={handleStart} />
+        </div>
       </div>
-
-      <div className="pointer-events-none absolute inset-0 bg-black/10" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(75%_70%_at_50%_45%,transparent_35%,oklch(0.05_0.02_295/0.6)_100%)]" />
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/45 to-transparent" />
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/55 to-transparent" />
-
-      {!started && <FunnelLanding onStart={handleStart} />}
     </section>
   )
 }

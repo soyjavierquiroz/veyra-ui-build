@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useState } from "react"
+import { useCallback, useRef, useState } from "react"
 import type { PatternKey, Stage } from "./types"
 import { trackFunnelEvent } from "./lib/analytics"
 import { Exp1Video } from "./exp1-video"
@@ -20,6 +20,8 @@ export function FunnelOrchestrator() {
   const [stage, setStage] = useState<Stage>("video")
   const [pattern, setPattern] = useState<PatternKey>("A")
   const [opEntry, setOpEntry] = useState<OpEntry>("buy")
+  const introAudioRef = useRef<HTMLAudioElement>(null)
+  const introAudioStarted = useRef(false)
 
   const go = useCallback(
     (s: Stage) => {
@@ -34,10 +36,37 @@ export function FunnelOrchestrator() {
     trackFunnelEvent("funnel_started", { entry: "exp1_overlay" })
   }, [])
 
+  const startIntroAudio = useCallback(() => {
+    const audio = introAudioRef.current
+    if (!audio) return
+
+    try {
+      if (!introAudioStarted.current) {
+        audio.currentTime = 0
+        introAudioStarted.current = true
+      }
+      audio.volume = 1
+      void audio.play().catch((error: unknown) => {
+        if (process.env.NODE_ENV !== "production") {
+          console.warn("[funnel] intro audio playback failed", error)
+        }
+      })
+    } catch (error) {
+      if (process.env.NODE_ENV !== "production") {
+        console.warn("[funnel] intro audio playback failed", error)
+      }
+    }
+  }, [])
+
   return (
     <main className="relative min-h-screen w-full overflow-x-hidden bg-mystic text-foreground">
+      <audio ref={introAudioRef} src="/audio/intro-rings.mp3" preload="auto" />
       {stage === "video" && (
-        <Exp1Video onStart={startExperience} onComplete={() => go("call")} />
+        <Exp1Video
+          onStart={startExperience}
+          onComplete={() => go("call")}
+          startIntroAudio={startIntroAudio}
+        />
       )}
       {stage === "call" && <Exp2Call onComplete={() => go("scanner")} />}
       {stage === "scanner" && <Exp3Scanner onComplete={() => go("quiz")} />}
