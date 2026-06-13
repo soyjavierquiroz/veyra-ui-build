@@ -29,9 +29,9 @@ Los deep links no activan autoplay. Las escenas con audio requieren gesto del us
 - Abre EXP 3 en idle, sin audio automático.
 - El audio inicia únicamente al presionar la huella.
 - El scanner técnico llega a 100% a los 20.2s aprox.
-- El scanner desaparece durante la transferencia 20.2s-25.8s.
-- El video de Veyra inicia a los 21.8s aprox. desde `currentTime = 0`.
-- Veyra queda revelada a los 25.8s aprox.; el video no se reinicia ahí.
+- El scanner desaparece durante la transferencia 20.2s-23.8s.
+- El video de Veyra inicia a los 22.1s aprox. desde `currentTime = 0`.
+- Veyra queda revelada a los 23.8s aprox.; el video no se reinicia ahí.
 - El video no usa loop; al terminar queda el poster/fallback como espera visual.
 - El CTA aparece desde 64.5s aprox.
 - CTA final: `CRUZAR EL UMBRAL`.
