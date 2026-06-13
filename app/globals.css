@@ -225,3 +225,105 @@
   50% { opacity: 0.3; }
 }
 .animate-soft-blink { animation: soft-blink 1.2s ease-in-out infinite; }
+
+.scanner-touch-idle {
+  touch-action: manipulation;
+  box-shadow:
+    0 0 30px oklch(0.7 0.2 300 / 0.78),
+    0 0 86px oklch(0.62 0.18 300 / 0.42),
+    inset 0 0 34px oklch(0.7 0.2 300 / 0.28);
+  animation: scanner-breathe 1.85s ease-in-out infinite;
+}
+
+.cta-scanner-final {
+  box-shadow:
+    0 0 34px oklch(0.7 0.2 300 / 0.82),
+    0 0 92px oklch(0.62 0.18 300 / 0.48),
+    inset 0 0 18px oklch(0.98 0.01 300 / 0.24);
+  animation: cta-scanner-call 1.45s ease-in-out infinite;
+}
+
+@keyframes scanner-breathe {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow:
+      0 0 30px oklch(0.7 0.2 300 / 0.72),
+      0 0 82px oklch(0.62 0.18 300 / 0.38),
+      inset 0 0 34px oklch(0.7 0.2 300 / 0.26);
+  }
+  50% {
+    transform: scale(1.06);
+    box-shadow:
+      0 0 44px oklch(0.76 0.22 300 / 0.95),
+      0 0 116px oklch(0.62 0.18 300 / 0.58),
+      inset 0 0 44px oklch(0.82 0.12 85 / 0.18);
+  }
+}
+
+@keyframes scanner-halo {
+  0%, 100% { transform: scale(0.96); opacity: 0.42; }
+  50% { transform: scale(1.16); opacity: 0.86; }
+}
+.animate-scanner-halo { animation: scanner-halo 1.9s ease-in-out infinite; }
+
+@keyframes scanner-ring-spin {
+  to { transform: rotate(360deg); }
+}
+.animate-scanner-ring-spin { animation: scanner-ring-spin 9s linear infinite; }
+
+@keyframes scanner-shimmer {
+  0% { transform: translateX(-140%) skewX(-16deg); opacity: 0; }
+  35% { opacity: 0.78; }
+  70%, 100% { transform: translateX(360%) skewX(-16deg); opacity: 0; }
+}
+.animate-scanner-shimmer { animation: scanner-shimmer 2.45s ease-in-out infinite; }
+
+@keyframes scanner-release {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+    filter: blur(0);
+  }
+  34% {
+    transform: scale(1.18);
+    opacity: 1;
+    filter: blur(0);
+  }
+  100% {
+    transform: scale(1.42);
+    opacity: 0;
+    filter: blur(10px);
+  }
+}
+.animate-scanner-release { animation: scanner-release 680ms ease-out both; }
+
+@keyframes scanner-wave {
+  0% {
+    transform: scale(0.88);
+    opacity: 0.9;
+    box-shadow: 0 0 28px oklch(0.78 0.22 300 / 0.9);
+  }
+  100% {
+    transform: scale(1.85);
+    opacity: 0;
+    box-shadow: 0 0 90px oklch(0.78 0.22 300 / 0.3);
+  }
+}
+.animate-scanner-wave { animation: scanner-wave 700ms ease-out both; }
+
+@keyframes cta-scanner-call {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow:
+      0 0 34px oklch(0.7 0.2 300 / 0.78),
+      0 0 92px oklch(0.62 0.18 300 / 0.44),
+      inset 0 0 18px oklch(0.98 0.01 300 / 0.22);
+  }
+  50% {
+    transform: scale(1.035);
+    box-shadow:
+      0 0 46px oklch(0.76 0.22 300 / 1),
+      0 0 126px oklch(0.62 0.18 300 / 0.62),
+      inset 0 0 24px oklch(0.98 0.01 300 / 0.3);
+  }
+}

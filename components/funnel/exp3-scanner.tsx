@@ -109,6 +109,7 @@ export function Exp3Scanner({ onComplete }: { onComplete: () => void }) {
   const [isScannerAudioReady, setIsScannerAudioReady] = useState(false)
   const startTimeRef = useRef<number | null>(null)
   const activationTimeoutRef = useRef<number | null>(null)
+  const hasStartedRef = useRef(false)
   const scannerAudioRef = useRef<HTMLAudioElement>(null)
 
   const activeStep = useMemo(() => getActiveStep(elapsedSeconds), [elapsedSeconds])
@@ -142,15 +143,17 @@ export function Exp3Scanner({ onComplete }: { onComplete: () => void }) {
   }, [])
 
   function startScanner() {
-    if (phase !== "idle") return
+    if (hasStartedRef.current || phase !== "idle") return
 
+    hasStartedRef.current = true
     setIsActivating(true)
 
     activationTimeoutRef.current = window.setTimeout(() => {
       startTimeRef.current = Date.now()
       setElapsedSeconds(0)
+      setIsActivating(false)
       setPhase("scanning")
-    }, 360)
+    }, 680)
 
     const audio = scannerAudioRef.current
     if (!audio || !SCANNER_AUDIO_SRC || !isScannerAudioReady) return
@@ -201,12 +204,12 @@ export function Exp3Scanner({ onComplete }: { onComplete: () => void }) {
         }`}
       >
         <header className="shrink-0 text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.32em] text-primary/80">
+          <p className="text-xs font-semibold uppercase tracking-[0.32em] text-primary">
             SCANNER EMOCIONAL
           </p>
           {phase === "idle" && (
-            <p className="mx-auto mt-4 max-w-xs text-balance text-sm leading-relaxed text-muted-foreground">
-              Coloca tu dedo pulgar sobre el scanner para iniciar.
+            <p className="mx-auto mt-4 max-w-xs text-balance text-base font-medium leading-relaxed text-foreground/90">
+              Presiona la huella digital con uno de tus dedos.
             </p>
           )}
         </header>
@@ -216,56 +219,84 @@ export function Exp3Scanner({ onComplete }: { onComplete: () => void }) {
             <button
               type="button"
               aria-label="Iniciar scanner emocional"
-              onClick={startScanner}
-              className={`relative flex size-44 shrink-0 items-center justify-center rounded-full border border-primary/60 bg-primary/15 text-primary glow-violet transition duration-300 active:scale-95 motion-safe:animate-mystic-pulse ${
-                isActivating ? "scale-125 opacity-0 blur-sm" : ""
+              aria-disabled={isActivating}
+              onPointerDown={(event) => {
+                event.preventDefault()
+                startScanner()
+              }}
+              onClick={(event) => {
+                event.preventDefault()
+                startScanner()
+              }}
+              className={`scanner-touch-idle relative flex size-48 shrink-0 items-center justify-center rounded-full border border-primary/80 bg-primary/20 text-primary transition duration-300 active:scale-95 ${
+                isActivating ? "animate-scanner-release" : ""
               }`}
             >
               <span
-                className="absolute inset-4 rounded-full border border-primary/30"
+                className="pointer-events-none absolute inset-[-22px] rounded-full border border-primary/35 opacity-80 animate-scanner-ring-spin"
                 aria-hidden="true"
               />
               <span
-                className="absolute inset-[-14px] rounded-full border border-primary/20 opacity-70"
+                className="pointer-events-none absolute inset-[-38px] rounded-full border border-primary/20 opacity-70 animate-scanner-halo"
                 aria-hidden="true"
               />
-              <Fingerprint className="size-24" strokeWidth={1.25} />
+              <span
+                className="pointer-events-none absolute inset-5 rounded-full border border-gold/30 bg-primary/10"
+                aria-hidden="true"
+              />
+              <span
+                className="pointer-events-none absolute inset-0 overflow-hidden rounded-full"
+                aria-hidden="true"
+              >
+                <span className="absolute -left-1/2 top-0 h-full w-1/2 rotate-12 bg-white/20 blur-xl animate-scanner-shimmer" />
+              </span>
+              {isActivating && (
+                <span
+                  className="pointer-events-none absolute inset-0 rounded-full border border-primary/90 animate-scanner-wave"
+                  aria-hidden="true"
+                />
+              )}
+              <Fingerprint
+                className="pointer-events-none relative size-28 drop-shadow-[0_0_22px_oklch(0.72_0.2_300_/_0.85)]"
+                strokeWidth={1.4}
+              />
             </button>
           ) : (
-            <div className="flex w-full flex-col items-center gap-7">
+            <div className="flex w-full flex-col items-center gap-8">
               <div
-                className={`relative flex size-44 items-center justify-center rounded-full border border-primary/40 ${
+                className={`relative flex size-44 items-center justify-center rounded-full border border-primary/60 ${
                   phase === "revelation" || phase === "complete"
-                    ? "bg-primary/10"
-                    : "bg-primary/15 glow-violet"
+                    ? "bg-primary/10 shadow-[0_0_34px_oklch(0.62_0.18_300_/_0.26)]"
+                    : "bg-primary/20 glow-violet"
                 }`}
               >
                 <div
-                  className={`absolute inset-[-16px] rounded-full border border-primary/20 ${
+                  className={`pointer-events-none absolute inset-[-18px] rounded-full border border-primary/40 ${
                     phase === "scanning" ? "motion-safe:animate-halo-spin" : ""
                   }`}
                   style={{
-                    background: `conic-gradient(oklch(0.62 0.18 300) ${visualProgress * 3.6}deg, transparent 0deg)`,
-                    mask: "radial-gradient(farthest-side, transparent calc(100% - 2px), black calc(100% - 1px))",
+                    background: `conic-gradient(oklch(0.82 0.12 85) 0deg, oklch(0.7 0.2 300) ${visualProgress * 3.6}deg, transparent 0deg)`,
+                    mask: "radial-gradient(farthest-side, transparent calc(100% - 3px), black calc(100% - 1px))",
+                    filter: "drop-shadow(0 0 14px oklch(0.7 0.2 300 / 0.72))",
                   }}
                   aria-hidden="true"
                 />
                 <div
-                  className="absolute inset-8 rounded-full bg-primary/10 blur-md"
+                  className="pointer-events-none absolute inset-7 rounded-full bg-primary/20 blur-md"
                   aria-hidden="true"
                 />
                 <Fingerprint
-                  className={`relative size-20 text-primary ${
-                    phase === "scanning" ? "animate-soft-blink" : "opacity-55"
+                  className={`relative size-20 text-primary drop-shadow-[0_0_18px_oklch(0.72_0.2_300_/_0.7)] ${
+                    phase === "scanning" ? "animate-soft-blink" : "opacity-65"
                   }`}
-                  strokeWidth={1.25}
+                  strokeWidth={1.35}
                 />
               </div>
 
               <div className="w-full max-w-sm">
-                <div className="mb-5 h-1.5 overflow-hidden rounded-full bg-white/10">
+                <div className="mb-6 h-2.5 overflow-hidden rounded-full border border-primary/25 bg-black/45 shadow-inner">
                   <div
-                    className="h-full rounded-full bg-gradient-to-r from-primary via-primary to-gold transition-[width] duration-300"
+                    className="h-full rounded-full bg-gradient-to-r from-primary via-fuchsia-300 to-gold shadow-[0_0_18px_oklch(0.7_0.2_300_/_0.78)] transition-[width] duration-300"
                     style={{ width: `${visualProgress}%` }}
                   />
                 </div>
@@ -274,12 +305,12 @@ export function Exp3Scanner({ onComplete }: { onComplete: () => void }) {
                   key={`${activeStep.from}-${activeStep.text}`}
                   className={`animate-float-up whitespace-pre-line text-balance ${
                     activeStep.kind === "reveal" || phase === "complete"
-                      ? "font-serif text-2xl leading-tight text-gold text-glow"
-                      : "font-sans text-lg leading-relaxed text-foreground"
+                      ? "font-serif text-[1.8rem] font-semibold leading-[1.08] text-gold text-glow"
+                      : "font-sans text-xl font-semibold leading-snug text-foreground drop-shadow-[0_0_16px_oklch(0.7_0.16_300_/_0.3)]"
                   }`}
                 >
                   {activeStep.kind === "progress" && (
-                    <p className="mb-3 font-mono text-sm tracking-[0.18em] text-primary/90">
+                    <p className="mb-4 font-mono text-base font-bold tracking-[0.16em] text-gold drop-shadow-[0_0_12px_oklch(0.82_0.12_85_/_0.55)]">
                       {activeStep.bar} {activeStep.percent}%
                     </p>
                   )}
@@ -296,10 +327,14 @@ export function Exp3Scanner({ onComplete }: { onComplete: () => void }) {
               <button
                 type="button"
                 onClick={onComplete}
-                className="animate-float-up flex w-full items-center justify-center gap-2 rounded-full bg-primary py-4 text-sm font-semibold uppercase tracking-wide text-primary-foreground glow-violet transition-transform active:scale-95"
+                className="cta-scanner-final animate-float-up relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-full bg-primary py-4 text-sm font-bold uppercase tracking-wide text-primary-foreground transition-transform active:scale-95"
               >
-                <Sparkles className="size-5" />
-                Ver mi ruta emocional
+                <span
+                  className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent animate-scanner-shimmer"
+                  aria-hidden="true"
+                />
+                <Sparkles className="relative size-5" />
+                <span className="relative">Ver mi ruta emocional</span>
               </button>
               <p className="animate-float-up text-center text-xs leading-relaxed text-muted-foreground">
                 Esto no es un diagnóstico. Es una lectura simbólica para ayudarte a pausar antes de actuar.
