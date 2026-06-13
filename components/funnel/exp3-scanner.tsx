@@ -22,7 +22,7 @@ type ScannerStep =
       text: string
     }
 
-const SCANNER_AUDIO_SRC = "/audio/scanner-emocional-final.mp3"
+const SCANNER_AUDIO_SRC = "/audio/scanner-emocional-dual-final.mp3"
 const SCANNER_TECHNICAL_COMPLETE_SECONDS = 22
 const SCANNER_CTA_SECONDS = 35
 

@@ -1,8 +1,9 @@
 "use client"
 
-import { useCallback, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import type { PatternKey, Stage } from "./types"
 import { trackFunnelEvent } from "./lib/analytics"
+import { getInitialSceneFromUrl, getPatternFromUrl } from "./lib/deep-link"
 import { Exp1Video } from "./exp1-video"
 import { Exp2Call } from "./exp2-call"
 import { Exp3Scanner } from "./exp3-scanner"
@@ -22,6 +23,17 @@ export function FunnelOrchestrator() {
   const [opEntry, setOpEntry] = useState<OpEntry>("buy")
   const introAudioRef = useRef<HTMLAudioElement>(null)
   const introAudioStarted = useRef(false)
+
+  useEffect(() => {
+    const initialStage = getInitialSceneFromUrl()
+    if (!initialStage) return
+
+    // Query deep links are for internal scene review without a visible QA panel.
+    if (initialStage === "reading") {
+      setPattern(getPatternFromUrl() ?? "A")
+    }
+    setStage(initialStage)
+  }, [])
 
   const go = useCallback(
     (s: Stage) => {
