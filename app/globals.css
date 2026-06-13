@@ -343,17 +343,19 @@
 
 @keyframes veyra-poster-wait {
   0%, 100% {
-    transform: scale(1);
-    filter: saturate(1.05) brightness(0.82);
+    transform: scale(1) translateY(0);
+    filter: saturate(1.08) brightness(0.8)
+      drop-shadow(0 0 18px oklch(0.62 0.18 300 / 0.2));
   }
   50% {
-    transform: scale(1.045);
-    filter: saturate(1.18) brightness(0.92)
-      drop-shadow(0 0 30px oklch(0.62 0.18 300 / 0.28));
+    transform: scale(1.075) translateY(-1.5%);
+    filter: saturate(1.26) brightness(0.98)
+      drop-shadow(0 0 46px oklch(0.62 0.18 300 / 0.42))
+      drop-shadow(0 0 26px oklch(0.82 0.12 85 / 0.22));
   }
 }
 .animate-veyra-poster-wait {
-  animation: veyra-poster-wait 8s ease-in-out infinite;
+  animation: veyra-poster-wait 5.2s ease-in-out infinite;
 }
 
 @keyframes cta-scanner-call {

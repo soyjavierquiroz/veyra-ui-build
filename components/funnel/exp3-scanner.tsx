@@ -32,7 +32,7 @@ const SCANNER_AUDIO_SRC = "/audio/scanner-veyra-reveal-final.mp3"
 const VEYRA_VIDEO_SRC = "/videos/veyra-scanner-reveal.mp4"
 const VEYRA_POSTER_SRC = "/images/veyra-scanner-reveal-poster.webp"
 const SCANNER_COMPLETE_SECONDS = 20.2
-const VEYRA_VIDEO_START_SECONDS = 22.8
+const VEYRA_VIDEO_START_SECONDS = 21.8
 const VEYRA_REVEAL_FULL_SECONDS = 25.8
 const CTA_SECONDS = 64.5
 
