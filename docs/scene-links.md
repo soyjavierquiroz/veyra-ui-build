@@ -23,4 +23,15 @@ Los enlaces directos usan query params sobre `/`. No crean rutas nuevas ni muest
 
 Los deep links no activan autoplay. Las escenas con audio requieren gesto del usuario.
 
+## EXP 3 Scanner + Revelación de Veyra
+
+- Link directo: https://mnle.reconociendotupoder.com/?scene=exp3-scanner
+- Abre EXP 3 en idle, sin audio automático.
+- El audio inicia únicamente al presionar la huella.
+- El scanner técnico llega a 100% antes de revelar a Veyra.
+- CTA final: `CRUZAR EL UMBRAL`.
+- Video: `/videos/veyra-scanner-reveal.mp4`
+- Audio: `/audio/scanner-veyra-reveal-final.mp3`
+- Poster/fallback: `/images/veyra-scanner-reveal-poster.webp`
+
 EXP 5 acepta `pattern`. Si se abre `?scene=exp5-reading` sin pattern, usa `abandono`.

@@ -316,6 +316,31 @@
 }
 .animate-scanner-wave { animation: scanner-wave 700ms ease-out both; }
 
+@keyframes scanner-fragment {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+    filter: blur(0);
+  }
+  42% {
+    transform: scale(1.08);
+    opacity: 0.92;
+    filter: blur(0);
+  }
+  100% {
+    transform: scale(0.82);
+    opacity: 0.24;
+    filter: blur(9px);
+  }
+}
+.animate-scanner-fragment { animation: scanner-fragment 2.8s ease-in-out both; }
+
+@keyframes veyra-flash {
+  0%, 100% { transform: scale(0.72); opacity: 0; }
+  38% { transform: scale(1.18); opacity: 0.5; }
+}
+.animate-veyra-flash { animation: veyra-flash 2.6s ease-out both; }
+
 @keyframes cta-scanner-call {
   0%, 100% {
     transform: scale(1);
