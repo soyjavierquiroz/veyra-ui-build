@@ -1,10 +1,9 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { ArrowRight } from "lucide-react"
 import type { PatternKey } from "./types"
 import { trackFunnelEvent } from "./lib/analytics"
-import { VeyraOrb } from "./veyra-orb"
 import { Particles } from "./particles"
 
 type Q = {
@@ -78,12 +77,22 @@ const QUESTIONS: Q[] = [
 ]
 
 type Phase = "intro" | "quiz" | "processing"
+type IntroStep = "threshold" | "title" | "block1" | "block2" | "block3" | "block4"
 
 const PROCESSING = [
   "Analizando respuestas…",
   "Detectando patrón dominante…",
   "Cruzando impulso + emoción + señal activa…",
   "Lectura revelada lista.",
+]
+
+const INTRO_TOTAL_MS = 8500
+const INTRO_TIMINGS: { at: number; step: IntroStep }[] = [
+  { at: 2000, step: "title" },
+  { at: 4000, step: "block1" },
+  { at: 5200, step: "block2" },
+  { at: 6500, step: "block3" },
+  { at: 7800, step: "block4" },
 ]
 
 function dominant(answers: PatternKey[]): PatternKey {
@@ -108,6 +117,43 @@ export function Exp4Quiz({
   const [answers, setAnswers] = useState<PatternKey[]>([])
   const [micro, setMicro] = useState<string | null>(null)
   const [procStep, setProcStep] = useState(0)
+  const [introStep, setIntroStep] = useState<IntroStep>("threshold")
+  const [selectedKey, setSelectedKey] = useState<PatternKey | null>(null)
+  const answerTimersRef = useRef<number[]>([])
+
+  const scheduleAnswerTimer = (callback: () => void, delay: number) => {
+    const timer = window.setTimeout(() => {
+      answerTimersRef.current = answerTimersRef.current.filter((id) => id !== timer)
+      callback()
+    }, delay)
+
+    answerTimersRef.current.push(timer)
+  }
+
+  useEffect(() => {
+    return () => {
+      answerTimersRef.current.forEach((timer) => window.clearTimeout(timer))
+      answerTimersRef.current = []
+    }
+  }, [])
+
+  useEffect(() => {
+    if (phase !== "intro") return
+
+    setIntroStep("threshold")
+    const timers = INTRO_TIMINGS.map(({ at, step }) =>
+      window.setTimeout(() => setIntroStep(step), at),
+    )
+    const finishTimer = window.setTimeout(() => {
+      trackFunnelEvent("quiz_started")
+      setPhase("quiz")
+    }, INTRO_TOTAL_MS)
+
+    return () => {
+      timers.forEach((timer) => window.clearTimeout(timer))
+      window.clearTimeout(finishTimer)
+    }
+  }, [phase])
 
   useEffect(() => {
     if (phase !== "processing") return
@@ -124,21 +170,27 @@ export function Exp4Quiz({
   }, [phase])
 
   const handleAnswer = (q: Q, key: PatternKey) => {
+    if (selectedKey || micro) return
+
     const next = [...answers, key]
+    setSelectedKey(key)
     trackFunnelEvent("quiz_answered", {
       questionIndex: index,
       answer: key,
     })
     setAnswers(next)
-    if (q.micro) {
-      setMicro(q.micro)
-      setTimeout(() => {
-        setMicro(null)
+    scheduleAnswerTimer(() => {
+      setSelectedKey(null)
+      if (q.micro) {
+        setMicro(q.micro)
+        scheduleAnswerTimer(() => {
+          setMicro(null)
+          advance(next)
+        }, 1300)
+      } else {
         advance(next)
-      }, 1300)
-    } else {
-      advance(next)
-    }
+      }
+    }, 420)
   }
 
   const advance = (next: PatternKey[]) => {
@@ -151,33 +203,59 @@ export function Exp4Quiz({
 
   if (phase === "intro") {
     return (
-      <section className="relative flex min-h-screen flex-col items-center justify-center px-6 py-12">
-        <Particles count={16} />
-        <div className="relative z-10 flex max-w-md flex-col items-center text-center">
-          <VeyraOrb size={120} active className="mb-6" />
-          <h1 className="mb-5 font-serif text-3xl text-gold text-balance">
-            Tu impulso no apareció de la nada.
-          </h1>
-          <p className="mb-3 leading-relaxed text-muted-foreground break-words">
-            A veces una mujer cree que quiere mandar un mensaje… pero lo que
-            realmente quiere es calmar una parte de sí que se sintió ignorada,
-            olvidada, culpable o ansiosa.
-          </p>
-          <p className="mb-8 leading-relaxed text-foreground break-words">
-            No respondas para quedar bien.
-            <br />
-            Responde para verte.
-          </p>
-          <button
-            onClick={() => {
-              trackFunnelEvent("quiz_started")
-              setPhase("quiz")
-            }}
-            className="flex w-full items-center justify-center gap-2 rounded-full bg-primary py-4 font-medium uppercase tracking-wide text-primary-foreground glow-violet transition-transform active:scale-95"
-          >
-            Empezar lectura
-            <ArrowRight className="size-5" />
-          </button>
+      <section className="access-chamber relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 py-12">
+        <Particles count={28} />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_34%,oklch(0.38_0.16_304/.48),transparent_34%),radial-gradient(circle_at_50%_58%,oklch(0.76_0.12_86/.16),transparent_28%),linear-gradient(180deg,oklch(0.06_0.03_292)_0%,oklch(0.13_0.08_300)_50%,oklch(0.05_0.02_292)_100%)]" />
+        <div className="access-flash pointer-events-none absolute inset-0" />
+        <div className="pointer-events-none absolute left-1/2 top-1/2 size-[290px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-gold/20 blur-[1px] access-portal" />
+        <div className="pointer-events-none absolute left-1/2 top-1/2 size-[218px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-fuchsia-300/20 access-portal access-portal-inner" />
+        <div className="pointer-events-none absolute left-1/2 top-1/2 size-24 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,oklch(0.88_0.12_86/.82),oklch(0.5_0.2_304/.34)_46%,transparent_70%)] blur-sm access-orb" />
+
+        <div className="relative z-10 flex min-h-[300px] w-full max-w-[430px] flex-col items-center justify-center text-center">
+          {introStep === "threshold" && (
+            <h1 className="access-copy access-title font-serif text-3xl tracking-[0.18em] text-gold text-balance sm:text-4xl">
+              UMBRAL CRUZADO
+            </h1>
+          )}
+
+          {introStep === "title" && (
+            <div className="access-copy flex flex-col items-center gap-4">
+              <span className="rounded-full border border-gold/30 px-4 py-1 font-serif text-xs tracking-[0.34em] text-gold/80">
+                VEYRA
+              </span>
+              <h1 className="font-serif text-3xl tracking-[0.14em] text-gold text-balance sm:text-4xl">
+                EVALUACIÓN DE ACCESO
+              </h1>
+            </div>
+          )}
+
+          {introStep === "block1" && (
+            <p className="access-copy max-w-xs font-serif text-2xl leading-relaxed text-[#f5eedc] text-balance">
+              Tu impulso no apareció de la nada.
+            </p>
+          )}
+
+          {introStep === "block2" && (
+            <p className="access-copy max-w-xs font-serif text-2xl leading-relaxed text-[#f5eedc] text-balance">
+              Responde con verdad.
+              <br />
+              No para quedar bien.
+            </p>
+          )}
+
+          {introStep === "block3" && (
+            <p className="access-copy max-w-xs font-serif text-2xl leading-relaxed text-[#f5eedc] text-balance">
+              Cada elección revelará
+              <br />
+              qué emoción intenta decidir por ti.
+            </p>
+          )}
+
+          {introStep === "block4" && (
+            <p className="access-copy max-w-xs font-serif text-2xl leading-relaxed text-gold text-balance">
+              La lectura comienza ahora.
+            </p>
+          )}
         </div>
       </section>
     )
@@ -185,10 +263,15 @@ export function Exp4Quiz({
 
   if (phase === "processing") {
     return (
-      <section className="relative flex min-h-screen flex-col items-center justify-center px-6">
-        <Particles count={20} />
+      <section className="access-chamber relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6">
+        <Particles count={24} />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_36%,oklch(0.38_0.16_304/.36),transparent_35%),linear-gradient(180deg,oklch(0.06_0.03_292),oklch(0.12_0.07_300),oklch(0.05_0.02_292))]" />
+        <div className="pointer-events-none absolute left-1/2 top-[42%] size-[230px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-gold/20 access-portal" />
+        <div className="pointer-events-none absolute left-1/2 top-[42%] size-24 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,oklch(0.82_0.12_86/.72),oklch(0.5_0.18_304/.22)_48%,transparent_70%)] blur-sm access-orb" />
         <div className="relative z-10 flex max-w-sm flex-col items-center text-center">
-          <VeyraOrb size={150} active className="mb-8" />
+          <span className="mb-8 rounded-full border border-gold/25 px-4 py-1 font-serif text-xs uppercase tracking-[0.3em] text-gold/80">
+            Evaluación de acceso
+          </span>
           <div className="min-h-[120px] space-y-3 font-mono text-sm">
             {PROCESSING.slice(0, procStep + 1).map((t, i) => (
               <p
@@ -206,7 +289,7 @@ export function Exp4Quiz({
           {procStep >= PROCESSING.length - 1 && (
             <button
               onClick={() => onComplete(dominant(answers))}
-              className="animate-float-up mt-8 flex w-full items-center justify-center gap-2 rounded-full bg-primary py-4 font-medium uppercase tracking-wide text-primary-foreground glow-violet transition-transform active:scale-95"
+              className="animate-float-up mt-8 flex w-full items-center justify-center gap-2 rounded-full border border-gold/70 bg-[linear-gradient(135deg,oklch(0.33_0.16_302/.96),oklch(0.18_0.08_295/.96))] py-4 font-medium uppercase tracking-wide text-gold glow-violet transition-transform active:scale-95"
             >
               Ver mi lectura
               <ArrowRight className="size-5" />
@@ -219,51 +302,75 @@ export function Exp4Quiz({
 
   const q = QUESTIONS[index]
   return (
-    <section className="relative flex min-h-screen flex-col px-5 py-10">
-      <Particles count={12} />
-      <div className="relative z-10 mx-auto flex w-full max-w-md flex-1 flex-col">
+    <section className="access-chamber relative flex min-h-screen flex-col overflow-hidden px-4 py-7 sm:px-5 sm:py-10">
+      <Particles count={18} />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_16%,oklch(0.36_0.15_304/.34),transparent_30%),radial-gradient(circle_at_50%_78%,oklch(0.72_0.12_86/.10),transparent_34%),linear-gradient(180deg,oklch(0.06_0.03_292),oklch(0.12_0.07_300)_48%,oklch(0.05_0.02_292))]" />
+      <div className="pointer-events-none absolute -top-20 left-1/2 size-[320px] -translate-x-1/2 rounded-full border border-fuchsia-300/10 blur-[1px] access-portal" />
+      <div className="relative z-10 mx-auto flex w-full max-w-[460px] flex-1 flex-col">
         {/* Progress */}
-        <div className="mb-2 flex items-center justify-between">
-          <span className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
-            {index + 1} de {QUESTIONS.length}
+        <div className="mb-3 flex items-center justify-between gap-4">
+          <div>
+            <p className="font-serif text-sm uppercase tracking-[0.24em] text-gold">
+              EVALUACIÓN DE ACCESO
+            </p>
+            <p className="mt-1 text-[0.68rem] uppercase tracking-[0.28em] text-[#cfc3d6]/70">
+              {index + 1} DE {QUESTIONS.length}
+            </p>
+          </div>
+          <span className="rounded-full border border-gold/25 bg-black/20 px-3 py-1 font-serif text-xs uppercase tracking-[0.24em] text-gold/80 shadow-[0_0_18px_oklch(0.82_0.12_86/.16)]">
+            VEYRA
           </span>
-          <span className="font-serif text-lg text-gold">VEYRA</span>
         </div>
-        <div className="mb-8 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+        <div className="mb-7 h-2 w-full overflow-hidden rounded-full border border-white/5 bg-black/35 shadow-[inset_0_0_16px_oklch(0.05_0.02_292/.8)]">
           <div
-            className="h-full bg-gradient-to-r from-primary to-gold transition-[width] duration-500"
+            className="h-full rounded-full bg-[linear-gradient(90deg,oklch(0.45_0.18_304),oklch(0.82_0.12_86),oklch(0.54_0.19_310))] shadow-[0_0_18px_oklch(0.82_0.12_86/.42)] transition-[width] duration-700 ease-out"
             style={{ width: `${((index + 1) / QUESTIONS.length) * 100}%` }}
           />
         </div>
 
         {micro ? (
           <div className="flex flex-1 items-center justify-center">
-            <p className="animate-float-up max-w-xs text-balance text-center font-serif text-2xl leading-relaxed text-glow break-words">
+            <p className="animate-float-up max-w-xs text-balance text-center font-serif text-2xl leading-relaxed text-gold text-glow break-words">
               {micro}
             </p>
           </div>
         ) : (
           <div key={index} className="animate-float-up flex flex-1 flex-col">
-            <div className="mb-6 rounded-2xl border border-border bg-card/60 p-5 backdrop-blur">
-              <p className="text-pretty text-lg leading-relaxed break-words">
+            <div className="mb-5 rounded-2xl border border-gold/20 bg-[linear-gradient(180deg,oklch(0.16_0.07_298/.78),oklch(0.09_0.04_292/.74))] p-5 shadow-[0_0_32px_oklch(0.45_0.18_304/.22),inset_0_0_28px_oklch(0.82_0.12_86/.06)] backdrop-blur">
+              <p className="text-pretty font-serif text-xl leading-relaxed text-[#f5eedc] break-words">
                 {q.prompt}
               </p>
             </div>
             <div className="flex flex-col gap-3">
-              {q.options.map((opt) => (
-                <button
-                  key={opt.key}
-                  onClick={() => handleAnswer(q, opt.key)}
-                  className="group flex items-center gap-3 rounded-xl border border-border bg-secondary/50 px-4 py-4 text-left transition-all active:scale-[0.98] hover:border-primary/60 hover:bg-secondary"
-                >
-                  <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-primary/50 text-xs font-semibold text-primary">
-                    {opt.key}
-                  </span>
-                  <span className="text-sm leading-relaxed break-words">
-                    {opt.text}
-                  </span>
-                </button>
-              ))}
+              {q.options.map((opt) => {
+                const selected = selectedKey === opt.key
+
+                return (
+                  <button
+                    key={opt.key}
+                    onClick={() => handleAnswer(q, opt.key)}
+                    disabled={Boolean(selectedKey)}
+                    className={`group flex min-h-14 items-center gap-3 rounded-2xl border px-4 py-4 text-left text-[#f5eedc] shadow-[inset_0_0_18px_oklch(0.82_0.12_86/.04)] transition-all duration-200 active:scale-[0.98] disabled:cursor-default ${
+                      selected
+                        ? "access-option-selected border-gold/75 bg-[linear-gradient(135deg,oklch(0.26_0.13_302/.9),oklch(0.16_0.08_292/.86))] shadow-[0_0_26px_oklch(0.82_0.12_86/.24),0_0_40px_oklch(0.54_0.19_310/.2)]"
+                        : "border-fuchsia-200/15 bg-black/24 hover:border-gold/45 hover:bg-[oklch(0.18_0.08_298/.62)] hover:shadow-[0_0_20px_oklch(0.5_0.18_304/.16)]"
+                    }`}
+                  >
+                    <span
+                      className={`flex size-8 shrink-0 items-center justify-center rounded-full border font-serif text-xs font-semibold transition-all ${
+                        selected
+                          ? "border-gold bg-gold/20 text-gold shadow-[0_0_16px_oklch(0.82_0.12_86/.36)]"
+                          : "border-gold/35 text-gold/85 group-hover:border-gold/70"
+                      }`}
+                    >
+                      {opt.key}
+                    </span>
+                    <span className="text-sm leading-relaxed break-words">
+                      {opt.text}
+                    </span>
+                  </button>
+                )
+              })}
             </div>
           </div>
         )}

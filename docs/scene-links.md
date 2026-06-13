@@ -39,4 +39,12 @@ Los deep links no activan autoplay. Las escenas con audio requieren gesto del us
 - Audio: `/audio/scanner-veyra-reveal-final.mp3`
 - Poster/fallback: `/images/veyra-scanner-reveal-poster.webp`
 
+## EXP 4 Evaluación de Acceso
+
+- Link directo: https://mnle.reconociendotupoder.com/?scene=exp4-quiz
+- Abre la Evaluación de Acceso con una intro mística automática.
+- Ya no muestra botón `Empezar lectura`.
+- La intro avanza automáticamente a la Pregunta 1.
+- La primera interacción de la usuaria es elegir una respuesta.
+
 EXP 5 acepta `pattern`. Si se abre `?scene=exp5-reading` sin pattern, usa `abandono`.

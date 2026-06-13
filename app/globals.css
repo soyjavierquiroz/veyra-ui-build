@@ -226,6 +226,136 @@
 }
 .animate-soft-blink { animation: soft-blink 1.2s ease-in-out infinite; }
 
+.access-chamber {
+  isolation: isolate;
+}
+
+.access-flash {
+  background:
+    radial-gradient(circle at 50% 45%, oklch(0.82 0.12 86 / 0.35), transparent 28%),
+    radial-gradient(circle at 50% 45%, oklch(0.55 0.2 304 / 0.46), transparent 42%);
+  animation: access-threshold-flash 2s ease-out both;
+}
+
+.access-portal {
+  box-shadow:
+    0 0 26px oklch(0.82 0.12 86 / 0.2),
+    0 0 86px oklch(0.52 0.18 304 / 0.32),
+    inset 0 0 34px oklch(0.82 0.12 86 / 0.12);
+  animation: access-portal-pulse 3.2s ease-in-out infinite;
+}
+
+.access-portal-inner {
+  animation-duration: 2.6s;
+  animation-delay: -0.8s;
+}
+
+.access-orb {
+  animation: access-orb-float 3.4s ease-in-out infinite;
+}
+
+.access-copy {
+  text-shadow:
+    0 0 18px oklch(0.82 0.12 86 / 0.24),
+    0 0 34px oklch(0.54 0.19 304 / 0.32);
+  animation: access-copy-reveal 0.9s ease-out both;
+}
+
+.access-title {
+  animation:
+    access-copy-reveal 0.9s ease-out both,
+    access-gold-shimmer 2s ease-in-out 0.35s both;
+}
+
+.access-option-selected {
+  animation: access-option-pulse 0.42s ease-out both;
+}
+
+@keyframes access-threshold-flash {
+  0% {
+    opacity: 0.95;
+    filter: blur(2px);
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 0.16;
+    filter: blur(14px);
+    transform: scale(1);
+  }
+}
+
+@keyframes access-portal-pulse {
+  0%, 100% {
+    opacity: 0.62;
+    transform: translate(-50%, -50%) scale(0.96);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.04);
+  }
+}
+
+@keyframes access-orb-float {
+  0%, 100% {
+    opacity: 0.62;
+    transform: translate(-50%, -50%) scale(0.94);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -54%) scale(1.08);
+  }
+}
+
+@keyframes access-copy-reveal {
+  0% {
+    opacity: 0;
+    filter: blur(10px);
+    transform: translateY(14px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes access-gold-shimmer {
+  0% {
+    text-shadow:
+      0 0 8px oklch(0.82 0.12 86 / 0.12),
+      0 0 22px oklch(0.52 0.18 304 / 0.2);
+  }
+  50% {
+    text-shadow:
+      0 0 20px oklch(0.82 0.12 86 / 0.44),
+      0 0 42px oklch(0.52 0.18 304 / 0.42);
+  }
+  100% {
+    text-shadow:
+      0 0 14px oklch(0.82 0.12 86 / 0.24),
+      0 0 32px oklch(0.52 0.18 304 / 0.3);
+  }
+}
+
+@keyframes access-option-pulse {
+  0% { transform: scale(1); }
+  55% { transform: scale(1.018); }
+  100% { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .access-flash,
+  .access-portal,
+  .access-portal-inner,
+  .access-orb,
+  .access-copy,
+  .access-title,
+  .access-option-selected {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
 .scanner-touch-idle {
   touch-action: manipulation;
   box-shadow:
