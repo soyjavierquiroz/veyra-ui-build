@@ -341,6 +341,21 @@
 }
 .animate-veyra-flash { animation: veyra-flash 2.6s ease-out both; }
 
+@keyframes veyra-poster-wait {
+  0%, 100% {
+    transform: scale(1);
+    filter: saturate(1.05) brightness(0.82);
+  }
+  50% {
+    transform: scale(1.045);
+    filter: saturate(1.18) brightness(0.92)
+      drop-shadow(0 0 30px oklch(0.62 0.18 300 / 0.28));
+  }
+}
+.animate-veyra-poster-wait {
+  animation: veyra-poster-wait 8s ease-in-out infinite;
+}
+
 @keyframes cta-scanner-call {
   0%, 100% {
     transform: scale(1);

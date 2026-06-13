@@ -28,7 +28,11 @@ Los deep links no activan autoplay. Las escenas con audio requieren gesto del us
 - Link directo: https://mnle.reconociendotupoder.com/?scene=exp3-scanner
 - Abre EXP 3 en idle, sin audio automático.
 - El audio inicia únicamente al presionar la huella.
-- El scanner técnico llega a 100% antes de revelar a Veyra.
+- El scanner técnico llega a 100% a los 20.2s aprox.
+- El scanner desaparece durante la transferencia 20.2s-25.8s.
+- Veyra entra a los 25.8s aprox.; el video inicia ahí desde `currentTime = 0`.
+- El video no usa loop; al terminar queda el poster/fallback como espera visual.
+- El CTA aparece desde 64.5s aprox.
 - CTA final: `CRUZAR EL UMBRAL`.
 - Video: `/videos/veyra-scanner-reveal.mp4`
 - Audio: `/audio/scanner-veyra-reveal-final.mp3`
