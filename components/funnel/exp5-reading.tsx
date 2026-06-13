@@ -7,19 +7,6 @@ import { PATTERNS } from "./types"
 import { VeyraOrb } from "./veyra-orb"
 import { Particles } from "./particles"
 
-const GENERAL = [
-  "Tu mensaje no era solo un mensaje.",
-  "Era una parte de ti intentando encontrar alivio.",
-  "No querías perder tu dignidad.",
-  "No querías humillarte.",
-  "No querías volver a romperte.",
-  "Querías calmar algo que se activó dentro.",
-  "Por eso resistir no fue suficiente.",
-  "Estabas intentando controlar el dedo… mientras la herida seguía empujando desde adentro.",
-  "Veyra puede mostrarte el patrón.",
-  "Pero ahora necesitas una guía real para ordenarlo.",
-]
-
 const ROUTES: Record<PatternKey, string[]> = {
   A: [
     "Lo que se activó no fue solo amor.",
@@ -101,6 +88,57 @@ const ROUTES: Record<PatternKey, string[]> = {
   ],
 }
 
+const RESULT_TIMINGS = [
+  { at: 3000, layer: 1 },
+  { at: 6500, layer: 2 },
+  { at: 12000, layer: 3 },
+  { at: 17500, layer: 4 },
+  { at: 23000, layer: 5 },
+]
+
+function getRouteLayers(pattern: PatternKey) {
+  const route = ROUTES[pattern]
+
+  switch (pattern) {
+    case "A":
+      return {
+        hit: route[1],
+        reading: route.slice(2, 4),
+        direction: route.slice(-2),
+      }
+    case "B":
+      return {
+        hit: route[1],
+        reading: [route[2], route[7]],
+        direction: route.slice(-2),
+      }
+    case "C":
+      return {
+        hit: route[0],
+        reading: [route[1], route[4]],
+        direction: route.slice(-2),
+      }
+    case "D":
+      return {
+        hit: route[2],
+        reading: [route[3], route[7]],
+        direction: route.slice(-2),
+      }
+    case "E":
+      return {
+        hit: route[0],
+        reading: [route[1], route[5]],
+        direction: route.slice(-2),
+      }
+    case "F":
+      return {
+        hit: route[0],
+        reading: [route[4], route[5]],
+        direction: route.slice(-2),
+      }
+  }
+}
+
 export function Exp5Reading({
   pattern,
   onComplete,
@@ -108,18 +146,27 @@ export function Exp5Reading({
   pattern: PatternKey
   onComplete: () => void
 }) {
-  const [showRoute, setShowRoute] = useState(false)
+  const [layer, setLayer] = useState(0)
   const info = PATTERNS[pattern]
+  const routeLayers = getRouteLayers(pattern)
 
   useEffect(() => {
-    const t = setTimeout(() => setShowRoute(true), 1800)
-    return () => clearTimeout(t)
+    setLayer(0)
+    const timers = RESULT_TIMINGS.map(({ at, layer: nextLayer }) =>
+      window.setTimeout(() => setLayer(nextLayer), at),
+    )
+
+    return () => {
+      timers.forEach((timer) => window.clearTimeout(timer))
+    }
   }, [])
 
   return (
-    <section className="relative min-h-screen px-5 py-10">
-      <Particles count={16} />
-      <div className="relative z-10 mx-auto w-full max-w-md">
+    <section className="access-chamber relative min-h-screen overflow-hidden px-5 py-10">
+      <Particles count={22} />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,oklch(0.36_0.15_304/.34),transparent_32%),radial-gradient(circle_at_50%_78%,oklch(0.72_0.12_86/.10),transparent_34%),linear-gradient(180deg,oklch(0.06_0.03_292),oklch(0.12_0.07_300)_48%,oklch(0.05_0.02_292))]" />
+      <div className="pointer-events-none absolute -top-24 left-1/2 size-[340px] -translate-x-1/2 rounded-full border border-gold/10 blur-[1px] access-portal" />
+      <div className="relative z-10 mx-auto w-full max-w-[460px]">
         {/* Header */}
         <div className="mb-8 flex flex-col items-center gap-3 text-center">
           <VeyraOrb size={96} active />
@@ -128,58 +175,66 @@ export function Exp5Reading({
           </p>
         </div>
 
-        {/* General reading */}
-        <div className="mb-6 rounded-2xl border border-border bg-card/60 p-6 backdrop-blur">
-          <h2 className="mb-4 font-serif text-xl text-gold">
-            Lectura general de entrada
-          </h2>
-          <div className="space-y-2 leading-relaxed text-muted-foreground">
-            {GENERAL.map((line, i) => (
-              <p key={i} className="break-words">
-                {line}
+        <div className="rounded-2xl border border-gold/20 bg-[linear-gradient(180deg,oklch(0.16_0.07_298/.78),oklch(0.09_0.04_292/.74))] p-6 shadow-[0_0_32px_oklch(0.45_0.18_304/.22),inset_0_0_28px_oklch(0.82_0.12_86/.06)] backdrop-blur">
+          <div className="min-h-[470px] space-y-8 text-center">
+            <div className="animate-float-up">
+              <p className="text-xs uppercase tracking-[0.32em] text-gold/80">
+                RUTA DETECTADA
               </p>
-            ))}
+            </div>
+
+            {layer >= 1 && (
+              <div className="animate-float-up">
+                <p className="font-serif text-3xl leading-tight text-gold text-balance break-words">
+                  {info.title}
+                </p>
+              </div>
+            )}
+
+            {layer >= 2 && (
+              <div className="animate-float-up">
+                <p className="mx-auto max-w-xs font-serif text-2xl leading-relaxed text-[#f5eedc] text-balance break-words">
+                  {routeLayers.hit}
+                </p>
+              </div>
+            )}
+
+            {layer >= 3 && (
+              <div className="animate-float-up space-y-3 text-left">
+                {routeLayers.reading.map((line) => (
+                  <p
+                    key={line}
+                    className="text-pretty text-base leading-relaxed text-foreground/90 break-words"
+                  >
+                    {line}
+                  </p>
+                ))}
+              </div>
+            )}
+
+            {layer >= 4 && (
+              <div className="animate-float-up space-y-3 border-t border-gold/15 pt-6">
+                {routeLayers.direction.map((line) => (
+                  <p
+                    key={line}
+                    className="font-serif text-lg leading-relaxed text-gold text-balance break-words"
+                  >
+                    {line}
+                  </p>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Route reveal */}
-        {showRoute && (
-          <div className="animate-float-up">
-            <div className="mb-6 rounded-2xl border border-primary/40 bg-primary/10 p-5 text-center backdrop-blur">
-              <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
-                Tu patrón activo
-              </p>
-              <p className="mt-1 font-serif text-2xl text-gold break-words">
-                {info.title}
-              </p>
-            </div>
-
-            <div className="mb-8 rounded-2xl border border-border bg-card/60 p-6 backdrop-blur">
-              <div className="space-y-3 leading-relaxed">
-                {ROUTES[pattern].map((line, i) => {
-                  const isJanny = line.startsWith("Janny") || line.startsWith("Veyra reveló")
-                  return (
-                    <p
-                      key={i}
-                      className={`break-words ${
-                        isJanny ? "font-serif text-base text-gold" : "text-foreground/90"
-                      }`}
-                    >
-                      {line}
-                    </p>
-                  )
-                })}
-              </div>
-            </div>
-
-            <button
-              onClick={onComplete}
-              className="flex w-full items-center justify-center gap-2 rounded-full bg-primary py-4 font-medium uppercase tracking-wide text-primary-foreground glow-violet transition-transform active:scale-95"
-            >
-              Entrar al portal de Janny
-              <ArrowRight className="size-5" />
-            </button>
-          </div>
+        {layer >= 5 && (
+          <button
+            onClick={onComplete}
+            className="animate-float-up mt-8 flex w-full items-center justify-center gap-2 rounded-full border border-gold/70 bg-[linear-gradient(135deg,oklch(0.33_0.16_302/.96),oklch(0.18_0.08_295/.96))] py-4 font-medium uppercase tracking-wide text-gold glow-violet transition-transform active:scale-95"
+          >
+            ABRIR EL CAMINO HACIA JANNY
+            <ArrowRight className="size-5" />
+          </button>
         )}
       </div>
     </section>

@@ -44,7 +44,11 @@ Los deep links no activan autoplay. Las escenas con audio requieren gesto del us
 - Link directo: https://mnle.reconociendotupoder.com/?scene=exp4-quiz
 - Abre la Evaluación de Acceso con una intro mística automática.
 - Ya no muestra botón `Empezar lectura`.
-- La intro avanza automáticamente a la Pregunta 1.
+- La intro dura aprox. 22.5s y avanza automáticamente a la Pregunta 1.
 - La primera interacción de la usuaria es elegir una respuesta.
+- El feedback después de responder queda visible antes de avanzar.
+- El procesamiento posterior a la pregunta 5 dura aprox. 11.5s y se revela por pasos.
+- La lectura revelada aparece por capas con pacing lento.
+- CTA final: `ABRIR EL CAMINO HACIA JANNY`.
 
 EXP 5 acepta `pattern`. Si se abre `?scene=exp5-reading` sin pattern, usa `abandono`.

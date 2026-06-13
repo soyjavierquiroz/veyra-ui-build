@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { ArrowRight } from "lucide-react"
 import type { PatternKey } from "./types"
 import { trackFunnelEvent } from "./lib/analytics"
 import { Particles } from "./particles"
@@ -83,17 +82,31 @@ const PROCESSING = [
   "Analizando respuestas…",
   "Detectando patrón dominante…",
   "Cruzando impulso + emoción + señal activa…",
-  "Lectura revelada lista.",
+  "Lectura revelada.",
 ]
 
-const INTRO_TOTAL_MS = 8500
+const READ_SPEED_CHARS_PER_SECOND = 13
+const MIN_REVEAL_SECONDS = 3.2
+const INTRO_TOTAL_MS = 22500
+const ANSWER_SELECTION_MS = 700
+const NO_MICRO_FEEDBACK_MS = 3800
+const PROCESSING_TOTAL_MS = 11500
 const INTRO_TIMINGS: { at: number; step: IntroStep }[] = [
-  { at: 2000, step: "title" },
-  { at: 4000, step: "block1" },
-  { at: 5200, step: "block2" },
-  { at: 6500, step: "block3" },
-  { at: 7800, step: "block4" },
+  { at: 2800, step: "title" },
+  { at: 6200, step: "block1" },
+  { at: 10200, step: "block2" },
+  { at: 15000, step: "block3" },
+  { at: 20500, step: "block4" },
 ]
+const PROCESSING_TIMINGS = [
+  { at: 2800, step: 1 },
+  { at: 5800, step: 2 },
+  { at: 9000, step: 3 },
+]
+
+function getReadableSeconds(text: string, min = MIN_REVEAL_SECONDS) {
+  return Math.max(min, text.length / READ_SPEED_CHARS_PER_SECOND)
+}
 
 function dominant(answers: PatternKey[]): PatternKey {
   const counts: Record<string, number> = {}
@@ -157,17 +170,20 @@ export function Exp4Quiz({
 
   useEffect(() => {
     if (phase !== "processing") return
-    const id = setInterval(() => {
-      setProcStep((s) => {
-        if (s >= PROCESSING.length - 1) {
-          clearInterval(id)
-          return s
-        }
-        return s + 1
-      })
-    }, 900)
-    return () => clearInterval(id)
-  }, [phase])
+
+    setProcStep(0)
+    const timers = PROCESSING_TIMINGS.map(({ at, step }) =>
+      window.setTimeout(() => setProcStep(step), at),
+    )
+    const finishTimer = window.setTimeout(() => {
+      onComplete(dominant(answers))
+    }, PROCESSING_TOTAL_MS)
+
+    return () => {
+      timers.forEach((timer) => window.clearTimeout(timer))
+      window.clearTimeout(finishTimer)
+    }
+  }, [answers, onComplete, phase])
 
   const handleAnswer = (q: Q, key: PatternKey) => {
     if (selectedKey || micro) return
@@ -182,15 +198,17 @@ export function Exp4Quiz({
     scheduleAnswerTimer(() => {
       setSelectedKey(null)
       if (q.micro) {
+        const microMinSeconds = q.micro.length > 44 ? 4 : MIN_REVEAL_SECONDS
+        const microDurationMs = getReadableSeconds(q.micro, microMinSeconds) * 1000
         setMicro(q.micro)
         scheduleAnswerTimer(() => {
           setMicro(null)
           advance(next)
-        }, 1300)
+        }, microDurationMs)
       } else {
-        advance(next)
+        scheduleAnswerTimer(() => advance(next), NO_MICRO_FEEDBACK_MS - ANSWER_SELECTION_MS)
       }
-    }, 420)
+    }, ANSWER_SELECTION_MS)
   }
 
   const advance = (next: PatternKey[]) => {
@@ -272,29 +290,18 @@ export function Exp4Quiz({
           <span className="mb-8 rounded-full border border-gold/25 px-4 py-1 font-serif text-xs uppercase tracking-[0.3em] text-gold/80">
             Evaluación de acceso
           </span>
-          <div className="min-h-[120px] space-y-3 font-mono text-sm">
-            {PROCESSING.slice(0, procStep + 1).map((t, i) => (
-              <p
-                key={i}
-                className={`animate-float-up break-words ${
-                  i === PROCESSING.length - 1 && procStep === PROCESSING.length - 1
-                    ? "font-serif text-base text-gold"
-                    : "text-muted-foreground"
-                }`}
-              >
-                {t}
-              </p>
-            ))}
-          </div>
-          {procStep >= PROCESSING.length - 1 && (
-            <button
-              onClick={() => onComplete(dominant(answers))}
-              className="animate-float-up mt-8 flex w-full items-center justify-center gap-2 rounded-full border border-gold/70 bg-[linear-gradient(135deg,oklch(0.33_0.16_302/.96),oklch(0.18_0.08_295/.96))] py-4 font-medium uppercase tracking-wide text-gold glow-violet transition-transform active:scale-95"
+          <div className="flex min-h-[120px] items-center justify-center font-mono text-sm">
+            <p
+              key={procStep}
+              className={`animate-float-up break-words ${
+                procStep === PROCESSING.length - 1
+                  ? "font-serif text-base text-gold"
+                  : "text-muted-foreground"
+              }`}
             >
-              Ver mi lectura
-              <ArrowRight className="size-5" />
-            </button>
-          )}
+              {PROCESSING[procStep]}
+            </p>
+          </div>
         </div>
       </section>
     )
