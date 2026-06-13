@@ -236,6 +236,11 @@
 }
 
 .cta-scanner-final {
+  color: var(--gold);
+  border: 1px solid oklch(0.82 0.12 85 / 0.78);
+  background:
+    linear-gradient(135deg, oklch(0.34 0.18 300 / 0.98), oklch(0.23 0.13 292 / 0.98)),
+    oklch(0.3 0.16 300);
   box-shadow:
     0 0 34px oklch(0.7 0.2 300 / 0.82),
     0 0 92px oklch(0.62 0.18 300 / 0.48),

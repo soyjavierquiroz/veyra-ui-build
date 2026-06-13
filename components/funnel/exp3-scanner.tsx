@@ -23,59 +23,61 @@ type ScannerStep =
     }
 
 const SCANNER_AUDIO_SRC = process.env.NEXT_PUBLIC_SCANNER_AUDIO_SRC?.trim() ?? ""
+const SCANNER_TECHNICAL_COMPLETE_SECONDS = 22
+const SCANNER_CTA_SECONDS = 35
 
 const scannerSteps: ScannerStep[] = [
-  { from: 0, to: 3, kind: "scan", text: "Iniciando lectura emocional…" },
-  { from: 3, to: 6, kind: "scan", text: "Detectando actividad en el chat pendiente…" },
+  { from: 0, to: 2, kind: "scan", text: "Iniciando lectura emocional…" },
+  { from: 2, to: 4, kind: "scan", text: "Detectando actividad en el chat pendiente…" },
   {
-    from: 6,
-    to: 10,
+    from: 4,
+    to: 7,
     kind: "progress",
     percent: 20,
     bar: "[██░░░░░░░░]",
     text: "Señal encontrada: impulso de escribir desde ansiedad.",
   },
   {
-    from: 10,
-    to: 15,
+    from: 7,
+    to: 10,
     kind: "progress",
     percent: 40,
     bar: "[████░░░░░░]",
     text: "Nivel de urgencia emocional: alto.",
   },
   {
-    from: 15,
-    to: 20,
+    from: 10,
+    to: 14,
     kind: "progress",
     percent: 60,
     bar: "[██████░░░░]",
     text: "Necesidad detectada: respuesta, cierre o alivio inmediato.",
   },
   {
-    from: 20,
-    to: 25,
+    from: 14,
+    to: 18,
     kind: "progress",
     percent: 80,
     bar: "[████████░░]",
     text: "Riesgo actual: enviar un mensaje que después puede doler.",
   },
   {
-    from: 25,
-    to: 31,
+    from: 18,
+    to: SCANNER_TECHNICAL_COMPLETE_SECONDS,
     kind: "progress",
     percent: 100,
     bar: "[██████████]",
     text: "Lectura completada.",
   },
   {
-    from: 31,
-    to: 39,
+    from: SCANNER_TECHNICAL_COMPLETE_SECONDS,
+    to: 29,
     kind: "reveal",
     text: "“No estás fallando por falta de amor propio.\nEstás intentando actuar mientras tu emoción está activada.”",
   },
   {
-    from: 39,
-    to: 47,
+    from: 29,
+    to: SCANNER_CTA_SECONDS,
     kind: "reveal",
     text: "“El impulso no siempre significa amor.\nA veces significa ansiedad buscando calma.”",
   },
@@ -90,16 +92,16 @@ function getActiveStep(elapsedSeconds: number) {
 }
 
 function getPhase(elapsedSeconds: number): ScannerPhase {
-  if (elapsedSeconds >= 47) return "complete"
-  if (elapsedSeconds >= 31) return "revelation"
+  if (elapsedSeconds >= SCANNER_CTA_SECONDS) return "complete"
+  if (elapsedSeconds >= SCANNER_TECHNICAL_COMPLETE_SECONDS) return "revelation"
   return "scanning"
 }
 
 function getVisualProgress(step: ScannerStep, elapsedSeconds: number) {
   if (step.kind === "progress") return step.percent
-  if (elapsedSeconds >= 31) return 100
-  if (elapsedSeconds >= 6) return 20
-  return Math.max(4, Math.round((elapsedSeconds / 6) * 18))
+  if (elapsedSeconds >= SCANNER_TECHNICAL_COMPLETE_SECONDS) return 100
+  if (elapsedSeconds >= 4) return 20
+  return Math.max(4, Math.round((elapsedSeconds / 4) * 18))
 }
 
 export function Exp3Scanner({ onComplete }: { onComplete: () => void }) {
@@ -296,7 +298,7 @@ export function Exp3Scanner({ onComplete }: { onComplete: () => void }) {
               <div className="w-full max-w-sm">
                 <div className="mb-6 h-2.5 overflow-hidden rounded-full border border-primary/25 bg-black/45 shadow-inner">
                   <div
-                    className="h-full rounded-full bg-gradient-to-r from-primary via-fuchsia-300 to-gold shadow-[0_0_18px_oklch(0.7_0.2_300_/_0.78)] transition-[width] duration-300"
+                    className="h-full rounded-full bg-gradient-to-r from-[oklch(0.62_0.18_300)] via-[oklch(0.78_0.18_315)] to-gold shadow-[0_0_18px_oklch(0.7_0.2_300_/_0.78)] transition-[width] duration-300"
                     style={{ width: `${visualProgress}%` }}
                   />
                 </div>
@@ -327,10 +329,10 @@ export function Exp3Scanner({ onComplete }: { onComplete: () => void }) {
               <button
                 type="button"
                 onClick={onComplete}
-                className="cta-scanner-final animate-float-up relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-full bg-primary py-4 text-sm font-bold uppercase tracking-wide text-primary-foreground transition-transform active:scale-95"
+                className="cta-scanner-final animate-float-up relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-full py-4 text-sm font-bold uppercase tracking-wide transition-transform active:scale-95"
               >
                 <span
-                  className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent animate-scanner-shimmer"
+                  className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-gold/30 to-transparent animate-scanner-shimmer"
                   aria-hidden="true"
                 />
                 <Sparkles className="relative size-5" />
