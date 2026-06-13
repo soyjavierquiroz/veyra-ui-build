@@ -32,7 +32,8 @@ const SCANNER_AUDIO_SRC = "/audio/scanner-veyra-reveal-final.mp3"
 const VEYRA_VIDEO_SRC = "/videos/veyra-scanner-reveal.mp4"
 const VEYRA_POSTER_SRC = "/images/veyra-scanner-reveal-poster.webp"
 const SCANNER_COMPLETE_SECONDS = 20.2
-const VEYRA_REVEAL_SECONDS = 25.8
+const VEYRA_VIDEO_START_SECONDS = 22.8
+const VEYRA_REVEAL_FULL_SECONDS = 25.8
 const CTA_SECONDS = 64.5
 
 const scannerSteps: ScannerStep[] = [
@@ -136,9 +137,13 @@ function getActiveStep(elapsedSeconds: number) {
 
 function getPhase(elapsedSeconds: number): ScannerPhase {
   if (elapsedSeconds >= CTA_SECONDS) return "cta"
-  if (elapsedSeconds >= VEYRA_REVEAL_SECONDS) return "veyraReveal"
+  if (elapsedSeconds >= VEYRA_REVEAL_FULL_SECONDS) return "veyraReveal"
   if (elapsedSeconds >= SCANNER_COMPLETE_SECONDS) return "transitionToVeyra"
   return "scanning"
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max)
 }
 
 function getVeyraCopy(elapsedSeconds: number) {
@@ -175,9 +180,27 @@ export function Exp3Scanner({ onComplete }: { onComplete: () => void }) {
   const visualProgress = getVisualProgress(activeStep, elapsedSeconds)
   const isScannerFading = phase === "transitionToVeyra"
   const isScannerVisible = phase === "scanning" || isScannerFading
+  const shouldStartVeyraVideo = elapsedSeconds >= VEYRA_VIDEO_START_SECONDS
   const isVeyraVisible = phase === "veyraReveal" || phase === "cta"
   const isCtaVisible = phase === "cta"
-  const isPosterWait = isVeyraVisible && videoEnded
+  const isPosterWait = shouldStartVeyraVideo && videoEnded
+  const scannerFadeProgress = clamp(
+    (elapsedSeconds - SCANNER_COMPLETE_SECONDS) /
+      (VEYRA_REVEAL_FULL_SECONDS - SCANNER_COMPLETE_SECONDS),
+    0,
+    1,
+  )
+  const veyraFadeProgress = clamp(
+    (elapsedSeconds - VEYRA_VIDEO_START_SECONDS) /
+      (VEYRA_REVEAL_FULL_SECONDS - VEYRA_VIDEO_START_SECONDS),
+    0,
+    1,
+  )
+  const veyraVideoOpacity =
+    shouldStartVeyraVideo && !videoEnded ? 0.18 + veyraFadeProgress * 0.82 : 0
+  const veyraOverlayOpacity = shouldStartVeyraVideo
+    ? 0.72 + veyraFadeProgress * 0.28
+    : 0
 
   useEffect(() => {
     if (phase === "idle") return
@@ -195,7 +218,7 @@ export function Exp3Scanner({ onComplete }: { onComplete: () => void }) {
   }, [phase])
 
   useEffect(() => {
-    if (!isVeyraVisible || hasStartedVeyraVideoRef.current) return
+    if (!shouldStartVeyraVideo || hasStartedVeyraVideoRef.current) return
 
     const video = veyraVideoRef.current
     if (!video) return
@@ -210,7 +233,7 @@ export function Exp3Scanner({ onComplete }: { onComplete: () => void }) {
         console.warn("[funnel] Veyra reveal video playback failed", error)
       }
     })
-  }, [isVeyraVisible])
+  }, [shouldStartVeyraVideo])
 
   useEffect(() => {
     return () => {
@@ -284,14 +307,13 @@ export function Exp3Scanner({ onComplete }: { onComplete: () => void }) {
       <section className="relative flex min-h-[100dvh] w-full max-w-[460px] overflow-hidden bg-[#07030d] sm:border-x sm:border-white/10">
         <video
           ref={veyraVideoRef}
-          className={`pointer-events-none absolute inset-0 h-full w-full object-cover object-center transition-opacity duration-1000 ${
-            isVeyraVisible && !videoEnded ? "opacity-100" : "opacity-0"
-          }`}
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover object-center transition-opacity duration-100 ease-linear"
           src={VEYRA_VIDEO_SRC}
           poster={VEYRA_POSTER_SRC}
           muted
           playsInline
           preload="auto"
+          style={{ opacity: veyraVideoOpacity }}
           onEnded={() => {
             setVideoEnded(true)
             const video = veyraVideoRef.current
@@ -310,15 +332,13 @@ export function Exp3Scanner({ onComplete }: { onComplete: () => void }) {
           aria-hidden="true"
         />
         <div
-          className={`pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,transparent_0%,oklch(0.05_0.03_292_/_0.26)_44%,oklch(0.04_0.03_292_/_0.82)_100%)] transition-opacity duration-1000 ${
-            isVeyraVisible ? "opacity-100" : "opacity-0"
-          }`}
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,transparent_0%,oklch(0.05_0.03_292_/_0.26)_44%,oklch(0.04_0.03_292_/_0.82)_100%)] transition-opacity duration-100 ease-linear"
+          style={{ opacity: veyraOverlayOpacity }}
           aria-hidden="true"
         />
         <div
-          className={`pointer-events-none absolute inset-x-0 bottom-0 h-[58%] bg-gradient-to-t from-black/88 via-black/52 to-transparent transition-opacity duration-1000 ${
-            isVeyraVisible ? "opacity-100" : "opacity-0"
-          }`}
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-[58%] bg-gradient-to-t from-black/88 via-black/52 to-transparent transition-opacity duration-100 ease-linear"
+          style={{ opacity: veyraOverlayOpacity }}
           aria-hidden="true"
         />
         <Particles count={14} />
@@ -414,13 +434,15 @@ export function Exp3Scanner({ onComplete }: { onComplete: () => void }) {
 
             {phase !== "idle" && phase !== "activating" && (
               <div
-                className={`flex w-full flex-col items-center gap-8 transition-all duration-[1800ms] ${
-                  isScannerFading
-                    ? "pointer-events-none scale-95 opacity-0 blur-md"
-                    : isScannerVisible
-                      ? "scale-100 opacity-100 blur-0"
-                      : "pointer-events-none scale-100 opacity-0 blur-md"
+                className={`flex w-full flex-col items-center gap-8 ${
+                  isScannerFading ? "pointer-events-none" : ""
                 }`}
+                style={{
+                  opacity: isScannerVisible ? 1 - scannerFadeProgress : 0,
+                  transform: `scale(${1 - scannerFadeProgress * 0.05})`,
+                  filter: `blur(${scannerFadeProgress * 8}px)`,
+                  transition: "opacity 100ms linear, transform 100ms linear, filter 100ms linear",
+                }}
               >
                 <div
                   className={`relative flex size-44 items-center justify-center rounded-full border border-primary/60 ${
