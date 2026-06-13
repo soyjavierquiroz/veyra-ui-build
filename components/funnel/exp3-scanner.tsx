@@ -22,7 +22,7 @@ type ScannerStep =
       text: string
     }
 
-const SCANNER_AUDIO_SRC = process.env.NEXT_PUBLIC_SCANNER_AUDIO_SRC?.trim() ?? ""
+const SCANNER_AUDIO_SRC = "/audio/scanner-emocional-final.mp3"
 const SCANNER_TECHNICAL_COMPLETE_SECONDS = 22
 const SCANNER_CTA_SECONDS = 35
 
@@ -108,11 +108,10 @@ export function Exp3Scanner({ onComplete }: { onComplete: () => void }) {
   const [phase, setPhase] = useState<ScannerPhase>("idle")
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const [isActivating, setIsActivating] = useState(false)
-  const [isScannerAudioReady, setIsScannerAudioReady] = useState(false)
   const startTimeRef = useRef<number | null>(null)
   const activationTimeoutRef = useRef<number | null>(null)
   const hasStartedRef = useRef(false)
-  const scannerAudioRef = useRef<HTMLAudioElement>(null)
+  const scannerAudioRef = useRef<HTMLAudioElement | null>(null)
 
   const activeStep = useMemo(() => getActiveStep(elapsedSeconds), [elapsedSeconds])
   const visualProgress = getVisualProgress(activeStep, elapsedSeconds)
@@ -140,25 +139,13 @@ export function Exp3Scanner({ onComplete }: { onComplete: () => void }) {
 
       const audio = scannerAudioRef.current
       if (!audio) return
-      audio.pause()
+      stopScannerAudio()
     }
   }, [])
 
-  function startScanner() {
-    if (hasStartedRef.current || phase !== "idle") return
-
-    hasStartedRef.current = true
-    setIsActivating(true)
-
-    activationTimeoutRef.current = window.setTimeout(() => {
-      startTimeRef.current = Date.now()
-      setElapsedSeconds(0)
-      setIsActivating(false)
-      setPhase("scanning")
-    }, 680)
-
+  function startScannerAudio() {
     const audio = scannerAudioRef.current
-    if (!audio || !SCANNER_AUDIO_SRC || !isScannerAudioReady) return
+    if (!audio) return
 
     audio.currentTime = 0
     void audio.play().catch((error: unknown) => {
@@ -166,6 +153,34 @@ export function Exp3Scanner({ onComplete }: { onComplete: () => void }) {
         console.warn("[funnel] scanner audio playback failed", error)
       }
     })
+  }
+
+  function stopScannerAudio() {
+    const audio = scannerAudioRef.current
+    if (!audio) return
+
+    audio.pause()
+    audio.currentTime = 0
+  }
+
+  function startScanner() {
+    if (hasStartedRef.current || phase !== "idle") return
+
+    hasStartedRef.current = true
+    setIsActivating(true)
+    startScannerAudio()
+
+    activationTimeoutRef.current = window.setTimeout(() => {
+      startTimeRef.current = Date.now()
+      setElapsedSeconds(0)
+      setIsActivating(false)
+      setPhase("scanning")
+    }, 680)
+  }
+
+  function handleContinueToQuiz() {
+    stopScannerAudio()
+    onComplete()
   }
 
   return (
@@ -190,15 +205,7 @@ export function Exp3Scanner({ onComplete }: { onComplete: () => void }) {
         aria-hidden="true"
       />
 
-      {SCANNER_AUDIO_SRC && (
-        <audio
-          ref={scannerAudioRef}
-          src={SCANNER_AUDIO_SRC}
-          preload="metadata"
-          onCanPlayThrough={() => setIsScannerAudioReady(true)}
-          onError={() => setIsScannerAudioReady(false)}
-        />
-      )}
+      <audio ref={scannerAudioRef} src={SCANNER_AUDIO_SRC} preload="auto" />
 
       <div
         className={`relative z-10 flex h-full w-full max-w-[430px] flex-col px-5 py-7 sm:border-x sm:border-white/10 sm:bg-black/10 ${
@@ -328,7 +335,7 @@ export function Exp3Scanner({ onComplete }: { onComplete: () => void }) {
             <>
               <button
                 type="button"
-                onClick={onComplete}
+                onClick={handleContinueToQuiz}
                 className="cta-scanner-final animate-float-up relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-full py-4 text-sm font-bold uppercase tracking-wide transition-transform active:scale-95"
               >
                 <span
