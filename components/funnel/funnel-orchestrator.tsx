@@ -19,6 +19,14 @@ import { Exp11WhatsappOp, type OpEntry } from "./exp11-whatsapp-op"
 
 const QUIZ_LOOP_VOLUME = 0.4
 
+const QUIZ_PRIMARY_AUDIO_SOURCES = [
+  "/audio/quiz-p1-final.mp3",
+  "/audio/quiz-p2-final.mp3",
+  "/audio/quiz-p3-final.mp3",
+  "/audio/quiz-p4-final.mp3",
+  "/audio/quiz-p5-final.mp3",
+] as const
+
 const QUIZ_PRIMARY_AUDIO_BY_ANSWERED_QUESTION_INDEX: Partial<
   Record<number, string>
 > = {
@@ -35,7 +43,12 @@ export function FunnelOrchestrator() {
   const introAudioRef = useRef<HTMLAudioElement>(null)
   const introAudioStarted = useRef(false)
   const quizLoopAudioRef = useRef<HTMLAudioElement | null>(null)
-  const quizPrimaryAudioRef = useRef<HTMLAudioElement | null>(null)
+  const quizPrimaryFallbackAudioRef = useRef<HTMLAudioElement | null>(null)
+  const quizAudioContextRef = useRef<AudioContext | null>(null)
+  const quizAudioBuffersRef = useRef<Map<string, AudioBuffer>>(new Map())
+  const quizAudioPreloadPromiseRef = useRef<Promise<void> | null>(null)
+  const quizPrimarySourceRef = useRef<AudioBufferSourceNode | null>(null)
+  const quizPrimaryGainRef = useRef<GainNode | null>(null)
 
   useEffect(() => {
     const initialStage = getInitialSceneFromUrl()
@@ -60,6 +73,68 @@ export function FunnelOrchestrator() {
   const startExperience = useCallback(() => {
     trackFunnelEvent("funnel_started", { entry: "exp1_overlay" })
   }, [])
+
+  const getQuizAudioContext = useCallback(() => {
+    if (typeof window === "undefined") return null
+
+    if (!quizAudioContextRef.current) {
+      const AudioContextClass =
+        window.AudioContext ??
+        (window as Window &
+          typeof globalThis & {
+            webkitAudioContext?: typeof AudioContext
+          }).webkitAudioContext
+
+      if (!AudioContextClass) return null
+
+      quizAudioContextRef.current = new AudioContextClass()
+    }
+
+    return quizAudioContextRef.current
+  }, [])
+
+  const preloadQuizPrimaryAudio = useCallback(() => {
+    if (quizAudioPreloadPromiseRef.current) {
+      return quizAudioPreloadPromiseRef.current
+    }
+
+    quizAudioPreloadPromiseRef.current = (async () => {
+      const audioContext = getQuizAudioContext()
+      if (!audioContext) return
+
+      await Promise.all(
+        QUIZ_PRIMARY_AUDIO_SOURCES.map(async (src) => {
+          if (quizAudioBuffersRef.current.has(src)) return
+
+          try {
+            const response = await fetch(src, { cache: "force-cache" })
+            if (!response.ok) return
+
+            const arrayBuffer = await response.arrayBuffer()
+            const decoded = await audioContext.decodeAudioData(arrayBuffer)
+            quizAudioBuffersRef.current.set(src, decoded)
+          } catch {
+            // Best-effort only: fallback HTMLAudio covers decode/fetch failures.
+          }
+        }),
+      )
+    })()
+
+    return quizAudioPreloadPromiseRef.current
+  }, [getQuizAudioContext])
+
+  const resumeQuizAudioContext = useCallback(async () => {
+    const audioContext = getQuizAudioContext()
+    if (!audioContext) return
+
+    try {
+      if (audioContext.state === "suspended") {
+        await audioContext.resume()
+      }
+    } catch {
+      // Best-effort only: audio context failures must never block the flow.
+    }
+  }, [getQuizAudioContext])
 
   const startIntroAudio = useCallback(() => {
     const audio = introAudioRef.current
@@ -121,8 +196,20 @@ export function FunnelOrchestrator() {
     audio.currentTime = 0
   }, [])
 
-  const playQuizPrimaryAudio = useCallback((src: string) => {
-    const audio = quizPrimaryAudioRef.current
+  const stopQuizPrimaryFallbackAudio = useCallback(() => {
+    const audio = quizPrimaryFallbackAudioRef.current
+    if (!audio) return
+
+    try {
+      audio.pause()
+      audio.currentTime = 0
+    } catch {
+      // Best-effort only: audio failures must never block the flow.
+    }
+  }, [])
+
+  const playQuizPrimaryFallbackAudio = useCallback((src: string) => {
+    const audio = quizPrimaryFallbackAudioRef.current
     if (!audio) return
 
     try {
@@ -142,16 +229,109 @@ export function FunnelOrchestrator() {
   }, [])
 
   const stopQuizPrimaryAudio = useCallback(() => {
-    const audio = quizPrimaryAudioRef.current
-    if (!audio) return
+    try {
+      quizPrimarySourceRef.current?.stop()
+    } catch {
+      // Source may already be stopped.
+    }
 
     try {
-      audio.pause()
-      audio.currentTime = 0
+      quizPrimarySourceRef.current?.disconnect()
     } catch {
-      // Best-effort only: audio failures must never block the flow.
+      // Best-effort cleanup.
     }
-  }, [])
+
+    quizPrimarySourceRef.current = null
+
+    try {
+      quizPrimaryGainRef.current?.disconnect()
+    } catch {
+      // Best-effort cleanup.
+    }
+
+    quizPrimaryGainRef.current = null
+    stopQuizPrimaryFallbackAudio()
+  }, [stopQuizPrimaryFallbackAudio])
+
+  const playQuizPrimaryAudio = useCallback(
+    async (src: string) => {
+      stopQuizPrimaryAudio()
+
+      const audioContext = getQuizAudioContext()
+      if (!audioContext) {
+        playQuizPrimaryFallbackAudio(src)
+        return
+      }
+
+      try {
+        if (audioContext.state === "suspended") {
+          await audioContext.resume()
+        }
+
+        let buffer = quizAudioBuffersRef.current.get(src)
+
+        if (!buffer) {
+          try {
+            await preloadQuizPrimaryAudio()
+          } catch {
+            // Fallback below if preload cannot finish.
+          }
+
+          buffer = quizAudioBuffersRef.current.get(src)
+        }
+
+        if (!buffer) {
+          playQuizPrimaryFallbackAudio(src)
+          return
+        }
+
+        const source = audioContext.createBufferSource()
+        const gain = audioContext.createGain()
+
+        source.buffer = buffer
+        source.loop = false
+        gain.gain.value = 1
+
+        source.connect(gain)
+        gain.connect(audioContext.destination)
+
+        quizPrimarySourceRef.current = source
+        quizPrimaryGainRef.current = gain
+
+        source.onended = () => {
+          if (quizPrimarySourceRef.current === source) {
+            quizPrimarySourceRef.current = null
+          }
+
+          if (quizPrimaryGainRef.current === gain) {
+            quizPrimaryGainRef.current = null
+          }
+
+          try {
+            source.disconnect()
+          } catch {
+            // Best-effort cleanup.
+          }
+
+          try {
+            gain.disconnect()
+          } catch {
+            // Best-effort cleanup.
+          }
+        }
+
+        source.start(0)
+      } catch {
+        playQuizPrimaryFallbackAudio(src)
+      }
+    },
+    [
+      getQuizAudioContext,
+      playQuizPrimaryFallbackAudio,
+      preloadQuizPrimaryAudio,
+      stopQuizPrimaryAudio,
+    ],
+  )
 
   useEffect(() => {
     if (stage === "quiz" || stage === "reading") return
@@ -159,6 +339,10 @@ export function FunnelOrchestrator() {
     stopQuizLoop()
     stopQuizPrimaryAudio()
   }, [stage, stopQuizLoop, stopQuizPrimaryAudio])
+
+  useEffect(() => {
+    void preloadQuizPrimaryAudio()
+  }, [preloadQuizPrimaryAudio])
 
   useEffect(() => {
     return () => {
@@ -177,7 +361,7 @@ export function FunnelOrchestrator() {
         loop
       />
       <audio
-        ref={quizPrimaryAudioRef}
+        ref={quizPrimaryFallbackAudioRef}
         preload="auto"
       />
       {stage === "video" && (
@@ -196,8 +380,9 @@ export function FunnelOrchestrator() {
       {stage === "scanner" && (
         <Exp3Scanner
           onComplete={() => {
+            void resumeQuizAudioContext()
             startQuizLoop()
-            playQuizPrimaryAudio("/audio/quiz-p1-final.mp3")
+            void playQuizPrimaryAudio("/audio/quiz-p1-final.mp3")
             go("quiz")
           }}
         />
@@ -209,7 +394,7 @@ export function FunnelOrchestrator() {
               QUIZ_PRIMARY_AUDIO_BY_ANSWERED_QUESTION_INDEX[questionIndex]
 
             if (nextAudioSrc) {
-              playQuizPrimaryAudio(nextAudioSrc)
+              void playQuizPrimaryAudio(nextAudioSrc)
               return
             }
 
