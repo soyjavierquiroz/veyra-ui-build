@@ -51,8 +51,12 @@ Los deep links no activan autoplay. Las escenas con audio requieren gesto del us
 - La lectura revelada aparece por capas con pacing lento.
 - CTA final: `ABRIR EL CAMINO HACIA JANNY`.
 - Loop ambiental: `/audio/loop-quiz.mp3`.
-- El loop inicia en el flujo real al presionar `CRUZAR EL UMBRAL`.
+- Audio principal de intro/P1: `/audio/quiz-p1-final.mp3`.
+- Audio principal de Pregunta 2: `/audio/quiz-p2-final.mp3`.
+- El loop y el audio principal inician en el flujo real al presionar `CRUZAR EL UMBRAL`.
 - Por deep link no se fuerza autoplay.
-- El loop se detiene al presionar `ABRIR EL CAMINO HACIA JANNY`.
+- Al responder la Pregunta 1, el audio principal pasa a `/audio/quiz-p2-final.mp3` desde el inicio.
+- Al responder la Pregunta 2, el audio principal se detiene/reset si sigue activo.
+- El loop se detiene al presionar `ABRIR EL CAMINO HACIA JANNY`; los audios principales también se resetean por seguridad.
 
 EXP 5 acepta `pattern`. Si se abre `?scene=exp5-reading` sin pattern, usa `abandono`.

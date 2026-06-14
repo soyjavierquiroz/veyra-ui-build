@@ -121,8 +121,10 @@ function dominant(answers: PatternKey[]): PatternKey {
 }
 
 export function Exp4Quiz({
+  onAnswerSelected,
   onComplete,
 }: {
+  onAnswerSelected?: (questionIndex: number) => void
   onComplete: (p: PatternKey) => void
 }) {
   const [phase, setPhase] = useState<Phase>("intro")
@@ -132,6 +134,7 @@ export function Exp4Quiz({
   const [procStep, setProcStep] = useState(0)
   const [introStep, setIntroStep] = useState<IntroStep>("threshold")
   const [selectedKey, setSelectedKey] = useState<PatternKey | null>(null)
+  const answerInFlightRef = useRef(false)
   const answerTimersRef = useRef<number[]>([])
 
   const scheduleAnswerTimer = (callback: () => void, delay: number) => {
@@ -186,14 +189,16 @@ export function Exp4Quiz({
   }, [answers, onComplete, phase])
 
   const handleAnswer = (q: Q, key: PatternKey) => {
-    if (selectedKey || micro) return
+    if (selectedKey || micro || answerInFlightRef.current) return
 
+    answerInFlightRef.current = true
     const next = [...answers, key]
     setSelectedKey(key)
     trackFunnelEvent("quiz_answered", {
       questionIndex: index,
       answer: key,
     })
+    onAnswerSelected?.(index)
     setAnswers(next)
     scheduleAnswerTimer(() => {
       setSelectedKey(null)
@@ -212,6 +217,7 @@ export function Exp4Quiz({
   }
 
   const advance = (next: PatternKey[]) => {
+    answerInFlightRef.current = false
     if (index < QUESTIONS.length - 1) {
       setIndex((i) => i + 1)
     } else {

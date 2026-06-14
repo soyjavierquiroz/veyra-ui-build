@@ -24,6 +24,7 @@ export function FunnelOrchestrator() {
   const introAudioRef = useRef<HTMLAudioElement>(null)
   const introAudioStarted = useRef(false)
   const quizLoopAudioRef = useRef<HTMLAudioElement | null>(null)
+  const quizPrimaryAudioRef = useRef<HTMLAudioElement | null>(null)
 
   useEffect(() => {
     const initialStage = getInitialSceneFromUrl()
@@ -109,17 +110,51 @@ export function FunnelOrchestrator() {
     audio.currentTime = 0
   }, [])
 
+  const playQuizPrimaryAudio = useCallback((src: string) => {
+    const audio = quizPrimaryAudioRef.current
+    if (!audio) return
+
+    try {
+      audio.pause()
+      if (audio.getAttribute("src") !== src) {
+        audio.src = src
+      }
+      audio.currentTime = 0
+      audio.volume = 1
+      audio.loop = false
+      void audio.play().catch(() => {
+        // Best-effort only: browser autoplay policies must never block the flow.
+      })
+    } catch {
+      // Best-effort only: audio failures must never block the flow.
+    }
+  }, [])
+
+  const stopQuizPrimaryAudio = useCallback(() => {
+    const audio = quizPrimaryAudioRef.current
+    if (!audio) return
+
+    try {
+      audio.pause()
+      audio.currentTime = 0
+    } catch {
+      // Best-effort only: audio failures must never block the flow.
+    }
+  }, [])
+
   useEffect(() => {
     if (stage === "quiz" || stage === "reading") return
 
     stopQuizLoop()
-  }, [stage, stopQuizLoop])
+    stopQuizPrimaryAudio()
+  }, [stage, stopQuizLoop, stopQuizPrimaryAudio])
 
   useEffect(() => {
     return () => {
       stopQuizLoop()
+      stopQuizPrimaryAudio()
     }
-  }, [stopQuizLoop])
+  }, [stopQuizLoop, stopQuizPrimaryAudio])
 
   return (
     <main className="relative min-h-screen w-full overflow-x-hidden bg-mystic text-foreground">
@@ -129,6 +164,10 @@ export function FunnelOrchestrator() {
         src="/audio/loop-quiz.mp3"
         preload="auto"
         loop
+      />
+      <audio
+        ref={quizPrimaryAudioRef}
+        preload="auto"
       />
       {stage === "video" && (
         <Exp1Video
@@ -147,12 +186,22 @@ export function FunnelOrchestrator() {
         <Exp3Scanner
           onComplete={() => {
             startQuizLoop()
+            playQuizPrimaryAudio("/audio/quiz-p1-final.mp3")
             go("quiz")
           }}
         />
       )}
       {stage === "quiz" && (
         <Exp4Quiz
+          onAnswerSelected={(questionIndex) => {
+            if (questionIndex === 0) {
+              playQuizPrimaryAudio("/audio/quiz-p2-final.mp3")
+            }
+
+            if (questionIndex === 1) {
+              stopQuizPrimaryAudio()
+            }
+          }}
           onComplete={(p) => {
             setPattern(p)
             trackFunnelEvent("pattern_revealed", { pattern: p })
@@ -165,6 +214,7 @@ export function FunnelOrchestrator() {
           pattern={pattern}
           onComplete={() => {
             stopQuizLoop()
+            stopQuizPrimaryAudio()
             go("portal")
           }}
         />
