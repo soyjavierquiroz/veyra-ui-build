@@ -31,10 +31,15 @@ function readBoolean(value: string | undefined, fallback: boolean): boolean {
 
 const mode = readMode()
 
+export const TEMPORARY_BUNNY_VSL_URL =
+  "https://vz-febf8c0d-fb8.b-cdn.net/1924db19-affb-41ea-a457-4195d85671c6/playlist.m3u8"
+
 export const funnelConfig: FunnelConfig = {
   mode,
   exp1VideoUrl: cleanPublicEnv(process.env.NEXT_PUBLIC_EXP1_VIDEO_URL) ?? "",
-  vslVideoUrl: cleanPublicEnv(process.env.NEXT_PUBLIC_VSL_VIDEO_URL) ?? "",
+  vslVideoUrl:
+    cleanPublicEnv(process.env.NEXT_PUBLIC_VSL_VIDEO_URL) ??
+    TEMPORARY_BUNNY_VSL_URL,
   whatsappNumber: cleanPublicEnv(process.env.NEXT_PUBLIC_WHATSAPP_NUMBER) ?? "",
   whatsappBaseUrl:
     cleanPublicEnv(process.env.NEXT_PUBLIC_WHATSAPP_BASE_URL) ?? "https://wa.me",

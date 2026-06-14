@@ -76,6 +76,7 @@ Los deep links no garantizan autoplay con audio. Las escenas con audio pueden re
 - No usa audios separados de resultado.
 - No usa video base común.
 - Al terminar el video muestra bridge por patrón y CTA: `ABRIR EL CAMINO HACIA JANNY`.
+- En el flujo principal ese CTA lleva directo a la VSL full-screen, sin pasar por EXP 6.
 - Mantiene fallback si `play()` falla o si video no carga; si `play()` falla, muestra el botón de recuperación: `REVELAR MENSAJE DE VEYRA`.
 - EXP 5 acepta `pattern`. Si se abre `?scene=exp5-reading` sin pattern, usa `abandono`.
 
@@ -100,6 +101,8 @@ Deep links:
 ## EXP 6 Portal Privado de Lectura Revelada
 
 - Deep link: https://mnle.reconociendotupoder.com/?scene=exp6-portal
+- Sigue disponible por deep link para revisión/manual.
+- Ya no forma parte del flujo principal.
 - Copy:
   - `Portal Privado de Lectura Revelada`
   - `Patrón dominante revelado.`
@@ -109,17 +112,22 @@ Deep links:
 - Botón: `VER MENSAJE DE JANNY`
 - El botón lleva directamente a la VSL en `?scene=vsl-interlude`.
 
-## EXP 7 VSL / Mensaje de Janny
+## VSL / Mensaje de Janny
 
 - Deep link: https://mnle.reconociendotupoder.com/?scene=vsl-interlude
+- Flujo principal: `EXP 5` → `ABRIR EL CAMINO HACIA JANNY` → VSL full-screen.
 - Usa un player Bunny/Panda-style adaptado desde:
   `/home/sensorial.pameflorescrea.com/source_boilerplate/src/components/themes/expert/components/video-player`
 - El README fuente indica Bunny.net como stream HLS `.m3u8` sobre `<video>` nativo con `hls.js`, modo VSL, autoplay, UI limpia y barra de progreso psicológico.
 - En Veyra el player vive en `components/funnel/video-player/vsl-video-player.tsx`.
 - La URL se lee desde `NEXT_PUBLIC_VSL_VIDEO_URL` vía `funnelConfig.vslVideoUrl`.
-- Si la URL Bunny no está configurada, muestra: `Video de Janny pendiente de configuración.`
-- El player intenta autoplay al montar después del click real en `VER MENSAJE DE JANNY`.
+- Si `NEXT_PUBLIC_VSL_VIDEO_URL` no existe o está vacía, usa la URL temporal Bunny:
+  `https://vz-febf8c0d-fb8.b-cdn.net/1924db19-affb-41ea-a457-4195d85671c6/playlist.m3u8`
+- Para cambiar el video luego, definir `NEXT_PUBLIC_VSL_VIDEO_URL` o actualizar `TEMPORARY_BUNNY_VSL_URL` en `components/funnel/config.ts`.
+- El player intenta autoplay con audio al montar después del click real en `ABRIR EL CAMINO HACIA JANNY`.
 - Si el navegador bloquea la reproducción/autoplay, muestra el fallback: `REPRODUCIR MENSAJE DE JANNY`.
+- No muestra pantalla previa, header `EXP 7`, card, placeholder ni botón `Continuar` antes del video.
+- La VSL se muestra full-screen/full-bleed sobre fondo negro.
 - No muestra controles nativos.
 - Bloquea clicks/acciones sobre el video con `pointer-events: none` y overlay transparente.
-- Muestra una barra de avance simulada configurable.
+- Muestra una barra de avance simulada superpuesta abajo, no manipulable por la usuaria.

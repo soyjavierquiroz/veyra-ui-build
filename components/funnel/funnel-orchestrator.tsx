@@ -429,7 +429,7 @@ export function FunnelOrchestrator() {
           onEnter={stopQuizAudio}
           onComplete={() => {
             stopQuizAudio()
-            go("portal")
+            go("vsl")
           }}
         />
       )}

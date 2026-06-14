@@ -17,8 +17,10 @@ export type VslVideoPlayerProps = {
   simulatedDurationSeconds?: number
   autoPlay?: boolean
   blockUserInteraction?: boolean
+  fullScreen?: boolean
   className?: string
   onEnded?: () => void
+  onPlaybackBlocked?: () => void
 }
 
 const DEFAULT_SIMULATED_DURATION = 900
@@ -64,8 +66,10 @@ export function VslVideoPlayer({
   simulatedDurationSeconds = DEFAULT_SIMULATED_DURATION,
   autoPlay = true,
   blockUserInteraction = true,
+  fullScreen = false,
   className,
   onEnded,
+  onPlaybackBlocked,
 }: VslVideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const hlsRef = useRef<Hls | null>(null)
@@ -121,9 +125,10 @@ export function VslVideoPlayer({
       setPlaybackState("playing")
     } catch {
       setPlaybackState("blocked")
+      onPlaybackBlocked?.()
       stopProgressLoop()
     }
-  }, [hasSource, stopProgressLoop])
+  }, [hasSource, onPlaybackBlocked, stopProgressLoop])
 
   useBrowserLayoutEffect(() => {
     const video = videoRef.current
@@ -146,7 +151,6 @@ export function VslVideoPlayer({
       hls.attachMedia(video)
       hls.on(Hls.Events.ERROR, (_event, data) => {
         if (data.fatal) {
-          setPlaybackState("blocked")
           stopProgressLoop()
         }
       })
@@ -214,19 +218,11 @@ export function VslVideoPlayer({
     return (
       <div
         className={cn(
-          "relative flex aspect-[9/16] w-full items-center justify-center overflow-hidden rounded-2xl border border-gold/30 bg-black shadow-2xl shadow-primary/20",
+          "relative flex w-full items-center justify-center overflow-hidden bg-black",
+          fullScreen ? "h-full" : "aspect-[9/16] rounded-2xl",
           className,
         )}
       >
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,oklch(0.62_0.18_300/0.35),transparent_38%),linear-gradient(180deg,oklch(0.18_0.04_300),oklch(0.08_0.02_300)_62%,black)]" />
-        <div className="relative z-10 max-w-[260px] px-6 text-center">
-          <p className="mb-3 text-xs uppercase tracking-[0.28em] text-gold/80">
-            Mensaje privado de Janny
-          </p>
-          <p className="font-serif text-2xl leading-tight text-foreground">
-            Video de Janny pendiente de configuración.
-          </p>
-        </div>
       </div>
     )
   }
@@ -234,7 +230,10 @@ export function VslVideoPlayer({
   return (
     <div
       className={cn(
-        "relative aspect-[9/16] w-full overflow-hidden rounded-2xl border border-gold/30 bg-black shadow-2xl shadow-primary/25",
+        "relative w-full overflow-hidden bg-black",
+        fullScreen
+          ? "h-full"
+          : "aspect-[9/16] rounded-2xl border border-gold/30 shadow-2xl shadow-primary/25",
         className,
       )}
       onContextMenu={(event) => event.preventDefault()}
@@ -245,7 +244,7 @@ export function VslVideoPlayer({
       <video
         ref={videoRef}
         className={cn(
-          "h-full w-full object-cover",
+          "h-full w-full object-cover object-center",
           blockUserInteraction && "pointer-events-none",
         )}
         playsInline
@@ -267,7 +266,7 @@ export function VslVideoPlayer({
           <button
             type="button"
             onClick={requestPlayback}
-            className="flex items-center justify-center gap-2 rounded-full bg-gold px-6 py-4 text-sm font-semibold uppercase tracking-[0.16em] text-background shadow-xl shadow-gold/20 transition-transform active:scale-95"
+            className="flex max-w-[calc(100vw-3rem)] flex-wrap items-center justify-center gap-2 rounded-full bg-gold px-5 py-4 text-center text-sm font-semibold uppercase leading-tight tracking-[0.14em] text-background shadow-xl shadow-gold/20 transition-transform active:scale-95"
           >
             <Play className="size-4 fill-current" />
             REPRODUCIR MENSAJE DE JANNY
@@ -275,7 +274,14 @@ export function VslVideoPlayer({
         </div>
       ) : null}
 
-      <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-40 h-1.5 bg-white/15">
+      <div
+        className={cn(
+          "pointer-events-none absolute z-40 h-1.5 overflow-hidden bg-white/15",
+          fullScreen
+            ? "bottom-[max(20px,env(safe-area-inset-bottom))] left-6 right-6 rounded-full"
+            : "bottom-0 left-0 right-0",
+        )}
+      >
         <div
           className="h-full rounded-r-full bg-gradient-to-r from-primary to-gold transition-[width] duration-300 ease-linear"
           style={{ width: `${progress}%` }}
