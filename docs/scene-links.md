@@ -69,11 +69,14 @@ Los deep links no activan autoplay. Las escenas con audio requieren gesto del us
 ## EXP 5 Mensaje Personalizado de Veyra
 
 - Reproduce un video personalizado según patrón dominante.
+- Los videos personalizados se reproducen como fondo full-screen de la escena.
+- El texto del patrón, bridge y CTA aparecen superpuestos sobre el video.
+- No se muestra como tarjeta embebida.
 - Cada video incluye audio integrado.
 - No usa audios separados de resultado.
 - No usa video base común.
 - Al terminar el video muestra bridge por patrón y CTA: `ABRIR EL CAMINO HACIA JANNY`.
-- Si `play()` falla, muestra el botón de recuperación: `REVELAR MENSAJE DE VEYRA`.
+- Mantiene fallback si `play()` falla o si video no carga; si `play()` falla, muestra el botón de recuperación: `REVELAR MENSAJE DE VEYRA`.
 - EXP 5 acepta `pattern`. Si se abre `?scene=exp5-reading` sin pattern, usa `abandono`.
 
 Mapeo:

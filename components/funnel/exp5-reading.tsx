@@ -84,6 +84,7 @@ export function Exp5Reading({
   const [showBridge, setShowBridge] = useState(false)
   const [playBlocked, setPlayBlocked] = useState(false)
   const [fallbackPending, setFallbackPending] = useState(false)
+  const [videoLoadFailed, setVideoLoadFailed] = useState(false)
 
   const config = RESULT_VIDEOS[pattern] ?? RESULT_VIDEOS.A
   const info = PATTERNS[pattern] ?? PATTERNS.A
@@ -130,6 +131,7 @@ export function Exp5Reading({
     setShowBridge(false)
     setPlayBlocked(false)
     setFallbackPending(false)
+    setVideoLoadFailed(false)
 
     const video = videoRef.current
     if (video) {
@@ -171,98 +173,111 @@ export function Exp5Reading({
   const handleVideoError = () => {
     setPlayBlocked(false)
     setFallbackPending(false)
+    setVideoLoadFailed(true)
     setShowBridge(true)
   }
 
   return (
-    <section className="access-chamber relative flex min-h-screen flex-col overflow-hidden px-4 py-6 sm:px-5 sm:py-8">
-      <Particles count={22} />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_16%,oklch(0.36_0.15_304/.34),transparent_30%),radial-gradient(circle_at_50%_78%,oklch(0.72_0.12_86/.10),transparent_34%),linear-gradient(180deg,oklch(0.06_0.03_292),oklch(0.12_0.07_300)_48%,oklch(0.05_0.02_292))]" />
-      <div className="pointer-events-none absolute -top-24 left-1/2 size-[340px] -translate-x-1/2 rounded-full border border-gold/10 blur-[1px] access-portal" />
+    <section className="relative flex min-h-screen w-full min-w-[320px] justify-center overflow-hidden bg-mystic text-white">
+      <div className="relative min-h-[100dvh] w-full max-w-[460px] overflow-hidden bg-black shadow-[0_0_80px_oklch(0.13_0.03_295_/_0.8)] md:border-x md:border-gold/10">
+        <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_50%_28%,oklch(0.36_0.15_304/.34),transparent_34%),radial-gradient(circle_at_50%_78%,oklch(0.72_0.12_86/.12),transparent_34%),linear-gradient(180deg,oklch(0.06_0.03_292),oklch(0.12_0.07_300)_48%,oklch(0.05_0.02_292))]" />
+        <div className="pointer-events-none absolute left-1/2 top-1/2 z-0 size-[360px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-gold/10 blur-[1px] access-portal" />
 
-      <div className="relative z-10 mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-[460px] flex-col justify-center gap-4">
-        <div className="text-center">
-          <p className="text-[0.68rem] uppercase tracking-[0.3em] text-muted-foreground">
-            Tu patrón dominante es:
-          </p>
-          <h1 className="mt-2 font-serif text-2xl leading-tight text-gold text-balance">
-            {info.title}
-          </h1>
+        <video
+          ref={videoRef}
+          src={config.video}
+          className={`absolute inset-0 z-0 h-full w-full object-cover object-center transition-opacity duration-700 ${
+            showBridge ? "opacity-40" : "opacity-100"
+          } ${videoLoadFailed ? "opacity-0" : ""}`}
+          playsInline
+          controls={false}
+          preload="auto"
+          loop={false}
+          muted={false}
+          onEnded={handleVideoEnded}
+          onError={handleVideoError}
+        />
+
+        <div className="pointer-events-none absolute inset-0 z-10 bg-black/10" />
+        <div className="pointer-events-none absolute inset-0 z-10 bg-[radial-gradient(75%_70%_at_50%_43%,transparent_36%,oklch(0.05_0.02_295/.62)_100%)]" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-56 bg-gradient-to-b from-black/70 via-black/25 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-72 bg-gradient-to-t from-black/82 via-black/36 to-transparent" />
+        <div className="pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(180deg,oklch(0.13_0.07_302/.18),transparent_32%,oklch(0.12_0.06_300/.28))]" />
+        <div className="pointer-events-none absolute inset-0 z-10">
+          <Particles count={22} />
         </div>
 
-        <div className="relative min-h-[62vh] overflow-hidden rounded-2xl border border-gold/20 bg-black shadow-[0_0_34px_oklch(0.45_0.18_304/.24),inset_0_0_28px_oklch(0.82_0.12_86/.06)]">
-          <video
-            ref={videoRef}
-            src={config.video}
-            className={`h-full min-h-[62vh] w-full object-cover transition-opacity duration-700 ${
-              showBridge ? "opacity-28" : "opacity-100"
-            }`}
-            playsInline
-            controls={false}
-            preload="auto"
-            loop={false}
-            muted={false}
-            onEnded={handleVideoEnded}
-            onError={handleVideoError}
-          />
+        <div className="relative z-20 flex min-h-[100dvh] w-full flex-col justify-between px-5 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(2.4rem,env(safe-area-inset-top))] sm:px-6">
+          <header className="mx-auto max-w-[92%] text-center">
+            <p className="text-[0.68rem] uppercase tracking-[0.3em] text-[#f5eedc]/80">
+              Tu patrón dominante es:
+            </p>
+            <h1 className="mt-2 font-serif text-2xl leading-tight text-gold text-balance drop-shadow-[0_0_18px_oklch(0.05_0.02_292/.9)]">
+              {info.title}
+            </h1>
+          </header>
 
-          {playBlocked && !showBridge && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 bg-[linear-gradient(180deg,oklch(0.06_0.03_292/.78),oklch(0.12_0.07_300/.88))] px-6 text-center backdrop-blur-sm">
-              <p className="font-serif text-2xl leading-relaxed text-[#f5eedc] text-balance">
-                Veyra tiene un mensaje para ti.
-              </p>
-              <button
-                onClick={handleRecoveryClick}
-                className="flex w-full max-w-xs items-center justify-center gap-2 rounded-full border border-gold/70 bg-[linear-gradient(135deg,oklch(0.33_0.16_302/.96),oklch(0.18_0.08_295/.96))] px-5 py-4 text-center font-medium uppercase tracking-wide text-gold glow-violet transition-transform active:scale-95"
-              >
-                <Play className="size-4 fill-current" />
-                REVELAR MENSAJE DE VEYRA
-              </button>
-            </div>
-          )}
+          <div className="min-h-[34vh]" />
 
-          {fallbackPending && !showBridge && (
-            <div className="absolute inset-0 flex items-center justify-center bg-[linear-gradient(180deg,oklch(0.06_0.03_292/.78),oklch(0.12_0.07_300/.88))] px-6 text-center backdrop-blur-sm">
-              <p className="font-serif text-2xl leading-relaxed text-[#f5eedc] text-balance">
-                Veyra tiene un mensaje para ti.
-              </p>
-            </div>
-          )}
-
-          {showBridge && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-6 bg-[linear-gradient(180deg,oklch(0.06_0.03_292/.72),oklch(0.12_0.07_300/.9))] px-6 text-center backdrop-blur-[2px]">
-              <div className="space-y-4">
+          {showBridge ? (
+            <div className="animate-float-up space-y-5 text-center">
+              <div className="space-y-3">
                 {config.bridge.split("\n").map((line) => (
                   <p
                     key={line}
-                    className="font-serif text-2xl leading-relaxed text-gold text-balance"
+                    className="font-serif text-2xl leading-relaxed text-gold text-balance drop-shadow-[0_0_18px_oklch(0.05_0.02_292/.95)]"
                   >
                     {line}
                   </p>
                 ))}
               </div>
-              <div className="space-y-2 border-t border-gold/15 pt-5">
+              <div className="mx-auto max-w-sm space-y-2 border-t border-gold/20 pt-4">
                 {config.shortText.split("\n").map((line) => (
                   <p
                     key={line}
-                    className="text-sm leading-relaxed text-[#f5eedc]/88 text-balance"
+                    className="text-sm leading-relaxed text-[#f5eedc]/88 text-balance drop-shadow-[0_0_12px_oklch(0.05_0.02_292/.95)]"
                   >
                     {line}
                   </p>
                 ))}
               </div>
             </div>
+          ) : (
+            <div aria-hidden="true" />
+          )}
+
+          {showBridge && (
+            <button
+              onClick={handleComplete}
+              className="animate-float-up flex w-full items-center justify-center gap-2 rounded-full border border-gold/70 bg-[linear-gradient(135deg,oklch(0.33_0.16_302/.96),oklch(0.18_0.08_295/.96))] px-5 py-4 text-center font-medium uppercase tracking-wide text-gold glow-violet transition-transform active:scale-95"
+            >
+              ABRIR EL CAMINO HACIA JANNY
+              <ArrowRight className="size-5" />
+            </button>
           )}
         </div>
 
-        {showBridge && (
-          <button
-            onClick={handleComplete}
-            className="animate-float-up flex w-full items-center justify-center gap-2 rounded-full border border-gold/70 bg-[linear-gradient(135deg,oklch(0.33_0.16_302/.96),oklch(0.18_0.08_295/.96))] px-5 py-4 text-center font-medium uppercase tracking-wide text-gold glow-violet transition-transform active:scale-95"
-          >
-            ABRIR EL CAMINO HACIA JANNY
-            <ArrowRight className="size-5" />
-          </button>
+        {playBlocked && !showBridge && (
+          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-5 bg-[linear-gradient(180deg,oklch(0.06_0.03_292/.78),oklch(0.12_0.07_300/.9))] px-6 text-center backdrop-blur-sm">
+            <p className="font-serif text-2xl leading-relaxed text-[#f5eedc] text-balance">
+              Veyra tiene un mensaje para ti.
+            </p>
+            <button
+              onClick={handleRecoveryClick}
+              className="flex w-full max-w-xs items-center justify-center gap-2 rounded-full border border-gold/70 bg-[linear-gradient(135deg,oklch(0.33_0.16_302/.96),oklch(0.18_0.08_295/.96))] px-5 py-4 text-center font-medium uppercase tracking-wide text-gold glow-violet transition-transform active:scale-95"
+            >
+              <Play className="size-4 fill-current" />
+              REVELAR MENSAJE DE VEYRA
+            </button>
+          </div>
+        )}
+
+        {fallbackPending && !showBridge && (
+          <div className="absolute inset-0 z-30 flex items-center justify-center bg-[linear-gradient(180deg,oklch(0.06_0.03_292/.78),oklch(0.12_0.07_300/.9))] px-6 text-center backdrop-blur-sm">
+            <p className="font-serif text-2xl leading-relaxed text-[#f5eedc] text-balance">
+              Veyra tiene un mensaje para ti.
+            </p>
+          </div>
         )}
       </div>
     </section>
