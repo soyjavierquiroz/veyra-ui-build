@@ -17,6 +17,17 @@ import { Exp9Feed } from "./exp9-feed"
 import { Exp10Offer } from "./exp10-offer"
 import { Exp11WhatsappOp, type OpEntry } from "./exp11-whatsapp-op"
 
+const QUIZ_LOOP_VOLUME = 0.4
+
+const QUIZ_PRIMARY_AUDIO_BY_ANSWERED_QUESTION_INDEX: Partial<
+  Record<number, string>
+> = {
+  0: "/audio/quiz-p2-final.mp3",
+  1: "/audio/quiz-p3-final.mp3",
+  2: "/audio/quiz-p4-final.mp3",
+  3: "/audio/quiz-p5-final.mp3",
+}
+
 export function FunnelOrchestrator() {
   const [stage, setStage] = useState<Stage>("video")
   const [pattern, setPattern] = useState<PatternKey>("A")
@@ -91,7 +102,7 @@ export function FunnelOrchestrator() {
     const audio = quizLoopAudioRef.current
     if (!audio) return
 
-    audio.volume = 0.5
+    audio.volume = QUIZ_LOOP_VOLUME
     audio.loop = true
 
     if (!audio.paused) return
@@ -194,13 +205,15 @@ export function FunnelOrchestrator() {
       {stage === "quiz" && (
         <Exp4Quiz
           onAnswerSelected={(questionIndex) => {
-            if (questionIndex === 0) {
-              playQuizPrimaryAudio("/audio/quiz-p2-final.mp3")
+            const nextAudioSrc =
+              QUIZ_PRIMARY_AUDIO_BY_ANSWERED_QUESTION_INDEX[questionIndex]
+
+            if (nextAudioSrc) {
+              playQuizPrimaryAudio(nextAudioSrc)
+              return
             }
 
-            if (questionIndex === 1) {
-              stopQuizPrimaryAudio()
-            }
+            stopQuizPrimaryAudio()
           }}
           onComplete={(p) => {
             setPattern(p)

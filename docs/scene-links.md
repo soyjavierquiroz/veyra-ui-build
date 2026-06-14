@@ -50,13 +50,15 @@ Los deep links no activan autoplay. Las escenas con audio requieren gesto del us
 - El procesamiento posterior a la pregunta 5 dura aprox. 11.5s y se revela por pasos.
 - La lectura revelada aparece por capas con pacing lento.
 - CTA final: `ABRIR EL CAMINO HACIA JANNY`.
-- Loop ambiental: `/audio/loop-quiz.mp3`.
-- Audio principal de intro/P1: `/audio/quiz-p1-final.mp3`.
-- Audio principal de Pregunta 2: `/audio/quiz-p2-final.mp3`.
-- El loop y el audio principal inician en el flujo real al presionar `CRUZAR EL UMBRAL`.
+- Loop ambiental: `/audio/loop-quiz.mp3` con volumen objetivo `0.4`.
+- Audio principal de intro/P1: `/audio/quiz-p1-final.mp3`, inicia al presionar `CRUZAR EL UMBRAL`.
+- Audio principal de Pregunta 2: `/audio/quiz-p2-final.mp3`, inicia después de responder la Pregunta 1.
+- Audio principal de Pregunta 3: `/audio/quiz-p3-final.mp3`, inicia después de responder la Pregunta 2.
+- Audio principal de Pregunta 4: `/audio/quiz-p4-final.mp3`, inicia después de responder la Pregunta 3.
+- Audio principal de Pregunta 5: `/audio/quiz-p5-final.mp3`, inicia después de responder la Pregunta 4.
+- El loop y el audio principal inicial inician en el flujo real al presionar `CRUZAR EL UMBRAL`.
 - Por deep link no se fuerza autoplay.
-- Al responder la Pregunta 1, el audio principal pasa a `/audio/quiz-p2-final.mp3` desde el inicio.
-- Al responder la Pregunta 2, el audio principal se detiene/reset si sigue activo.
-- El loop se detiene al presionar `ABRIR EL CAMINO HACIA JANNY`; los audios principales también se resetean por seguridad.
+- Al responder la Pregunta 5, el audio principal se detiene/reset si sigue activo.
+- El loop se detiene al presionar `ABRIR EL CAMINO HACIA JANNY`; el audio principal también se resetea por seguridad.
 
 EXP 5 acepta `pattern`. Si se abre `?scene=exp5-reading` sin pattern, usa `abandono`.
