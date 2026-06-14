@@ -23,6 +23,7 @@ export function FunnelOrchestrator() {
   const [opEntry, setOpEntry] = useState<OpEntry>("buy")
   const introAudioRef = useRef<HTMLAudioElement>(null)
   const introAudioStarted = useRef(false)
+  const quizLoopAudioRef = useRef<HTMLAudioElement | null>(null)
 
   useEffect(() => {
     const initialStage = getInitialSceneFromUrl()
@@ -85,9 +86,50 @@ export function FunnelOrchestrator() {
     introAudioStarted.current = false
   }, [])
 
+  const startQuizLoop = useCallback(() => {
+    const audio = quizLoopAudioRef.current
+    if (!audio) return
+
+    audio.volume = 0.5
+    audio.loop = true
+
+    if (!audio.paused) return
+
+    audio.currentTime = 0
+    void audio.play().catch(() => {
+      // Best-effort only: browser autoplay policies must never block the flow.
+    })
+  }, [])
+
+  const stopQuizLoop = useCallback(() => {
+    const audio = quizLoopAudioRef.current
+    if (!audio) return
+
+    audio.pause()
+    audio.currentTime = 0
+  }, [])
+
+  useEffect(() => {
+    if (stage === "quiz" || stage === "reading") return
+
+    stopQuizLoop()
+  }, [stage, stopQuizLoop])
+
+  useEffect(() => {
+    return () => {
+      stopQuizLoop()
+    }
+  }, [stopQuizLoop])
+
   return (
     <main className="relative min-h-screen w-full overflow-x-hidden bg-mystic text-foreground">
       <audio ref={introAudioRef} src="/audio/intro-rings.mp3" preload="auto" />
+      <audio
+        ref={quizLoopAudioRef}
+        src="/audio/quiz-loop.mp3"
+        preload="auto"
+        loop
+      />
       {stage === "video" && (
         <Exp1Video
           onStart={startExperience}
@@ -101,7 +143,14 @@ export function FunnelOrchestrator() {
           stopIntroAudio={stopIntroAudio}
         />
       )}
-      {stage === "scanner" && <Exp3Scanner onComplete={() => go("quiz")} />}
+      {stage === "scanner" && (
+        <Exp3Scanner
+          onComplete={() => {
+            startQuizLoop()
+            go("quiz")
+          }}
+        />
+      )}
       {stage === "quiz" && (
         <Exp4Quiz
           onComplete={(p) => {
@@ -112,7 +161,13 @@ export function FunnelOrchestrator() {
         />
       )}
       {stage === "reading" && (
-        <Exp5Reading pattern={pattern} onComplete={() => go("portal")} />
+        <Exp5Reading
+          pattern={pattern}
+          onComplete={() => {
+            stopQuizLoop()
+            go("portal")
+          }}
+        />
       )}
       {stage === "portal" && <Exp6Portal onComplete={() => go("vsl")} />}
       {stage === "vsl" && <VslInterlude onComplete={() => go("whatsapp-hook")} />}

@@ -50,5 +50,9 @@ Los deep links no activan autoplay. Las escenas con audio requieren gesto del us
 - El procesamiento posterior a la pregunta 5 dura aprox. 11.5s y se revela por pasos.
 - La lectura revelada aparece por capas con pacing lento.
 - CTA final: `ABRIR EL CAMINO HACIA JANNY`.
+- Loop ambiental: `/audio/quiz-loop.mp3`.
+- El loop inicia en el flujo real al presionar `CRUZAR EL UMBRAL`.
+- Por deep link no se fuerza autoplay.
+- El loop se detiene al presionar `ABRIR EL CAMINO HACIA JANNY`.
 
 EXP 5 acepta `pattern`. Si se abre `?scene=exp5-reading` sin pattern, usa `abandono`.
