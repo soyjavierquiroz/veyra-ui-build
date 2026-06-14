@@ -18,10 +18,16 @@ const SCENE_QUERY_TO_STEP: Record<string, Stage> = {
 
 const PATTERN_QUERY_TO_KEY: Record<string, PatternKey> = {
   abandono: "A",
+  miedo: "A",
+  "miedo perderlo": "A",
+  "miedo a que me olvide": "A",
   validacion: "B",
+  "busqueda validacion": "B",
   cierre: "C",
+  "necesidad cierre": "C",
   culpa: "D",
   nostalgia: "E",
+  ansiedad: "F",
   "ansiedad silencio": "F",
   "ansiedad por silencio": "F",
 }

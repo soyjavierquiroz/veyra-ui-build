@@ -47,9 +47,13 @@ Los deep links no activan autoplay. Las escenas con audio requieren gesto del us
 - La intro dura aprox. 22.5s y avanza automáticamente a la Pregunta 1.
 - La primera interacción de la usuaria es elegir una respuesta.
 - El feedback después de responder queda visible antes de avanzar.
-- El procesamiento posterior a la pregunta 5 dura aprox. 11.5s y se revela por pasos.
-- La lectura revelada aparece por capas con pacing lento.
-- CTA final: `ABRIR EL CAMINO HACIA JANNY`.
+- Después de Pregunta 5, calcula patrón dominante.
+- Muestra:
+  - `Lectura lista.`
+  - `Tu patrón dominante fue detectado.`
+  - `Veyra tiene un mensaje para ti.`
+- Botón: `REVELAR MENSAJE DE VEYRA`.
+- Ese botón lleva a EXP 5 e inicia el video personalizado.
 - Loop ambiental: `/audio/loop-quiz.mp3` con volumen objetivo `0.4`.
 - Los audios principales usan Web Audio API con preload/decoding para reducir retrasos de reproducción.
 - Audio principal de intro/P1: `/audio/quiz-p1-final.mp3`, inicia al presionar `CRUZAR EL UMBRAL`.
@@ -60,6 +64,43 @@ Los deep links no activan autoplay. Las escenas con audio requieren gesto del us
 - El loop y el audio principal inicial inician en el flujo real al presionar `CRUZAR EL UMBRAL`.
 - Por deep link no se fuerza autoplay.
 - Al responder la Pregunta 5, el audio principal se detiene/reset si sigue activo.
-- El loop ambiental sigue usando su lógica actual y se detiene al presionar `ABRIR EL CAMINO HACIA JANNY`; el audio principal también se resetea por seguridad.
+- El loop ambiental se detiene antes de entrar a EXP 5; el audio principal también se resetea por seguridad.
 
-EXP 5 acepta `pattern`. Si se abre `?scene=exp5-reading` sin pattern, usa `abandono`.
+## EXP 5 Mensaje Personalizado de Veyra
+
+- Reproduce un video personalizado según patrón dominante.
+- Cada video incluye audio integrado.
+- No usa audios separados de resultado.
+- No usa video base común.
+- Al terminar el video muestra bridge por patrón y CTA: `ABRIR EL CAMINO HACIA JANNY`.
+- Si `play()` falla, muestra el botón de recuperación: `REVELAR MENSAJE DE VEYRA`.
+- EXP 5 acepta `pattern`. Si se abre `?scene=exp5-reading` sin pattern, usa `abandono`.
+
+Mapeo:
+
+- `resp1-veyra-final.mp4` → `abandono` → `MIEDO A QUE TE OLVIDE`
+- `resp2-veyra-final.mp4` → `validacion` → `BÚSQUEDA DE VALIDACIÓN`
+- `resp3-veyra-final.mp4` → `cierre` → `NECESIDAD DE CIERRE`
+- `resp4-veyra-final.mp4` → `culpa` → `CULPA POR ALEJARTE`
+- `resp5-veyra-final.mp4` → `nostalgia` → `NOSTALGIA POR LO BONITO`
+- `resp6-veyra-final.mp4` → `ansiedad-silencio` → `ANSIEDAD POR SILENCIO`
+
+Deep links:
+
+- https://mnle.reconociendotupoder.com/?scene=exp5-reading&pattern=abandono
+- https://mnle.reconociendotupoder.com/?scene=exp5-reading&pattern=validacion
+- https://mnle.reconociendotupoder.com/?scene=exp5-reading&pattern=cierre
+- https://mnle.reconociendotupoder.com/?scene=exp5-reading&pattern=culpa
+- https://mnle.reconociendotupoder.com/?scene=exp5-reading&pattern=nostalgia
+- https://mnle.reconociendotupoder.com/?scene=exp5-reading&pattern=ansiedad-silencio
+
+## EXP 6 Portal Privado de Lectura Revelada
+
+- Deep link: https://mnle.reconociendotupoder.com/?scene=exp6-portal
+- Copy:
+  - `Portal Privado de Lectura Revelada`
+  - `Patrón dominante revelado.`
+  - `Guía humana asignada: Janny Helguero.`
+  - `Veyra reveló.`
+  - `Janny ordena.`
+- Botón: `VER MENSAJE DE JANNY`

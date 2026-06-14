@@ -39,6 +39,7 @@ const QUIZ_PRIMARY_AUDIO_BY_ANSWERED_QUESTION_INDEX: Partial<
 export function FunnelOrchestrator() {
   const [stage, setStage] = useState<Stage>("video")
   const [pattern, setPattern] = useState<PatternKey>("A")
+  const [revealVideoStartToken, setRevealVideoStartToken] = useState(0)
   const [opEntry, setOpEntry] = useState<OpEntry>("buy")
   const introAudioRef = useRef<HTMLAudioElement>(null)
   const introAudioStarted = useRef(false)
@@ -333,12 +334,16 @@ export function FunnelOrchestrator() {
     ],
   )
 
-  useEffect(() => {
-    if (stage === "quiz" || stage === "reading") return
-
+  const stopQuizAudio = useCallback(() => {
     stopQuizLoop()
     stopQuizPrimaryAudio()
-  }, [stage, stopQuizLoop, stopQuizPrimaryAudio])
+  }, [stopQuizLoop, stopQuizPrimaryAudio])
+
+  useEffect(() => {
+    if (stage === "quiz") return
+
+    stopQuizAudio()
+  }, [stage, stopQuizAudio])
 
   useEffect(() => {
     void preloadQuizPrimaryAudio()
@@ -346,10 +351,20 @@ export function FunnelOrchestrator() {
 
   useEffect(() => {
     return () => {
-      stopQuizLoop()
-      stopQuizPrimaryAudio()
+      stopQuizAudio()
     }
-  }, [stopQuizLoop, stopQuizPrimaryAudio])
+  }, [stopQuizAudio])
+
+  const handleRevealVeyraMessage = useCallback(
+    (p: PatternKey) => {
+      setPattern(p)
+      stopQuizAudio()
+      trackFunnelEvent("pattern_revealed", { pattern: p })
+      setRevealVideoStartToken((token) => token + 1)
+      go("reading")
+    },
+    [go, stopQuizAudio],
+  )
 
   return (
     <main className="relative min-h-screen w-full overflow-x-hidden bg-mystic text-foreground">
@@ -398,21 +413,22 @@ export function FunnelOrchestrator() {
               return
             }
 
-            stopQuizPrimaryAudio()
+            stopQuizAudio()
           }}
-          onComplete={(p) => {
+          onPatternReady={(p) => {
             setPattern(p)
-            trackFunnelEvent("pattern_revealed", { pattern: p })
-            go("reading")
+            stopQuizAudio()
           }}
+          onComplete={handleRevealVeyraMessage}
         />
       )}
       {stage === "reading" && (
         <Exp5Reading
           pattern={pattern}
+          startToken={revealVideoStartToken}
+          onEnter={stopQuizAudio}
           onComplete={() => {
-            stopQuizLoop()
-            stopQuizPrimaryAudio()
+            stopQuizAudio()
             go("portal")
           }}
         />

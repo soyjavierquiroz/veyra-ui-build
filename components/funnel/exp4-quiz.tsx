@@ -75,22 +75,14 @@ const QUESTIONS: Q[] = [
   },
 ]
 
-type Phase = "intro" | "quiz" | "processing"
+type Phase = "intro" | "quiz" | "ready"
 type IntroStep = "threshold" | "title" | "block1" | "block2" | "block3" | "block4"
-
-const PROCESSING = [
-  "Analizando respuestas…",
-  "Detectando patrón dominante…",
-  "Cruzando impulso + emoción + señal activa…",
-  "Lectura revelada.",
-]
 
 const READ_SPEED_CHARS_PER_SECOND = 13
 const MIN_REVEAL_SECONDS = 3.2
 const INTRO_TOTAL_MS = 22500
 const ANSWER_SELECTION_MS = 700
 const NO_MICRO_FEEDBACK_MS = 3800
-const PROCESSING_TOTAL_MS = 11500
 const INTRO_TIMINGS: { at: number; step: IntroStep }[] = [
   { at: 2800, step: "title" },
   { at: 6200, step: "block1" },
@@ -98,12 +90,6 @@ const INTRO_TIMINGS: { at: number; step: IntroStep }[] = [
   { at: 15000, step: "block3" },
   { at: 20500, step: "block4" },
 ]
-const PROCESSING_TIMINGS = [
-  { at: 2800, step: 1 },
-  { at: 5800, step: 2 },
-  { at: 9000, step: 3 },
-]
-
 function getReadableSeconds(text: string, min = MIN_REVEAL_SECONDS) {
   return Math.max(min, text.length / READ_SPEED_CHARS_PER_SECOND)
 }
@@ -122,18 +108,20 @@ function dominant(answers: PatternKey[]): PatternKey {
 
 export function Exp4Quiz({
   onAnswerSelected,
+  onPatternReady,
   onComplete,
 }: {
   onAnswerSelected?: (questionIndex: number) => void
+  onPatternReady?: (p: PatternKey) => void
   onComplete: (p: PatternKey) => void
 }) {
   const [phase, setPhase] = useState<Phase>("intro")
   const [index, setIndex] = useState(0)
   const [answers, setAnswers] = useState<PatternKey[]>([])
   const [micro, setMicro] = useState<string | null>(null)
-  const [procStep, setProcStep] = useState(0)
   const [introStep, setIntroStep] = useState<IntroStep>("threshold")
   const [selectedKey, setSelectedKey] = useState<PatternKey | null>(null)
+  const [detectedPattern, setDetectedPattern] = useState<PatternKey | null>(null)
   const answerInFlightRef = useRef(false)
   const answerTimersRef = useRef<number[]>([])
 
@@ -171,23 +159,6 @@ export function Exp4Quiz({
     }
   }, [phase])
 
-  useEffect(() => {
-    if (phase !== "processing") return
-
-    setProcStep(0)
-    const timers = PROCESSING_TIMINGS.map(({ at, step }) =>
-      window.setTimeout(() => setProcStep(step), at),
-    )
-    const finishTimer = window.setTimeout(() => {
-      onComplete(dominant(answers))
-    }, PROCESSING_TOTAL_MS)
-
-    return () => {
-      timers.forEach((timer) => window.clearTimeout(timer))
-      window.clearTimeout(finishTimer)
-    }
-  }, [answers, onComplete, phase])
-
   const handleAnswer = (q: Q, key: PatternKey) => {
     if (selectedKey || micro || answerInFlightRef.current) return
 
@@ -221,7 +192,10 @@ export function Exp4Quiz({
     if (index < QUESTIONS.length - 1) {
       setIndex((i) => i + 1)
     } else {
-      setPhase("processing")
+      const result = dominant(next)
+      setDetectedPattern(result)
+      onPatternReady?.(result)
+      setPhase("ready")
     }
   }
 
@@ -285,29 +259,34 @@ export function Exp4Quiz({
     )
   }
 
-  if (phase === "processing") {
+  if (phase === "ready") {
     return (
       <section className="access-chamber relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6">
         <Particles count={24} />
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_36%,oklch(0.38_0.16_304/.36),transparent_35%),linear-gradient(180deg,oklch(0.06_0.03_292),oklch(0.12_0.07_300),oklch(0.05_0.02_292))]" />
         <div className="pointer-events-none absolute left-1/2 top-[42%] size-[230px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-gold/20 access-portal" />
         <div className="pointer-events-none absolute left-1/2 top-[42%] size-24 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,oklch(0.82_0.12_86/.72),oklch(0.5_0.18_304/.22)_48%,transparent_70%)] blur-sm access-orb" />
-        <div className="relative z-10 flex max-w-sm flex-col items-center text-center">
+        <div className="relative z-10 flex w-full max-w-sm flex-col items-center text-center">
           <span className="mb-8 rounded-full border border-gold/25 px-4 py-1 font-serif text-xs uppercase tracking-[0.3em] text-gold/80">
             Evaluación de acceso
           </span>
-          <div className="flex min-h-[120px] items-center justify-center font-mono text-sm">
-            <p
-              key={procStep}
-              className={`animate-float-up break-words ${
-                procStep === PROCESSING.length - 1
-                  ? "font-serif text-base text-gold"
-                  : "text-muted-foreground"
-              }`}
-            >
-              {PROCESSING[procStep]}
+          <div className="animate-float-up flex min-h-[210px] flex-col items-center justify-center gap-5">
+            <p className="font-serif text-3xl leading-tight text-gold text-balance">
+              Lectura lista.
+            </p>
+            <p className="text-base leading-relaxed text-[#f5eedc] text-balance">
+              Tu patrón dominante fue detectado.
+            </p>
+            <p className="font-serif text-xl leading-relaxed text-[#f5eedc] text-balance">
+              Veyra tiene un mensaje para ti.
             </p>
           </div>
+          <button
+            onClick={() => onComplete(detectedPattern ?? dominant(answers))}
+            className="animate-float-up mt-8 flex w-full items-center justify-center rounded-full border border-gold/70 bg-[linear-gradient(135deg,oklch(0.33_0.16_302/.96),oklch(0.18_0.08_295/.96))] px-5 py-4 text-center font-medium uppercase tracking-wide text-gold glow-violet transition-transform active:scale-95"
+          >
+            REVELAR MENSAJE DE VEYRA
+          </button>
         </div>
       </section>
     )

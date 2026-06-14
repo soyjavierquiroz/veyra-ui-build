@@ -43,10 +43,10 @@ export const PATTERNS: Record<
   PatternKey,
   { id: PatternKey; label: string; title: string }
 > = {
-  A: { id: "A", label: "abandono", title: "miedo al abandono" },
-  B: { id: "B", label: "validación", title: "necesidad de validación" },
-  C: { id: "C", label: "cierre", title: "necesidad de cierre" },
-  D: { id: "D", label: "culpa", title: "culpa afectiva" },
-  E: { id: "E", label: "nostalgia", title: "nostalgia idealizada" },
-  F: { id: "F", label: "ansiedad por silencio", title: "ansiedad por silencio" },
+  A: { id: "A", label: "abandono", title: "MIEDO A QUE TE OLVIDE" },
+  B: { id: "B", label: "validacion", title: "BÚSQUEDA DE VALIDACIÓN" },
+  C: { id: "C", label: "cierre", title: "NECESIDAD DE CIERRE" },
+  D: { id: "D", label: "culpa", title: "CULPA POR ALEJARTE" },
+  E: { id: "E", label: "nostalgia", title: "NOSTALGIA POR LO BONITO" },
+  F: { id: "F", label: "ansiedad-silencio", title: "ANSIEDAD POR SILENCIO" },
 }

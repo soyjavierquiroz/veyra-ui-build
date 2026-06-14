@@ -5,10 +5,9 @@ import { ArrowRight, DoorOpen } from "lucide-react"
 import { Particles } from "./particles"
 
 const STEPS = [
-  "Patrón emocional detectado.",
+  "Patrón dominante revelado.",
   "Guía humana asignada: Janny Helguero.",
-  "Veyra reveló.",
-  "Janny ordena.",
+  "Veyra reveló.\nJanny ordena.",
 ]
 
 const TOTAL = 8000
@@ -28,7 +27,7 @@ export function Exp6Portal({ onComplete }: { onComplete: () => void }) {
     raf = requestAnimationFrame(tick)
 
     const timers = STEPS.map((_, i) =>
-      setTimeout(() => setStep(i + 1), (i + 1) * 1500),
+      setTimeout(() => setStep(i + 1), (i + 1) * 2000),
     )
     return () => {
       cancelAnimationFrame(raf)
@@ -60,23 +59,24 @@ export function Exp6Portal({ onComplete }: { onComplete: () => void }) {
       </div>
 
       <div className="relative z-10 flex w-full max-w-md flex-col items-center text-center">
-        <p className="mb-1 text-xs uppercase tracking-[0.3em] text-muted-foreground">
-          Portal Privado de
-        </p>
-        <h1 className="mb-8 font-serif text-3xl text-gold text-balance">
-          Lectura Revelada
+        <h1 className="mb-8 font-serif text-3xl leading-tight text-gold text-balance">
+          Portal Privado de Lectura Revelada
         </h1>
 
         <div className="mb-8 min-h-[140px] space-y-3">
           {STEPS.slice(0, step).map((t, i) => (
-            <p
-              key={i}
-              className={`animate-float-up break-words ${
-                i >= 2 ? "font-serif text-xl text-gold" : "text-foreground/90"
-              }`}
-            >
-              {t}
-            </p>
+            <div key={i} className="animate-float-up">
+              {t.split("\n").map((line) => (
+                <p
+                  key={line}
+                  className={`break-words ${
+                    i >= 2 ? "font-serif text-xl text-gold" : "text-foreground/90"
+                  }`}
+                >
+                  {line}
+                </p>
+              ))}
+            </div>
           ))}
         </div>
 
@@ -93,7 +93,7 @@ export function Exp6Portal({ onComplete }: { onComplete: () => void }) {
             onClick={onComplete}
             className="animate-float-up flex w-full items-center justify-center gap-2 rounded-full bg-primary py-4 font-medium uppercase tracking-wide text-primary-foreground glow-violet transition-transform active:scale-95"
           >
-            Ver mensaje de Janny
+            VER MENSAJE DE JANNY
             <ArrowRight className="size-5" />
           </button>
         )}
