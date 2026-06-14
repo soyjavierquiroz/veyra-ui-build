@@ -1,113 +1,53 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import Image from "next/image"
-import { Play, ArrowRight, Loader2 } from "lucide-react"
+import { ArrowRight } from "lucide-react"
+import { funnelConfig } from "./config"
+import { Particles } from "./particles"
+import { VslVideoPlayer } from "./video-player/vsl-video-player"
 
-type State = "cover" | "loading" | "playing" | "ended"
-
-const DURATION = 12
+const VSL_CONFIG = {
+  bunnyVideoUrl: funnelConfig.vslVideoUrl,
+  simulatedDurationSeconds: 900,
+}
 
 export function VslInterlude({ onComplete }: { onComplete: () => void }) {
-  const [state, setState] = useState<State>("cover")
-  const [elapsed, setElapsed] = useState(0)
-
-  useEffect(() => {
-    if (state === "loading") {
-      const t = setTimeout(() => setState("playing"), 1400)
-      return () => clearTimeout(t)
-    }
-    if (state === "playing") {
-      const id = setInterval(() => {
-        setElapsed((e) => {
-          if (e >= DURATION) {
-            clearInterval(id)
-            setState("ended")
-            return DURATION
-          }
-          return e + 0.1
-        })
-      }, 100)
-      return () => clearInterval(id)
-    }
-  }, [state])
-
-  const progress = Math.min(elapsed / DURATION, 1) * 100
+  const hasVideo = VSL_CONFIG.bunnyVideoUrl.length > 0
 
   return (
-    <section className="relative flex min-h-screen flex-col items-center justify-center px-5 py-10">
-      <div className="w-full max-w-sm">
-        <p className="mb-4 text-center text-xs uppercase tracking-[0.3em] text-muted-foreground">
-          Mensaje de
-        </p>
-        <h1 className="mb-6 text-center font-serif text-3xl text-gold">
-          Janny Helguero
-        </h1>
+    <section className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 py-8">
+      <Particles count={18} />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_12%,oklch(0.62_0.18_300/0.36),transparent_36%),linear-gradient(180deg,oklch(0.16_0.04_300),oklch(0.08_0.02_300)_54%,black)]" />
 
-        {/* Vertical player */}
-        <div className="relative mx-auto aspect-[9/16] w-full overflow-hidden rounded-3xl border border-gold/30 bg-card glow-gold">
-          <Image
-            src="/janny-portrait.png"
-            alt="Retrato de Janny Helguero"
-            fill
-            className={`object-cover transition-all duration-700 ${
-              state === "playing" ? "scale-105 brightness-90" : "brightness-75"
-            }`}
-            priority
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-background/40" />
-
-          {/* Cover play */}
-          {state === "cover" && (
-            <button
-              onClick={() => setState("loading")}
-              aria-label="Reproducir mensaje"
-              className="absolute inset-0 flex items-center justify-center"
-            >
-              <span className="flex size-20 items-center justify-center rounded-full bg-primary/90 glow-violet transition-transform hover:scale-105">
-                <Play className="size-9 translate-x-0.5 fill-primary-foreground text-primary-foreground" />
-              </span>
-            </button>
-          )}
-
-          {state === "loading" && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-              <Loader2 className="size-10 animate-spin text-gold" />
-              <span className="text-sm text-muted-foreground">Cargando…</span>
-            </div>
-          )}
-
-          {state === "ended" && (
-            <div className="absolute inset-0 flex items-center justify-center bg-background/60 backdrop-blur-sm">
-              <span className="font-serif text-xl text-gold">
-                Janny Helguero
-              </span>
-            </div>
-          )}
-
-          {/* Progress */}
-          {(state === "playing" || state === "ended") && (
-            <div className="absolute bottom-0 left-0 h-1 w-full bg-white/15">
-              <div
-                className="h-full bg-gradient-to-r from-primary to-gold"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-          )}
+      <div className="relative z-10 flex w-full max-w-sm flex-1 flex-col items-center justify-center">
+        <div className="mb-5 text-center">
+          <p className="mb-2 text-xs uppercase tracking-[0.28em] text-muted-foreground">
+            EXP 7
+          </p>
+          <h1 className="font-serif text-3xl leading-tight text-gold text-balance">
+            Mensaje privado de Janny
+          </h1>
         </div>
 
-        {/* CTA after end */}
-        <div className="mt-6 min-h-[60px]">
-          {state === "ended" && (
-            <button
-              onClick={onComplete}
-              className="animate-float-up flex w-full items-center justify-center gap-2 rounded-full bg-primary py-4 font-medium uppercase tracking-wide text-primary-foreground glow-violet transition-transform active:scale-95"
-            >
-              Continuar
-              <ArrowRight className="size-5" />
-            </button>
-          )}
-        </div>
+        <VslVideoPlayer
+          src={VSL_CONFIG.bunnyVideoUrl}
+          title="Mensaje privado de Janny"
+          simulatedDurationSeconds={VSL_CONFIG.simulatedDurationSeconds}
+          autoPlay
+          blockUserInteraction
+          onEnded={onComplete}
+          className="max-h-[72vh]"
+        />
+
+        {!hasVideo ? (
+          <button
+            type="button"
+            onClick={onComplete}
+            className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-primary py-4 font-medium uppercase tracking-wide text-primary-foreground glow-violet transition-transform active:scale-95"
+          >
+            Continuar
+            <ArrowRight className="size-5" />
+          </button>
+        ) : null}
       </div>
     </section>
   )

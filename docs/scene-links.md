@@ -21,7 +21,7 @@ Los enlaces directos usan query params sobre `/`. No crean rutas nuevas ni muest
 - https://mnle.reconociendotupoder.com/?scene=exp10-offer
 - https://mnle.reconociendotupoder.com/?scene=exp11-whatsapp-op
 
-Los deep links no activan autoplay. Las escenas con audio requieren gesto del usuario.
+Los deep links no garantizan autoplay con audio. Las escenas con audio pueden requerir gesto del usuario y mostrar fallback si el navegador bloquea la reproducción.
 
 ## EXP 3 Scanner + Revelación de Veyra
 
@@ -107,3 +107,19 @@ Deep links:
   - `Veyra reveló.`
   - `Janny ordena.`
 - Botón: `VER MENSAJE DE JANNY`
+- El botón lleva directamente a la VSL en `?scene=vsl-interlude`.
+
+## EXP 7 VSL / Mensaje de Janny
+
+- Deep link: https://mnle.reconociendotupoder.com/?scene=vsl-interlude
+- Usa un player Bunny/Panda-style adaptado desde:
+  `/home/sensorial.pameflorescrea.com/source_boilerplate/src/components/themes/expert/components/video-player`
+- El README fuente indica Bunny.net como stream HLS `.m3u8` sobre `<video>` nativo con `hls.js`, modo VSL, autoplay, UI limpia y barra de progreso psicológico.
+- En Veyra el player vive en `components/funnel/video-player/vsl-video-player.tsx`.
+- La URL se lee desde `NEXT_PUBLIC_VSL_VIDEO_URL` vía `funnelConfig.vslVideoUrl`.
+- Si la URL Bunny no está configurada, muestra: `Video de Janny pendiente de configuración.`
+- El player intenta autoplay al montar después del click real en `VER MENSAJE DE JANNY`.
+- Si el navegador bloquea la reproducción/autoplay, muestra el fallback: `REPRODUCIR MENSAJE DE JANNY`.
+- No muestra controles nativos.
+- Bloquea clicks/acciones sobre el video con `pointer-events: none` y overlay transparente.
+- Muestra una barra de avance simulada configurable.
