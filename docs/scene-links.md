@@ -115,7 +115,7 @@ Deep links:
 ## VSL / Mensaje de Janny
 
 - Deep link: https://mnle.reconociendotupoder.com/?scene=vsl-interlude
-- Flujo principal: `EXP 5` → `ABRIR EL CAMINO HACIA JANNY` → VSL full-screen.
+- Flujo principal: `EXP 5` → `ABRIR EL CAMINO HACIA JANNY` → VSL full-screen mobile-first.
 - Usa un player Bunny/Panda-style adaptado desde:
   `/home/sensorial.pameflorescrea.com/source_boilerplate/src/components/themes/expert/components/video-player`
 - El README fuente indica Bunny.net como stream HLS `.m3u8` sobre `<video>` nativo con `hls.js`, modo VSL, autoplay, UI limpia y barra de progreso psicológico.
@@ -127,7 +127,9 @@ Deep links:
 - El player intenta autoplay con audio al montar después del click real en `ABRIR EL CAMINO HACIA JANNY`.
 - Si el navegador bloquea la reproducción/autoplay, muestra el fallback: `REPRODUCIR MENSAJE DE JANNY`.
 - No muestra pantalla previa, header `EXP 7`, card, placeholder ni botón `Continuar` antes del video.
-- La VSL se muestra full-screen/full-bleed sobre fondo negro.
+- La VSL se muestra full-screen mobile-first sobre fondo negro.
+- En móvil ocupa 100dvh y 100% del ancho del dispositivo, sin card, bordes ni márgenes.
+- En desktop respeta el shell móvil centrado del funnel (`max-width` aprox. 460px) y no se expande a todo el ancho de la ventana.
 - No muestra controles nativos.
 - Bloquea clicks/acciones sobre el video con `pointer-events: none` y overlay transparente.
 - Muestra una barra de avance simulada superpuesta abajo, no manipulable por la usuaria.

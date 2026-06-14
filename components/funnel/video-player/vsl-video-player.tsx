@@ -266,7 +266,7 @@ export function VslVideoPlayer({
           <button
             type="button"
             onClick={requestPlayback}
-            className="flex max-w-[calc(100vw-3rem)] flex-wrap items-center justify-center gap-2 rounded-full bg-gold px-5 py-4 text-center text-sm font-semibold uppercase leading-tight tracking-[0.14em] text-background shadow-xl shadow-gold/20 transition-transform active:scale-95"
+            className="flex max-w-full flex-wrap items-center justify-center gap-2 rounded-full bg-gold px-5 py-4 text-center text-sm font-semibold uppercase leading-tight tracking-[0.14em] text-background shadow-xl shadow-gold/20 transition-transform active:scale-95"
           >
             <Play className="size-4 fill-current" />
             REPRODUCIR MENSAJE DE JANNY
