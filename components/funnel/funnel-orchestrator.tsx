@@ -126,7 +126,7 @@ export function FunnelOrchestrator() {
       <audio ref={introAudioRef} src="/audio/intro-rings.mp3" preload="auto" />
       <audio
         ref={quizLoopAudioRef}
-        src="/audio/quiz-loop.mp3"
+        src="/audio/loop-quiz.mp3"
         preload="auto"
         loop
       />
