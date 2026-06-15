@@ -1,12 +1,15 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { ArrowRight } from "lucide-react"
 import type { PatternKey } from "./types"
 import { PATTERNS } from "./types"
-import { funnelConfig, resultYoutubeShorts } from "./config"
+import { funnelConfig, resultYoutubeShortsByPattern } from "./config"
 import { Particles } from "./particles"
-import { YouTubeShortsVslPlayer } from "./video-player/youtube-shorts-vsl-player"
+import {
+  prewarmYouTubeShort,
+  YouTubeShortsVslPlayer,
+} from "./video-player/youtube-shorts-vsl-player"
 
 type ResultVideoConfig = {
   videoUrl: string
@@ -16,40 +19,40 @@ type ResultVideoConfig = {
 
 const RESULT_VIDEOS: Record<PatternKey, ResultVideoConfig> = {
   A: {
-    videoUrl: resultYoutubeShorts.abandono,
+    videoUrl: resultYoutubeShortsByPattern.A,
     shortText:
       "No buscabas solo una respuesta.\nBuscabas una señal de que todavía existes para él.",
     bridge: "Veyra reveló el miedo.\nJanny puede ayudarte a no abandonarte tú.",
   },
   B: {
-    videoUrl: resultYoutubeShorts.validacion,
+    videoUrl: resultYoutubeShortsByPattern.B,
     shortText:
       "No querías solo que respondiera.\nQuerías sentir que todavía importas.",
     bridge:
       "Veyra reveló la búsqueda.\nJanny puede ayudarte a recuperar tu centro.",
   },
   C: {
-    videoUrl: resultYoutubeShorts.cierre,
+    videoUrl: resultYoutubeShortsByPattern.C,
     shortText:
       "Tu mente pide una explicación.\nPero tu emoción puede estar buscando volver a abrir la puerta.",
     bridge:
       "Veyra reveló la pregunta abierta.\nJanny puede ayudarte a ordenar lo que duele adentro.",
   },
   D: {
-    videoUrl: resultYoutubeShorts.culpa,
+    videoUrl: resultYoutubeShortsByPattern.D,
     shortText: "Una parte de ti cree que cuidarte también puede lastimar.",
     bridge:
       "Veyra reveló la culpa.\nJanny puede ayudarte a elegirte sin castigarte.",
   },
   E: {
-    videoUrl: resultYoutubeShorts.nostalgia,
+    videoUrl: resultYoutubeShortsByPattern.E,
     shortText:
       "No extrañas solo a esa persona.\nExtrañas cómo te sentías cuando parecía posible.",
     bridge:
       "Veyra reveló la nostalgia.\nJanny puede ayudarte a mirar la historia completa.",
   },
   F: {
-    videoUrl: resultYoutubeShorts["ansiedad-silencio"],
+    videoUrl: resultYoutubeShortsByPattern.F,
     shortText:
       "Tu impulso no buscaba una conversación.\nBuscaba apagar la angustia que aparece cuando él no responde.",
     bridge:
@@ -68,23 +71,47 @@ export function Exp5Reading({
   onEnter?: () => void
   onComplete: () => void
 }) {
+  const fallbackTimerRef = useRef<number | null>(null)
   const [showBridge, setShowBridge] = useState(false)
 
   const config = RESULT_VIDEOS[pattern] ?? RESULT_VIDEOS.A
   const info = PATTERNS[pattern] ?? PATTERNS.A
 
+  const clearFallbackTimer = useCallback(() => {
+    if (fallbackTimerRef.current === null) return
+
+    window.clearTimeout(fallbackTimerRef.current)
+    fallbackTimerRef.current = null
+  }, [])
+
   useEffect(() => {
     onEnter?.()
+    prewarmYouTubeShort(config.videoUrl)
+    clearFallbackTimer()
     setShowBridge(false)
-  }, [config.videoUrl, onEnter, startToken])
+
+    fallbackTimerRef.current = window.setTimeout(() => {
+      fallbackTimerRef.current = null
+      setShowBridge(true)
+    }, funnelConfig.resultVideoFallbackDurationSeconds * 1000)
+
+    return clearFallbackTimer
+  }, [
+    clearFallbackTimer,
+    config.videoUrl,
+    funnelConfig.resultVideoFallbackDurationSeconds,
+    onEnter,
+    startToken,
+  ])
 
   const handleComplete = () => {
     onComplete()
   }
 
   const handleVideoEnded = useCallback(() => {
+    clearFallbackTimer()
     setShowBridge(true)
-  }, [])
+  }, [clearFallbackTimer])
 
   return (
     <section className="relative flex min-h-screen w-full min-w-[320px] justify-center overflow-hidden bg-mystic text-white">
@@ -98,12 +125,16 @@ export function Exp5Reading({
           autoPlay
           startWithSound
           blockUserInteraction
-          cleanMode={funnelConfig.youtubeCleanMode}
-          iframeScale={funnelConfig.youtubeIframeScale}
-          maskTop={funnelConfig.youtubeMaskTop}
-          maskBottom={funnelConfig.youtubeMaskBottom}
-          maskLeft={funnelConfig.youtubeMaskLeft}
-          maskRight={funnelConfig.youtubeMaskRight}
+          cleanMode={funnelConfig.resultYoutubeCleanMode}
+          verticalMode
+          fitMode="cover"
+          iframeScale={funnelConfig.resultYoutubeIframeScale}
+          iframeOffsetX={funnelConfig.resultYoutubeIframeOffsetX}
+          iframeOffsetY={funnelConfig.resultYoutubeIframeOffsetY}
+          maskTop={funnelConfig.resultYoutubeMaskTop}
+          maskBottom={funnelConfig.resultYoutubeMaskBottom}
+          maskLeft={funnelConfig.resultYoutubeMaskLeft}
+          maskRight={funnelConfig.resultYoutubeMaskRight}
           fallbackLabel="REPRODUCIR MENSAJE DE VEYRA"
           showSimulatedProgress={false}
           onEnded={handleVideoEnded}

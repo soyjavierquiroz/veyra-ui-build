@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import type { PatternKey, Stage } from "./types"
+import { resultYoutubeShortsByPattern } from "./config"
 import { trackFunnelEvent } from "./lib/analytics"
 import { getInitialSceneFromUrl, getPatternFromUrl } from "./lib/deep-link"
 import { Exp1Video } from "./exp1-video"
@@ -16,6 +17,7 @@ import { Exp8Login } from "./exp8-login"
 import { Exp9Feed } from "./exp9-feed"
 import { Exp10Offer } from "./exp10-offer"
 import { Exp11WhatsappOp, type OpEntry } from "./exp11-whatsapp-op"
+import { prewarmYouTubeShort } from "./video-player/youtube-shorts-vsl-player"
 
 const QUIZ_LOOP_VOLUME = 0.4
 const RESULT_LOOP_VOLUME = 0.15
@@ -59,7 +61,9 @@ export function FunnelOrchestrator() {
 
     // Query deep links are for internal scene review without a visible QA panel.
     if (initialStage === "reading") {
-      setPattern(getPatternFromUrl() ?? "A")
+      const initialPattern = getPatternFromUrl() ?? "A"
+      setPattern(initialPattern)
+      prewarmYouTubeShort(resultYoutubeShortsByPattern[initialPattern])
     }
     setStage(initialStage)
   }, [])
@@ -465,6 +469,7 @@ export function FunnelOrchestrator() {
           onPatternReady={(p) => {
             setPattern(p)
             stopQuizAudio()
+            prewarmYouTubeShort(resultYoutubeShortsByPattern[p])
           }}
           onComplete={handleRevealVeyraMessage}
         />

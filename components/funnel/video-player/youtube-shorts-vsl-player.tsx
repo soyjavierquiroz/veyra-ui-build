@@ -20,7 +20,11 @@ export type YouTubeShortsVslPlayerProps = {
   simulatedDurationSeconds?: number
   blockUserInteraction?: boolean
   cleanMode?: boolean
+  fitMode?: "cover" | "contain"
+  verticalMode?: boolean
   iframeScale?: number
+  iframeOffsetX?: number
+  iframeOffsetY?: number
   maskTop?: number
   maskBottom?: number
   maskLeft?: number
@@ -35,8 +39,10 @@ export type YouTubeShortsVslPlayerProps = {
 type PlaybackState = "idle" | "playing" | "blocked" | "error" | "ended"
 
 type YouTubePlayer = {
+  cueVideoById?: (videoId: string) => void
   destroy?: () => void
   getIframe?: () => HTMLIFrameElement
+  mute?: () => void
   playVideo?: () => void
   stopVideo?: () => void
   unMute?: () => void
@@ -62,8 +68,11 @@ const useBrowserLayoutEffect =
   typeof window === "undefined" ? useEffect : useLayoutEffect
 
 let youtubeApiPromise: Promise<any> | null = null
+let prewarmPlayer: YouTubePlayer | null = null
+let prewarmHost: HTMLDivElement | null = null
+let prewarmedVideoId: string | null = null
 
-function loadYouTubeIframeApi(): Promise<any> {
+export function preloadYouTubeIframeApi(): Promise<any> {
   if (typeof window === "undefined") {
     return Promise.reject(new Error("YouTube IFrame API requires window"))
   }
@@ -107,6 +116,117 @@ function loadYouTubeIframeApi(): Promise<any> {
   return youtubeApiPromise
 }
 
+function ensureYouTubePreconnects() {
+  if (typeof document === "undefined") return
+
+  const urls = [
+    "https://www.youtube.com",
+    "https://www.youtube-nocookie.com",
+    "https://i.ytimg.com",
+    "https://s.ytimg.com",
+    "https://www.google.com",
+    "https://googleads.g.doubleclick.net",
+  ]
+
+  for (const url of urls) {
+    for (const rel of ["preconnect", "dns-prefetch"] as const) {
+      const selector = `link[rel="${rel}"][href="${url}"]`
+      if (document.head.querySelector(selector)) continue
+
+      const link = document.createElement("link")
+      link.rel = rel
+      link.href = url
+      if (rel === "preconnect") {
+        link.crossOrigin = "anonymous"
+      }
+      document.head.appendChild(link)
+    }
+  }
+}
+
+function ensurePrewarmHost() {
+  if (typeof document === "undefined") return null
+  if (prewarmHost?.isConnected) return prewarmHost
+
+  const host = document.createElement("div")
+  host.setAttribute("aria-hidden", "true")
+  host.style.position = "absolute"
+  host.style.left = "-9999px"
+  host.style.top = "-9999px"
+  host.style.width = "1px"
+  host.style.height = "1px"
+  host.style.opacity = "0"
+  host.style.pointerEvents = "none"
+  host.style.overflow = "hidden"
+  document.body.appendChild(host)
+  prewarmHost = host
+  return host
+}
+
+export function prewarmYouTubeShort(videoUrl: string): void {
+  if (typeof window === "undefined") return
+
+  const videoId = extractYouTubeVideoId(videoUrl)
+  if (!videoId || prewarmedVideoId === videoId) return
+
+  ensureYouTubePreconnects()
+
+  void preloadYouTubeIframeApi()
+    .then((YT) => {
+      const host = ensurePrewarmHost()
+      if (!host) return
+
+      if (prewarmPlayer) {
+        try {
+          prewarmPlayer.mute?.()
+          prewarmPlayer.cueVideoById?.(videoId)
+          prewarmedVideoId = videoId
+          return
+        } catch {
+          try {
+            prewarmPlayer.destroy?.()
+          } catch {
+            // Best-effort cleanup for the hidden prewarm player.
+          }
+          prewarmPlayer = null
+          host.replaceChildren()
+        }
+      }
+
+      prewarmPlayer = new YT.Player(host, {
+        videoId,
+        width: "1",
+        height: "1",
+        playerVars: {
+          autoplay: 0,
+          controls: 0,
+          disablekb: 1,
+          enablejsapi: 1,
+          fs: 0,
+          iv_load_policy: 3,
+          modestbranding: 1,
+          origin: window.location.origin,
+          playsinline: 1,
+          rel: 0,
+        },
+        events: {
+          onReady: (event: { target: YouTubePlayer }) => {
+            try {
+              event.target.mute?.()
+              event.target.cueVideoById?.(videoId)
+              prewarmedVideoId = videoId
+            } catch {
+              // Prewarm is opportunistic and must never block the funnel.
+            }
+          },
+        },
+      })
+    })
+    .catch(() => {
+      // Prewarm is opportunistic and must never block the funnel.
+    })
+}
+
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max)
 }
@@ -148,7 +268,11 @@ export function YouTubeShortsVslPlayer({
   simulatedDurationSeconds = DEFAULT_SIMULATED_DURATION,
   blockUserInteraction = true,
   cleanMode = true,
+  fitMode = "cover",
+  verticalMode = false,
   iframeScale = 1.12,
+  iframeOffsetX = 0,
+  iframeOffsetY = 0,
   maskTop = 0,
   maskBottom = 82,
   maskLeft = 0,
@@ -225,6 +349,8 @@ export function YouTubeShortsVslPlayer({
     iframe.style.inset = "0"
     iframe.style.width = "100%"
     iframe.style.height = "100%"
+    iframe.style.minWidth = "100%"
+    iframe.style.minHeight = "100%"
     iframe.style.border = "0"
   }, [])
 
@@ -271,7 +397,7 @@ export function YouTubeShortsVslPlayer({
     isPlayingRef.current = false
     accumulatedProgressMsRef.current = 0
 
-    void loadYouTubeIframeApi()
+    void preloadYouTubeIframeApi()
       .then((YT) => {
         if (cancelled || !playerHostRef.current) return
 
@@ -408,11 +534,19 @@ export function YouTubeShortsVslPlayer({
       onContextMenu={(event) => event.preventDefault()}
       data-vsl-player="youtube-shorts"
       data-clean-mode={cleanMode ? "true" : "false"}
+      data-fit-mode={fitMode}
+      data-vertical-mode={verticalMode ? "true" : "false"}
     >
       <div
-        className="absolute left-1/2 top-1/2 h-full w-full -translate-x-1/2 -translate-y-1/2"
+        className={cn(
+          "absolute left-1/2 top-1/2 h-full -translate-x-1/2 -translate-y-1/2",
+          verticalMode ? "aspect-[9/16] w-auto min-w-full" : "w-full",
+          fitMode === "contain" ? "max-h-full max-w-full" : "",
+        )}
         style={{
-          transform: `translate(-50%, -50%) scale(${cleanMode ? iframeScale : 1})`,
+          transform: `translate(calc(-50% + ${iframeOffsetX}px), calc(-50% + ${iframeOffsetY}px)) scale(${
+            cleanMode ? iframeScale : 1
+          })`,
           transformOrigin: "center center",
         }}
       >

@@ -76,6 +76,9 @@ Los deep links no garantizan autoplay con audio. Las escenas con audio pueden re
 - Intenta autoplay con sonido inmediatamente después del click `REVELAR MENSAJE DE VEYRA`.
 - Si el navegador bloquea autoplay por no tener gesto válido, muestra el fallback: `REPRODUCIR MENSAJE DE VEYRA`.
 - Usa el player YouTube clean mode con controles ocultos, crop/scale, máscaras visuales, gradientes y overlay transparente para bloquear interacción.
+- Usa ajustes visuales separados de la VSL: `verticalMode`, `fitMode="cover"`, escala `1`, offsets `0` y máscaras `0` por defecto para evitar encuadres laterales negros o desplazados.
+- Cuando EXP 4 detecta el patrón dominante, precalienta el Short correcto: agrega preconnect/dns-prefetch, carga la YouTube IFrame API y cuea el video oculto sin autoplay ni audio.
+- El prewarm no reemplaza el gesto de usuario; el play con sonido se intenta recién al presionar `REVELAR MENSAJE DE VEYRA`.
 - En móvil ocupa toda la pantalla disponible del dispositivo dentro de `100dvh`.
 - En desktop respeta el shell móvil centrado del funnel (`max-width` aprox. 460px) y no se abre a todo el ancho de la ventana.
 - Usa audio ambiental de resultado: `/audio/loop-result.mp3`.
@@ -89,9 +92,21 @@ Los deep links no garantizan autoplay con audio. Las escenas con audio pueden re
 - No usa audios separados de resultado.
 - No usa video base común.
 - Al terminar el video muestra bridge por patrón y CTA: `ABRIR EL CAMINO HACIA JANNY`.
+- Si YouTube no emite `ended`, EXP 5 muestra el bridge por fallback de duración.
 - En el flujo principal ese CTA lleva directo a la VSL full-screen, sin pasar por EXP 6.
 - Los MP4 locales `resp*-veyra-final.mp4` ya no son la fuente principal de EXP 5.
 - EXP 5 acepta `pattern`. Si se abre `?scene=exp5-reading` sin pattern, usa `abandono`.
+
+Variables de ajuste EXP 5:
+
+- `NEXT_PUBLIC_RESULT_YOUTUBE_IFRAME_SCALE` default `1`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_IFRAME_OFFSET_X` default `0`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_IFRAME_OFFSET_Y` default `0`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_MASK_TOP` default `0`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_MASK_BOTTOM` default `0`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_MASK_LEFT` default `0`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_MASK_RIGHT` default `0`
+- `NEXT_PUBLIC_RESULT_VIDEO_FALLBACK_DURATION_SECONDS` default `65`
 
 Mapeo:
 

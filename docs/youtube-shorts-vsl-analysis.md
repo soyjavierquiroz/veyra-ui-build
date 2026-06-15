@@ -274,3 +274,22 @@ Mapeo activo:
 - `ansiedad-silencio` / `ANSIEDAD POR SILENCIO`: https://www.youtube.com/shorts/3OZyBOh6jGg
 
 EXP 5 intenta autoplay con sonido justo después del click `REVELAR MENSAJE DE VEYRA`. Si el navegador bloquea el autoplay, el fallback visible para esta escena es `REPRODUCIR MENSAJE DE VEYRA`. El CTA final sigue siendo `ABRIR EL CAMINO HACIA JANNY`, y el loop `/audio/loop-result.mp3` debe detenerse antes de entrar a la VSL.
+
+## Ajustes visuales y prewarm en EXP 5
+
+EXP 5 usa ajustes visuales separados de la VSL para evitar que el crop/máscaras pensados para el video de Janny deformen los Shorts de respuesta. Los defaults de resultado son no agresivos: `verticalMode=true`, `fitMode="cover"`, `iframeScale=1`, offsets `0`, máscaras `0` y sin barra simulada.
+
+Variables de ajuste específicas de EXP 5:
+
+- `NEXT_PUBLIC_RESULT_YOUTUBE_IFRAME_SCALE`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_IFRAME_OFFSET_X`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_IFRAME_OFFSET_Y`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_MASK_TOP`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_MASK_BOTTOM`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_MASK_LEFT`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_MASK_RIGHT`
+- `NEXT_PUBLIC_RESULT_VIDEO_FALLBACK_DURATION_SECONDS`
+
+El player soporta offsets controlados y aplica el iframe con `position:absolute`, `inset:0`, `width/height/minWidth/minHeight:100%`, centrado por transform. En modo vertical, el wrapper usa proporción visual `9:16` para que el Short se sienta full-screen dentro del shell móvil y no quede desplazado lateralmente.
+
+Cuando EXP 4 detecta el patrón dominante, el orquestador precalienta solo el Short correspondiente. Ese prewarm agrega `preconnect`/`dns-prefetch` hacia dominios de YouTube/Google, carga la YouTube IFrame API de forma idempotente y cuea el video en un player oculto de `1px`. No llama `playVideo()`, no desmutea y no reproduce audio. El click `REVELAR MENSAJE DE VEYRA` sigue siendo el gesto que intenta iniciar autoplay con sonido en EXP 5.

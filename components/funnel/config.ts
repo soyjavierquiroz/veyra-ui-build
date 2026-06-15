@@ -1,3 +1,5 @@
+import type { PatternKey } from "./types"
+
 export type FunnelMode = "demo" | "production"
 export type VslProvider = "bunny" | "youtube"
 
@@ -13,6 +15,15 @@ export type FunnelConfig = {
   youtubeMaskBottom: number
   youtubeMaskLeft: number
   youtubeMaskRight: number
+  resultYoutubeCleanMode: boolean
+  resultYoutubeIframeScale: number
+  resultYoutubeIframeOffsetX: number
+  resultYoutubeIframeOffsetY: number
+  resultYoutubeMaskTop: number
+  resultYoutubeMaskBottom: number
+  resultYoutubeMaskLeft: number
+  resultYoutubeMaskRight: number
+  resultVideoFallbackDurationSeconds: number
   whatsappNumber: string
   whatsappBaseUrl: string
   accessLink: string
@@ -65,6 +76,15 @@ export const resultYoutubeShorts = {
   "ansiedad-silencio": "https://www.youtube.com/shorts/3OZyBOh6jGg",
 } as const
 
+export const resultYoutubeShortsByPattern: Record<PatternKey, string> = {
+  A: resultYoutubeShorts.abandono,
+  B: resultYoutubeShorts.validacion,
+  C: resultYoutubeShorts.cierre,
+  D: resultYoutubeShorts.culpa,
+  E: resultYoutubeShorts.nostalgia,
+  F: resultYoutubeShorts["ansiedad-silencio"],
+}
+
 export const funnelConfig: FunnelConfig = {
   mode,
   exp1VideoUrl: cleanPublicEnv(process.env.NEXT_PUBLIC_EXP1_VIDEO_URL) ?? "",
@@ -85,6 +105,40 @@ export const funnelConfig: FunnelConfig = {
   ),
   youtubeMaskLeft: readNumber(process.env.NEXT_PUBLIC_YOUTUBE_MASK_LEFT, 0),
   youtubeMaskRight: readNumber(process.env.NEXT_PUBLIC_YOUTUBE_MASK_RIGHT, 0),
+  resultYoutubeCleanMode:
+    process.env.NEXT_PUBLIC_RESULT_YOUTUBE_CLEAN_MODE !== "false",
+  resultYoutubeIframeScale: readNumber(
+    process.env.NEXT_PUBLIC_RESULT_YOUTUBE_IFRAME_SCALE,
+    1,
+  ),
+  resultYoutubeIframeOffsetX: readNumber(
+    process.env.NEXT_PUBLIC_RESULT_YOUTUBE_IFRAME_OFFSET_X,
+    0,
+  ),
+  resultYoutubeIframeOffsetY: readNumber(
+    process.env.NEXT_PUBLIC_RESULT_YOUTUBE_IFRAME_OFFSET_Y,
+    0,
+  ),
+  resultYoutubeMaskTop: readNumber(
+    process.env.NEXT_PUBLIC_RESULT_YOUTUBE_MASK_TOP,
+    0,
+  ),
+  resultYoutubeMaskBottom: readNumber(
+    process.env.NEXT_PUBLIC_RESULT_YOUTUBE_MASK_BOTTOM,
+    0,
+  ),
+  resultYoutubeMaskLeft: readNumber(
+    process.env.NEXT_PUBLIC_RESULT_YOUTUBE_MASK_LEFT,
+    0,
+  ),
+  resultYoutubeMaskRight: readNumber(
+    process.env.NEXT_PUBLIC_RESULT_YOUTUBE_MASK_RIGHT,
+    0,
+  ),
+  resultVideoFallbackDurationSeconds: readNumber(
+    process.env.NEXT_PUBLIC_RESULT_VIDEO_FALLBACK_DURATION_SECONDS,
+    65,
+  ),
   whatsappNumber: cleanPublicEnv(process.env.NEXT_PUBLIC_WHATSAPP_NUMBER) ?? "",
   whatsappBaseUrl:
     cleanPublicEnv(process.env.NEXT_PUBLIC_WHATSAPP_BASE_URL) ?? "https://wa.me",
