@@ -58,9 +58,12 @@ Los deep links no garantizan autoplay con audio. Las escenas con audio pueden re
 - Audio principal de Pregunta 3: `/audio/quiz-p3-final.mp3`, inicia después de responder la Pregunta 2.
 - Audio principal de Pregunta 4: `/audio/quiz-p4-final.mp3`, inicia después de responder la Pregunta 3.
 - Audio principal de Pregunta 5: `/audio/quiz-p5-final.mp3`, inicia después de responder la Pregunta 4.
+- Audio final de última elección: `/audio/quiz-p6-final.mp3`, inicia cuando la visitante responde la Pregunta 5.
+- `/audio/quiz-p6-final.mp3` se precarga junto con p1-p5 y corresponde a la última elección del quiz.
+- Al responder la Pregunta 5, el audio primario anterior se detiene/reset antes de reproducir p6 para evitar solapes.
 - El loop y el audio principal inicial inician en el flujo real al presionar `CRUZAR EL UMBRAL`.
 - Por deep link no se fuerza autoplay.
-- Al responder la Pregunta 5, el audio principal se detiene/reset si sigue activo.
+- Al entrar a EXP 5, p6 se detiene/reset si todavía sigue activo para que no suene encima del resultado YouTube.
 - El loop ambiental se detiene antes de entrar a EXP 5; el audio principal también se resetea por seguridad.
 
 ## EXP 5 Mensaje Personalizado de Veyra

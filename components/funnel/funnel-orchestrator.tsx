@@ -31,6 +31,7 @@ const QUIZ_PRIMARY_AUDIO_SOURCES = [
   "/audio/quiz-p3-final.mp3",
   "/audio/quiz-p4-final.mp3",
   "/audio/quiz-p5-final.mp3",
+  "/audio/quiz-p6-final.mp3",
 ] as const
 
 const QUIZ_PRIMARY_AUDIO_BY_ANSWERED_QUESTION_INDEX: Partial<
@@ -40,6 +41,7 @@ const QUIZ_PRIMARY_AUDIO_BY_ANSWERED_QUESTION_INDEX: Partial<
   1: "/audio/quiz-p3-final.mp3",
   2: "/audio/quiz-p4-final.mp3",
   3: "/audio/quiz-p5-final.mp3",
+  4: "/audio/quiz-p6-final.mp3",
 }
 
 export function FunnelOrchestrator() {
