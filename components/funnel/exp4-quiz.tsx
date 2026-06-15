@@ -121,7 +121,6 @@ export function Exp4Quiz({
   const [micro, setMicro] = useState<string | null>(null)
   const [introStep, setIntroStep] = useState<IntroStep>("threshold")
   const [selectedKey, setSelectedKey] = useState<PatternKey | null>(null)
-  const [detectedPattern, setDetectedPattern] = useState<PatternKey | null>(null)
   const answerInFlightRef = useRef(false)
   const answerTimersRef = useRef<number[]>([])
 
@@ -193,9 +192,9 @@ export function Exp4Quiz({
       setIndex((i) => i + 1)
     } else {
       const result = dominant(next)
-      setDetectedPattern(result)
       onPatternReady?.(result)
       setPhase("ready")
+      onComplete(result)
     }
   }
 
@@ -281,12 +280,6 @@ export function Exp4Quiz({
               Veyra tiene un mensaje para ti.
             </p>
           </div>
-          <button
-            onClick={() => onComplete(detectedPattern ?? dominant(answers))}
-            className="animate-float-up mt-8 flex w-full items-center justify-center rounded-full border border-gold/70 bg-[linear-gradient(135deg,oklch(0.33_0.16_302/.96),oklch(0.18_0.08_295/.96))] px-5 py-4 text-center font-medium uppercase tracking-wide text-gold glow-violet transition-transform active:scale-95"
-          >
-            REVELAR MENSAJE DE VEYRA
-          </button>
         </div>
       </section>
     )

@@ -48,6 +48,10 @@ export function FunnelOrchestrator() {
   const [preparedResultVideoUrl, setPreparedResultVideoUrl] = useState<
     string | null
   >(null)
+  const [resultPlayerReadyToReveal, setResultPlayerReadyToReveal] =
+    useState(false)
+  const [resultRevealRequested, setResultRevealRequested] = useState(false)
+  const [resultVideoPlaying, setResultVideoPlaying] = useState(false)
   const [showResultBridge, setShowResultBridge] = useState(false)
   const [opEntry, setOpEntry] = useState<OpEntry>("buy")
   const introAudioRef = useRef<HTMLAudioElement>(null)
@@ -74,6 +78,10 @@ export function FunnelOrchestrator() {
       const initialResultUrl = resultYoutubeShortsByPattern[initialPattern]
       setPattern(initialPattern)
       setPreparedResultVideoUrl(initialResultUrl)
+      setResultPlayerReadyToReveal(false)
+      setResultRevealRequested(false)
+      setResultVideoPlaying(false)
+      setShowResultBridge(false)
       preparedResultPlayerRef.current?.prepare(initialResultUrl)
     }
     setStage(initialStage)
@@ -404,6 +412,8 @@ export function FunnelOrchestrator() {
 
   const handleResultVideoEnded = useCallback(() => {
     clearResultFallbackTimer()
+    setResultRevealRequested(false)
+    setResultVideoPlaying(false)
     setShowResultBridge(true)
   }, [clearResultFallbackTimer])
 
@@ -420,14 +430,14 @@ export function FunnelOrchestrator() {
   }, [stage, stopResultLoop])
 
   useEffect(() => {
-    if (stage === "reading") {
-      startResultFallbackTimer()
-      return
-    }
+    if (stage === "reading") return
 
     clearResultFallbackTimer()
     setShowResultBridge(false)
-  }, [clearResultFallbackTimer, stage, startResultFallbackTimer])
+    setResultRevealRequested(false)
+    setResultVideoPlaying(false)
+    setResultPlayerReadyToReveal(false)
+  }, [clearResultFallbackTimer, stage])
 
   useEffect(() => {
     void preloadQuizPrimaryAudio()
@@ -442,21 +452,47 @@ export function FunnelOrchestrator() {
     }
   }, [clearResultFallbackTimer, stopQuizAudio, stopResultLoop])
 
-  const handleRevealVeyraMessage = useCallback(
+  const handlePatternReadyForReading = useCallback(
     (p: PatternKey) => {
       const resultVideoUrl = resultYoutubeShortsByPattern[p]
       setPattern(p)
       setPreparedResultVideoUrl(resultVideoUrl)
+      setResultPlayerReadyToReveal(false)
+      setResultRevealRequested(false)
+      setResultVideoPlaying(false)
       setShowResultBridge(false)
       stopQuizAudio()
-      startResultLoop()
       preparedResultPlayerRef.current?.prepare(resultVideoUrl)
-      preparedResultPlayerRef.current?.playWithSound()
       trackFunnelEvent("pattern_revealed", { pattern: p })
       go("reading")
     },
-    [go, startResultLoop, stopQuizAudio],
+    [go, stopQuizAudio],
   )
+
+  const handleRevealPreparedResult = useCallback(() => {
+    if (!preparedResultPlayerRef.current?.isReady()) return
+
+    setResultRevealRequested(true)
+    setResultVideoPlaying(false)
+    setShowResultBridge(false)
+    startResultLoop()
+    startResultFallbackTimer()
+    preparedResultPlayerRef.current.playWithSound()
+  }, [startResultFallbackTimer, startResultLoop])
+
+  const handleResultPlaybackFailed = useCallback(() => {
+    clearResultFallbackTimer()
+    setResultRevealRequested(false)
+    setResultVideoPlaying(false)
+    setResultPlayerReadyToReveal(preparedResultPlayerRef.current?.isReady() ?? false)
+  }, [clearResultFallbackTimer])
+
+  const showRevealResultButton =
+    stage === "reading" &&
+    resultPlayerReadyToReveal &&
+    !resultRevealRequested &&
+    !resultVideoPlaying &&
+    !showResultBridge
 
   return (
     <main className="relative min-h-screen w-full overflow-x-hidden bg-mystic text-foreground">
@@ -482,7 +518,7 @@ export function FunnelOrchestrator() {
         videoUrl={preparedResultVideoUrl}
         active={Boolean(preparedResultVideoUrl) && stage !== "vsl"}
         visible={stage === "reading"}
-        fallbackLabel="REPRODUCIR MENSAJE DE VEYRA"
+        armed={stage === "reading"}
         fitMode="native"
         verticalMode={true}
         iframeScale={funnelConfig.resultYoutubeIframeScale}
@@ -511,6 +547,14 @@ export function FunnelOrchestrator() {
         introVeilEnabled={funnelConfig.resultYoutubeIntroVeilEnabled}
         introVeilDurationMs={funnelConfig.resultYoutubeIntroVeilDurationMs}
         introVeilFadeMs={funnelConfig.resultYoutubeIntroVeilFadeMs}
+        onReadyToReveal={() => {
+          setResultPlayerReadyToReveal(true)
+        }}
+        onPlaying={() => {
+          setResultVideoPlaying(true)
+          setResultRevealRequested(true)
+        }}
+        onPlaybackFailed={handleResultPlaybackFailed}
         onEnded={handleResultVideoEnded}
       />
       {stage === "video" && (
@@ -553,10 +597,13 @@ export function FunnelOrchestrator() {
             const resultVideoUrl = resultYoutubeShortsByPattern[p]
             setPattern(p)
             setPreparedResultVideoUrl(resultVideoUrl)
+            setResultPlayerReadyToReveal(false)
+            setResultRevealRequested(false)
+            setResultVideoPlaying(false)
             stopQuizAudio()
             preparedResultPlayerRef.current?.prepare(resultVideoUrl)
           }}
-          onComplete={handleRevealVeyraMessage}
+          onComplete={handlePatternReadyForReading}
         />
       )}
       {stage === "reading" && (
@@ -569,10 +616,24 @@ export function FunnelOrchestrator() {
             clearResultFallbackTimer()
             preparedResultPlayerRef.current?.reset()
             setPreparedResultVideoUrl(null)
+            setResultPlayerReadyToReveal(false)
+            setResultRevealRequested(false)
+            setResultVideoPlaying(false)
             setShowResultBridge(false)
             go("vsl")
           }}
         />
+      )}
+      {showRevealResultButton && (
+        <div className="pointer-events-none absolute inset-0 z-[70] flex items-center justify-center px-6">
+          <button
+            type="button"
+            onClick={handleRevealPreparedResult}
+            className="pointer-events-auto flex max-w-[380px] items-center justify-center rounded-full border border-gold/70 bg-[linear-gradient(135deg,oklch(0.33_0.16_302/.96),oklch(0.18_0.08_295/.96))] px-5 py-4 text-center text-sm font-medium uppercase leading-tight tracking-[0.14em] text-gold glow-violet transition-transform active:scale-95"
+          >
+            REVELAR MENSAJE DE VEYRA
+          </button>
+        </div>
       )}
       {stage === "portal" && <Exp6Portal onComplete={() => go("vsl")} />}
       {stage === "vsl" && <VslInterlude onComplete={() => go("whatsapp-hook")} />}

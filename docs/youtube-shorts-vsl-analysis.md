@@ -273,19 +273,29 @@ Mapeo activo:
 - `nostalgia` / `NOSTALGIA POR LO BONITO`: https://www.youtube.com/shorts/rKRWUiWTI3A
 - `ansiedad-silencio` / `ANSIEDAD POR SILENCIO`: https://www.youtube.com/shorts/3OZyBOh6jGg
 
-EXP 5 intenta autoplay con sonido justo después del click `REVELAR MENSAJE DE VEYRA`. Si el navegador bloquea el autoplay, el fallback visible para esta escena es `REPRODUCIR MENSAJE DE VEYRA`, pero solo después del timeout de playback. El CTA final sigue siendo `ABRIR EL CAMINO HACIA JANNY`, y el loop `/audio/loop-result.mp3` debe detenerse antes de entrar a la VSL.
+## EXP 5 — botón único sobre player preparado
+
+EXP 4 ya no usa `REVELAR MENSAJE DE VEYRA` como botón de cambio de escena. Cuando detecta el patrón dominante, el orquestador prepara el Short correspondiente y entra automáticamente a EXP 5.
+
+EXP 5 monta el prepared player de YouTube del patrón y espera a que la API, el player y el video cueado estén listos. Mientras se prepara no muestra botón falso, thumbnail, poster, pantalla de carga larga ni fallback. Cuando el player reporta ready/cued, aparece el único botón previo al video: `REVELAR MENSAJE DE VEYRA`, superpuesto sobre el player.
+
+Ese botón es el gesto real de usuario: llama `playWithSound()` directamente sobre el mismo player preparado, oculta el botón, inicia el loop `/audio/loop-result.mp3` y dispara el intro veil. El veil dura 3000ms, tiene fade default de 900ms, no muestra texto, no usa imagen externa y tiene `pointer-events: none`.
+
+Si YouTube falla después del click o no llega `PLAYING` después de al menos 4000ms, EXP 5 no muestra otro botón distinto. Reaparece el mismo botón `REVELAR MENSAJE DE VEYRA` para reintentar sobre el mismo player. No existe fallback `REPRODUCIR MENSAJE DE VEYRA` en EXP 5.
+
+Los deep links como `/?scene=exp5-reading&pattern=abandono` entran a EXP 5, preparan el player, muestran `REVELAR MENSAJE DE VEYRA` solo cuando está ready y reproducen con sonido únicamente tras ese click. El CTA final sigue siendo `ABRIR EL CAMINO HACIA JANNY`, y el loop `/audio/loop-result.mp3` se detiene antes de entrar a la VSL.
 
 ## Ajuste EXP 5 — video directo sin thumbnail ni botón previo
 
-EXP 5 ahora prioriza el arranque directo del YouTube Short preparado. El click real `REVELAR MENSAJE DE VEYRA` sigue llamando `playWithSound()` en el orquestador; no se crea un player nuevo, no se espera a que cargue una imagen externa y no se muestra botón previo.
+EXP 5 ahora prioriza el arranque directo del YouTube Short preparado. El click real `REVELAR MENSAJE DE VEYRA` llama `playWithSound()` en el orquestador; no se crea un player nuevo, no se espera a que cargue una imagen externa y no se muestra ningún botón previo distinto.
 
 Comportamiento actual:
 
 - `NEXT_PUBLIC_RESULT_YOUTUBE_POSTER_SHIELD_ENABLED` default `false`; no se renderiza thumbnail ni se genera URL de poster salvo que se active explícitamente con `true`.
 - No hay pantalla de carga ni texto `Preparando mensaje...`.
-- El fallback `REPRODUCIR MENSAJE DE VEYRA` solo aparece si se intentó `playVideo()` y no llega `PLAYING` después de aprox. 3500ms, o si YouTube/API devuelve error real.
-- Deep links de EXP 5 intentan autoplay, pero tampoco muestran fallback instantáneo; si no hay gesto válido, el botón aparece después del timeout.
-- El intro veil es una capa propia, sin imagen, `pointer-events: none`, con gradiente oscuro/transparente. Dura aprox. 2000ms y empieza a desvanecer a los 1300ms con fade de 700ms.
+- No existe fallback `REPRODUCIR MENSAJE DE VEYRA`; si falla la reproducción, reaparece `REVELAR MENSAJE DE VEYRA`.
+- Deep links de EXP 5 no intentan autoplay; esperan readiness y click real.
+- El intro veil es una capa propia, sin imagen, `pointer-events: none`, con gradiente oscuro/transparente. Dura aprox. 3000ms y empieza a desvanecer a los 2100ms con fade de 900ms.
 - Bottom UI shield y top UI shield quedan apagados por defecto. Si se necesita volver a suavizar UI persistente, se activan por env.
 - No cambia el framing: `fitMode="native"`, `iframeScale=1`, offsets `0`, sin crop vertical tipo Presto.
 
@@ -324,7 +334,7 @@ Variables de ajuste específicas de EXP 5:
 
 El player soporta offsets controlados y aplica el iframe con `position:absolute`, `inset:0`, `width/height/minWidth/minHeight:100%`. En el modo no-zoom de EXP 5 no se aplica transform cuando `iframeScale=1` y offsets `0`; el iframe ocupa el shell móvil sin wrapper 9:16 adicional ni crop agresivo.
 
-Cuando EXP 4 detecta el patrón dominante, el orquestador prepara solo el Short correspondiente en el mismo player persistente que luego se revela. La preparación agrega `preconnect`/`dns-prefetch`, carga la YouTube IFrame API de forma idempotente y cuea el video sin llamar `playVideo()`, sin desmutear y sin reproducir audio. El click `REVELAR MENSAJE DE VEYRA` sigue siendo el gesto que intenta iniciar autoplay con sonido en EXP 5.
+Cuando EXP 4 detecta el patrón dominante, el orquestador prepara solo el Short correspondiente en el mismo player persistente que luego se revela. La preparación agrega `preconnect`/`dns-prefetch`, carga la YouTube IFrame API de forma idempotente y cuea el video sin llamar `playVideo()`, sin desmutear y sin reproducir audio. El click `REVELAR MENSAJE DE VEYRA` es el gesto que inicia `playWithSound()` con sonido en EXP 5.
 
 ## Prepared player y logo mask en EXP 5
 
@@ -389,7 +399,7 @@ Qué replicamos en Veyra sin copiar código propietario:
 - Mantener `controls=0`, `disablekb=1`, `iv_load_policy=3`, `modestbranding=1`, `playsinline=1`, `rel=0`.
 - Mantener poster shield como opción explícita, pero apagado por defecto para que EXP 5 no muestre thumbnail ni espere imágenes externas.
 - Poner `pointer-events: none` al iframe y un blocker transparente encima para que taps/clicks no despierten UI interna de YouTube.
-- Usar un intro veil propio de 2 segundos para suavizar el arranque sin bloquear reproducción.
+- Usar un intro veil propio de 3 segundos para suavizar el arranque sin bloquear reproducción.
 - No replicar por defecto el hack Presto `top:-50%; height:200%`, porque en Shorts de EXP 5 sería crop/zoom agresivo y puede cortar rostro o elementos importantes.
 
 ## Ajuste Veyra — sin máscara central
@@ -399,8 +409,8 @@ EXP 5 ya no usa máscara central por defecto. `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_M
 El ocultamiento principal durante el arranque ahora se maneja con un intro veil temporal: un gradiente propio, sin thumbnail, sin texto y sin bloquear interacción. Defaults:
 
 - `NEXT_PUBLIC_RESULT_YOUTUBE_INTRO_VEIL_ENABLED=true`
-- `NEXT_PUBLIC_RESULT_YOUTUBE_INTRO_VEIL_DURATION_MS=2000`
-- `NEXT_PUBLIC_RESULT_YOUTUBE_INTRO_VEIL_FADE_MS=700`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_INTRO_VEIL_DURATION_MS=3000`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_INTRO_VEIL_FADE_MS=900`
 
 Bottom/top shields quedan disponibles, pero apagados por defecto:
 
@@ -415,4 +425,4 @@ Poster shield queda disponible solo como opt-in:
 
 - `NEXT_PUBLIC_RESULT_YOUTUBE_POSTER_SHIELD_ENABLED=false`
 
-El iframe queda con `pointer-events: none` y el player mantiene un blocker transparente por encima. Fallback y bridge/CTA están en capas superiores, por lo que el fallback sigue clickeable si autoplay falla y el CTA de EXP 5 no queda bloqueado. No hay zoom por defecto: `fitMode="native"`, `iframeScale=1`, offsets `0`.
+El iframe queda con `pointer-events: none` y el player mantiene un blocker transparente por encima. El botón único `REVELAR MENSAJE DE VEYRA` y el bridge/CTA están en capas superiores; si el intento falla, reaparece el mismo botón de revelación. No hay zoom por defecto: `fitMode="native"`, `iframeScale=1`, offsets `0`.

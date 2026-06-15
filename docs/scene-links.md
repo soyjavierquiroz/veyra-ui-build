@@ -21,7 +21,7 @@ Los enlaces directos usan query params sobre `/`. No crean rutas nuevas ni muest
 - https://mnle.reconociendotupoder.com/?scene=exp10-offer
 - https://mnle.reconociendotupoder.com/?scene=exp11-whatsapp-op
 
-Los deep links no garantizan autoplay con audio. Las escenas con audio pueden requerir gesto del usuario y mostrar fallback si el navegador bloquea la reproducción.
+Los deep links no garantizan autoplay con audio. Las escenas con audio pueden requerir gesto del usuario; EXP 5 espera ese gesto con el botón único sobre el player preparado.
 
 ## EXP 3 Scanner + Revelación de Veyra
 
@@ -48,12 +48,9 @@ Los deep links no garantizan autoplay con audio. Las escenas con audio pueden re
 - La primera interacción de la usuaria es elegir una respuesta.
 - El feedback después de responder queda visible antes de avanzar.
 - Después de Pregunta 5, calcula patrón dominante.
-- Muestra:
-  - `Lectura lista.`
-  - `Tu patrón dominante fue detectado.`
-  - `Veyra tiene un mensaje para ti.`
-- Botón: `REVELAR MENSAJE DE VEYRA`.
-- Ese botón lleva a EXP 5, inicia el loop ambiental de resultado y dispara el video personalizado.
+- Al detectar el patrón dominante, pasa automáticamente a EXP 5.
+- EXP 4 ya no muestra botón `REVELAR MENSAJE DE VEYRA`.
+- El botón `REVELAR MENSAJE DE VEYRA` vive solo en EXP 5, encima del player preparado.
 - Loop ambiental: `/audio/loop-quiz.mp3` con volumen objetivo `0.4`.
 - Los audios principales usan Web Audio API con preload/decoding para reducir retrasos de reproducción.
 - Audio principal de intro/P1: `/audio/quiz-p1-final.mp3`, inicia al presionar `CRUZAR EL UMBRAL`.
@@ -73,8 +70,13 @@ Los deep links no garantizan autoplay con audio. Las escenas con audio pueden re
 - El texto del patrón, bridge y CTA aparecen superpuestos sobre el video.
 - No se muestra como embed normal, tarjeta, header externo, marco ni bloque con márgenes.
 - Cada video incluye audio integrado.
-- Intenta autoplay con sonido inmediatamente después del click `REVELAR MENSAJE DE VEYRA`.
-- Si el navegador bloquea autoplay por no tener gesto válido, muestra el fallback `REPRODUCIR MENSAJE DE VEYRA` solo después del timeout de playback.
+- EXP 5 monta/prepara el player YouTube correspondiente al patrón.
+- Mientras el player se prepara, no muestra botón falso, thumbnail, poster ni fallback.
+- El único botón previo al video es `REVELAR MENSAJE DE VEYRA`, ubicado sobre el player.
+- Ese botón solo aparece cuando el player preparado está ready/cued y listo para recibir `playVideo()`.
+- Ese botón ejecuta `playWithSound()` directamente como gesto real de usuario.
+- Si YouTube falla después del click, reaparece el mismo botón `REVELAR MENSAJE DE VEYRA` para reintentar sobre el mismo player preparado.
+- No existe botón `REPRODUCIR MENSAJE DE VEYRA` en EXP 5.
 - Usa el prepared YouTube result player en modo no-zoom por defecto, con controles ocultos, velo inicial suave y overlay transparente para bloquear interacción.
 - Usa un prepared YouTube result player persistente montado desde el orquestador.
 - Cuando EXP 4 detecta el patrón dominante, el mismo player persistente se prepara con el Short correcto mediante preconnect/dns-prefetch, YouTube IFrame API y `cueVideoById`, sin autoplay ni audio.
@@ -82,7 +84,7 @@ Los deep links no garantizan autoplay con audio. Las escenas con audio pueden re
 - Usa ajustes visuales separados de la VSL: `fitMode="native"`, escala `1`, offsets `0`, máscaras de borde `0` y logo mask central apagada por defecto.
 - El ocultamiento visual se hace con gradientes/overlays/masks suaves encima del video, no con zoom agresivo ni crop para sacar elementos del cuadro.
 - EXP 5 no usa poster/thumbnail por defecto; no espera imágenes externas antes de mostrar el video.
-- Se usa un intro veil visual propio por aprox. 2 segundos; no muestra texto, no usa imagen y no bloquea el play.
+- Se usa un intro veil visual propio por 3 segundos; no muestra texto, no usa imagen y no bloquea el play. El fade default es 900ms.
 - Bottom UI shield y top UI shield siguen configurables, pero están apagados por defecto para esta prueba.
 - Poster shield sigue configurable, pero está apagado por defecto y solo se activa con `NEXT_PUBLIC_RESULT_YOUTUBE_POSTER_SHIELD_ENABLED=true`.
 - El iframe de YouTube usa `pointer-events: none`.
@@ -91,13 +93,13 @@ Los deep links no garantizan autoplay con audio. Las escenas con audio pueden re
 - En móvil ocupa toda la pantalla disponible del dispositivo dentro de `100dvh`.
 - En desktop respeta el shell móvil centrado del funnel (`max-width` aprox. 460px) y no se abre a todo el ancho de la ventana.
 - Usa audio ambiental de resultado: `/audio/loop-result.mp3`.
-- El loop de resultado inicia cuando la usuaria presiona `REVELAR MENSAJE DE VEYRA`.
+- El loop de resultado inicia cuando la usuaria presiona el botón `REVELAR MENSAJE DE VEYRA` sobre el player.
 - El loop suena debajo del video personalizado de Veyra.
 - Volumen objetivo del loop de resultado: `0.15`.
 - El loop se mantiene activo durante EXP 5.
 - El loop se detiene y resetea cuando la usuaria presiona `ABRIR EL CAMINO HACIA JANNY`.
 - El loop no sigue sonando en VSL.
-- Por deep link no se fuerza autoplay del loop de resultado.
+- Por deep link no se fuerza autoplay del video ni del loop de resultado; se prepara el player y el botón aparece cuando está ready.
 - No usa audios separados de resultado.
 - No usa video base común.
 - Al terminar el video muestra bridge por patrón y CTA: `ABRIR EL CAMINO HACIA JANNY`.
@@ -132,8 +134,8 @@ Variables de ajuste EXP 5:
 - `NEXT_PUBLIC_RESULT_YOUTUBE_TOP_UI_SHIELD_OPACITY` default `0.45`
 - `NEXT_PUBLIC_RESULT_YOUTUBE_POSTER_SHIELD_ENABLED` default `false`
 - `NEXT_PUBLIC_RESULT_YOUTUBE_INTRO_VEIL_ENABLED` default `true`
-- `NEXT_PUBLIC_RESULT_YOUTUBE_INTRO_VEIL_DURATION_MS` default `2000`
-- `NEXT_PUBLIC_RESULT_YOUTUBE_INTRO_VEIL_FADE_MS` default `700`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_INTRO_VEIL_DURATION_MS` default `3000`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_INTRO_VEIL_FADE_MS` default `900`
 - `NEXT_PUBLIC_RESULT_VIDEO_FALLBACK_DURATION_SECONDS` default `65`
 
 Mapeo:

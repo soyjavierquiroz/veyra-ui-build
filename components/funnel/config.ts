@@ -228,11 +228,11 @@ export const funnelConfig: FunnelConfig = {
   ),
   resultYoutubeIntroVeilDurationMs: readNumber(
     process.env.NEXT_PUBLIC_RESULT_YOUTUBE_INTRO_VEIL_DURATION_MS,
-    2000,
+    3000,
   ),
   resultYoutubeIntroVeilFadeMs: readNumber(
     process.env.NEXT_PUBLIC_RESULT_YOUTUBE_INTRO_VEIL_FADE_MS,
-    700,
+    900,
   ),
   resultVideoFallbackDurationSeconds: readNumber(
     process.env.NEXT_PUBLIC_RESULT_VIDEO_FALLBACK_DURATION_SECONDS,
