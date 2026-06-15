@@ -273,7 +273,30 @@ Mapeo activo:
 - `nostalgia` / `NOSTALGIA POR LO BONITO`: https://www.youtube.com/shorts/rKRWUiWTI3A
 - `ansiedad-silencio` / `ANSIEDAD POR SILENCIO`: https://www.youtube.com/shorts/3OZyBOh6jGg
 
-EXP 5 intenta autoplay con sonido justo después del click `REVELAR MENSAJE DE VEYRA`. Si el navegador bloquea el autoplay, el fallback visible para esta escena es `REPRODUCIR MENSAJE DE VEYRA`. El CTA final sigue siendo `ABRIR EL CAMINO HACIA JANNY`, y el loop `/audio/loop-result.mp3` debe detenerse antes de entrar a la VSL.
+EXP 5 intenta autoplay con sonido justo después del click `REVELAR MENSAJE DE VEYRA`. Si el navegador bloquea el autoplay, el fallback visible para esta escena es `REPRODUCIR MENSAJE DE VEYRA`, pero solo después del timeout de playback. El CTA final sigue siendo `ABRIR EL CAMINO HACIA JANNY`, y el loop `/audio/loop-result.mp3` debe detenerse antes de entrar a la VSL.
+
+## Ajuste EXP 5 — video directo sin thumbnail ni botón previo
+
+EXP 5 ahora prioriza el arranque directo del YouTube Short preparado. El click real `REVELAR MENSAJE DE VEYRA` sigue llamando `playWithSound()` en el orquestador; no se crea un player nuevo, no se espera a que cargue una imagen externa y no se muestra botón previo.
+
+Comportamiento actual:
+
+- `NEXT_PUBLIC_RESULT_YOUTUBE_POSTER_SHIELD_ENABLED` default `false`; no se renderiza thumbnail ni se genera URL de poster salvo que se active explícitamente con `true`.
+- No hay pantalla de carga ni texto `Preparando mensaje...`.
+- El fallback `REPRODUCIR MENSAJE DE VEYRA` solo aparece si se intentó `playVideo()` y no llega `PLAYING` después de aprox. 3500ms, o si YouTube/API devuelve error real.
+- Deep links de EXP 5 intentan autoplay, pero tampoco muestran fallback instantáneo; si no hay gesto válido, el botón aparece después del timeout.
+- El intro veil es una capa propia, sin imagen, `pointer-events: none`, con gradiente oscuro/transparente. Dura aprox. 2000ms y empieza a desvanecer a los 1300ms con fade de 700ms.
+- Bottom UI shield y top UI shield quedan apagados por defecto. Si se necesita volver a suavizar UI persistente, se activan por env.
+- No cambia el framing: `fitMode="native"`, `iframeScale=1`, offsets `0`, sin crop vertical tipo Presto.
+
+Variables nuevas o relevantes:
+
+- `NEXT_PUBLIC_RESULT_YOUTUBE_POSTER_SHIELD_ENABLED`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_INTRO_VEIL_ENABLED`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_INTRO_VEIL_DURATION_MS`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_INTRO_VEIL_FADE_MS`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_BOTTOM_UI_SHIELD_ENABLED`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_TOP_UI_SHIELD_ENABLED`
 
 ## Ajustes visuales y prewarm en EXP 5
 
@@ -309,7 +332,7 @@ La estrategia de precarga de EXP 5 se cambió de un prewarm oculto suelto a un p
 
 EXP 5 ya no monta `YouTubeShortsVslPlayer`; ahora funciona como capa de overlays, bridge y CTA sobre `PreparedYouTubeResultPlayer`. Esto evita doble iframe, doble audio y pérdida de preparación entre EXP 4 y EXP 5. El helper `prewarmYouTubeShort` queda limitado a preconnect/dns-prefetch/carga de API.
 
-La máscara radial de logo queda disponible solo como herramienta de diagnóstico o ajuste manual. Para ocultar visualmente la UI/marca `Shorts`, el result player usa por defecto el bottom UI shield y poster shield. La máscara central se puede activar explícitamente con:
+La máscara radial de logo queda disponible solo como herramienta de diagnóstico o ajuste manual. Para ocultar visualmente la UI/marca `Shorts`, el result player usa por defecto solo el intro veil temporal, sin poster ni shields persistentes. La máscara central se puede activar explícitamente con:
 
 - `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_ENABLED`
 - `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_X`
@@ -318,7 +341,7 @@ La máscara radial de logo queda disponible solo como herramienta de diagnóstic
 - `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_HEIGHT`
 - `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_RADIUS`
 
-Los defaults actuales de resultado son `iframeScale=1`, offsets `0`, máscaras de borde `0`, logo mask `off`, bottom UI shield activo, top UI shield activo y poster shield activo. El iframe queda dentro del shell móvil centrado (`max-width` aprox. `460px`) y no usa `fixed`, `w-screen`, `h-screen` ni `100vw`.
+Los defaults actuales de resultado son `iframeScale=1`, offsets `0`, máscaras de borde `0`, logo mask `off`, bottom UI shield `false`, top UI shield `false`, poster shield `false` e intro veil `true`. El iframe queda dentro del shell móvil centrado (`max-width` aprox. `460px`) y no usa `fixed`, `w-screen`, `h-screen` ni `100vw`.
 
 ## EXP 5 no-zoom mode
 
@@ -364,29 +387,32 @@ Hallazgos reales:
 Qué replicamos en Veyra sin copiar código propietario:
 
 - Mantener `controls=0`, `disablekb=1`, `iv_load_policy=3`, `modestbranding=1`, `playsinline=1`, `rel=0`.
-- Usar poster propio de YouTube (`maxresdefault`, fallback `hqdefault`) como shield visual durante preparación/buffering y fade out al confirmar `PLAYING`.
+- Mantener poster shield como opción explícita, pero apagado por defecto para que EXP 5 no muestre thumbnail ni espere imágenes externas.
 - Poner `pointer-events: none` al iframe y un blocker transparente encima para que taps/clicks no despierten UI interna de YouTube.
-- Usar gradientes propios arriba/abajo para suavizar UI visible.
+- Usar un intro veil propio de 2 segundos para suavizar el arranque sin bloquear reproducción.
 - No replicar por defecto el hack Presto `top:-50%; height:200%`, porque en Shorts de EXP 5 sería crop/zoom agresivo y puede cortar rostro o elementos importantes.
 
 ## Ajuste Veyra — sin máscara central
 
 EXP 5 ya no usa máscara central por defecto. `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_MODE` sigue existiendo para diagnóstico, pero el default recomendado es `off`.
 
-El ocultamiento principal del logo/UI inferior de Shorts ahora se maneja con un bottom UI shield: un gradiente inferior configurable, no un bloque sólido ni una máscara en el centro. Defaults:
+El ocultamiento principal durante el arranque ahora se maneja con un intro veil temporal: un gradiente propio, sin thumbnail, sin texto y sin bloquear interacción. Defaults:
 
-- `NEXT_PUBLIC_RESULT_YOUTUBE_BOTTOM_UI_SHIELD_ENABLED=true`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_INTRO_VEIL_ENABLED=true`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_INTRO_VEIL_DURATION_MS=2000`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_INTRO_VEIL_FADE_MS=700`
+
+Bottom/top shields quedan disponibles, pero apagados por defecto:
+
+- `NEXT_PUBLIC_RESULT_YOUTUBE_BOTTOM_UI_SHIELD_ENABLED=false`
 - `NEXT_PUBLIC_RESULT_YOUTUBE_BOTTOM_UI_SHIELD_HEIGHT=150`
 - `NEXT_PUBLIC_RESULT_YOUTUBE_BOTTOM_UI_SHIELD_OPACITY=0.82`
-
-También se agregó un top UI shield opcional para suavizar título/avatar superior sin cubrir el centro:
-
-- `NEXT_PUBLIC_RESULT_YOUTUBE_TOP_UI_SHIELD_ENABLED=true`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_TOP_UI_SHIELD_ENABLED=false`
 - `NEXT_PUBLIC_RESULT_YOUTUBE_TOP_UI_SHIELD_HEIGHT=96`
 - `NEXT_PUBLIC_RESULT_YOUTUBE_TOP_UI_SHIELD_OPACITY=0.45`
 
-Y se agregó poster shield:
+Poster shield queda disponible solo como opt-in:
 
-- `NEXT_PUBLIC_RESULT_YOUTUBE_POSTER_SHIELD_ENABLED=true`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_POSTER_SHIELD_ENABLED=false`
 
 El iframe queda con `pointer-events: none` y el player mantiene un blocker transparente por encima. Fallback y bridge/CTA están en capas superiores, por lo que el fallback sigue clickeable si autoplay falla y el CTA de EXP 5 no queda bloqueado. No hay zoom por defecto: `fitMode="native"`, `iframeScale=1`, offsets `0`.

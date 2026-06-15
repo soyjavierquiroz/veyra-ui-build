@@ -58,6 +58,9 @@ export type PreparedYouTubeResultPlayerProps = {
   topUiShieldHeight?: number
   topUiShieldOpacity?: number
   posterShieldEnabled?: boolean
+  introVeilEnabled?: boolean
+  introVeilDurationMs?: number
+  introVeilFadeMs?: number
   autoPlayWhenVisible?: boolean
   onEnded?: () => void
   onPlaybackBlocked?: () => void
@@ -81,8 +84,7 @@ type YouTubeEvent = {
   target: YouTubePlayer
 }
 
-const PLAYBACK_CHECK_DELAY_MS = 1600
-const PREPARING_LABEL_DELAY_MS = 600
+const PLAYBACK_CHECK_DELAY_MS = 3500
 const YOUTUBE_MAXRES_POSTER = "maxresdefault"
 const YOUTUBE_HQ_POSTER = "hqdefault"
 
@@ -126,13 +128,16 @@ export const PreparedYouTubeResultPlayer = forwardRef<
     logoMaskRadius = 999,
     logoMaskBlur = 14,
     logoMaskOpacity = 0.22,
-    bottomUiShieldEnabled = true,
+    bottomUiShieldEnabled = false,
     bottomUiShieldHeight = 150,
     bottomUiShieldOpacity = 0.82,
-    topUiShieldEnabled = true,
+    topUiShieldEnabled = false,
     topUiShieldHeight = 96,
     topUiShieldOpacity = 0.45,
-    posterShieldEnabled = true,
+    posterShieldEnabled = false,
+    introVeilEnabled = true,
+    introVeilDurationMs = 2000,
+    introVeilFadeMs = 700,
     autoPlayWhenVisible = true,
     onEnded,
     onPlaybackBlocked,
@@ -145,13 +150,15 @@ export const PreparedYouTubeResultPlayer = forwardRef<
   const pendingVideoIdRef = useRef<string | null>(null)
   const pendingPlayRef = useRef(false)
   const playbackCheckTimeoutRef = useRef<number | null>(null)
-  const preparingTimeoutRef = useRef<number | null>(null)
   const pausedRecoveryTimeoutRef = useRef<number | null>(null)
+  const introVeilFadeTimeoutRef = useRef<number | null>(null)
+  const introVeilUnmountTimeoutRef = useRef<number | null>(null)
   const isPlayingRef = useRef(false)
   const internalStopRef = useRef(false)
   const [playbackState, setPlaybackState] = useState<PlaybackState>("idle")
-  const [showPreparing, setShowPreparing] = useState(false)
   const [posterQuality, setPosterQuality] = useState(YOUTUBE_MAXRES_POSTER)
+  const [introVeilMounted, setIntroVeilMounted] = useState(false)
+  const [introVeilVisible, setIntroVeilVisible] = useState(false)
   const videoId = useMemo(
     () => (videoUrl ? extractYouTubeVideoId(videoUrl) : null),
     [videoUrl],
@@ -163,16 +170,22 @@ export const PreparedYouTubeResultPlayer = forwardRef<
     playbackCheckTimeoutRef.current = null
   }, [])
 
-  const clearPreparingTimer = useCallback(() => {
-    if (preparingTimeoutRef.current === null) return
-    window.clearTimeout(preparingTimeoutRef.current)
-    preparingTimeoutRef.current = null
-  }, [])
-
   const clearPausedRecovery = useCallback(() => {
     if (pausedRecoveryTimeoutRef.current === null) return
     window.clearTimeout(pausedRecoveryTimeoutRef.current)
     pausedRecoveryTimeoutRef.current = null
+  }, [])
+
+  const clearIntroVeilTimers = useCallback(() => {
+    if (introVeilFadeTimeoutRef.current !== null) {
+      window.clearTimeout(introVeilFadeTimeoutRef.current)
+      introVeilFadeTimeoutRef.current = null
+    }
+
+    if (introVeilUnmountTimeoutRef.current !== null) {
+      window.clearTimeout(introVeilUnmountTimeoutRef.current)
+      introVeilUnmountTimeoutRef.current = null
+    }
   }, [])
 
   const applyIframeStyles = useCallback((player: YouTubePlayer) => {
@@ -195,19 +208,9 @@ export const PreparedYouTubeResultPlayer = forwardRef<
       if (isPlayingRef.current) return
 
       setPlaybackState("blocked")
-      setShowPreparing(false)
       onPlaybackBlocked?.()
     }, PLAYBACK_CHECK_DELAY_MS)
   }, [clearPlaybackCheck, onPlaybackBlocked])
-
-  const schedulePreparingLabel = useCallback(() => {
-    clearPreparingTimer()
-    setShowPreparing(false)
-    preparingTimeoutRef.current = window.setTimeout(() => {
-      if (isPlayingRef.current) return
-      setShowPreparing(true)
-    }, PREPARING_LABEL_DELAY_MS)
-  }, [clearPreparingTimer])
 
   const cuePreparedVideo = useCallback(
     (targetVideoId: string) => {
@@ -233,7 +236,6 @@ export const PreparedYouTubeResultPlayer = forwardRef<
   const playWithSound = useCallback(() => {
     pendingPlayRef.current = true
     setPlaybackState("preparing")
-    schedulePreparingLabel()
 
     const player = playerRef.current
     if (!player) return
@@ -246,17 +248,10 @@ export const PreparedYouTubeResultPlayer = forwardRef<
       schedulePlaybackCheck()
     } catch {
       pendingPlayRef.current = false
-      clearPreparingTimer()
-      setShowPreparing(false)
       setPlaybackState("blocked")
       onPlaybackBlocked?.()
     }
-  }, [
-    clearPreparingTimer,
-    onPlaybackBlocked,
-    schedulePlaybackCheck,
-    schedulePreparingLabel,
-  ])
+  }, [onPlaybackBlocked, schedulePlaybackCheck])
 
   const prepare = useCallback(
     (nextVideoUrl: string) => {
@@ -317,9 +312,7 @@ export const PreparedYouTubeResultPlayer = forwardRef<
                   pendingPlayRef.current = false
                   isPlayingRef.current = true
                   clearPlaybackCheck()
-                  clearPreparingTimer()
                   clearPausedRecovery()
-                  setShowPreparing(false)
                   setPlaybackState("playing")
                   return
                 }
@@ -329,9 +322,7 @@ export const PreparedYouTubeResultPlayer = forwardRef<
                   isPlayingRef.current = false
                   internalStopRef.current = true
                   clearPlaybackCheck()
-                  clearPreparingTimer()
                   clearPausedRecovery()
-                  setShowPreparing(false)
                   setPlaybackState("ended")
                   onEnded?.()
                   return
@@ -351,9 +342,7 @@ export const PreparedYouTubeResultPlayer = forwardRef<
                 pendingPlayRef.current = false
                 isPlayingRef.current = false
                 clearPlaybackCheck()
-                clearPreparingTimer()
                 clearPausedRecovery()
-                setShowPreparing(false)
                 setPlaybackState("error")
               },
             },
@@ -361,7 +350,6 @@ export const PreparedYouTubeResultPlayer = forwardRef<
         })
         .catch(() => {
           pendingPlayRef.current = false
-          setShowPreparing(false)
           setPlaybackState("error")
         })
     },
@@ -369,7 +357,6 @@ export const PreparedYouTubeResultPlayer = forwardRef<
       applyIframeStyles,
       clearPausedRecovery,
       clearPlaybackCheck,
-      clearPreparingTimer,
       cuePreparedVideo,
       onEnded,
       playWithSound,
@@ -382,9 +369,7 @@ export const PreparedYouTubeResultPlayer = forwardRef<
     isPlayingRef.current = false
     internalStopRef.current = true
     clearPlaybackCheck()
-    clearPreparingTimer()
     clearPausedRecovery()
-    setShowPreparing(false)
 
     try {
       playerRef.current?.mute?.()
@@ -394,7 +379,7 @@ export const PreparedYouTubeResultPlayer = forwardRef<
     }
 
     setPlaybackState(preparedVideoIdRef.current ? "ready" : "idle")
-  }, [clearPausedRecovery, clearPlaybackCheck, clearPreparingTimer])
+  }, [clearPausedRecovery, clearPlaybackCheck])
 
   const reset = useCallback(() => {
     stop()
@@ -425,14 +410,47 @@ export const PreparedYouTubeResultPlayer = forwardRef<
   }, [active, autoPlayWhenVisible, playWithSound, visible])
 
   useEffect(() => {
+    clearIntroVeilTimers()
+
+    if (!visible || !introVeilEnabled) {
+      setIntroVeilVisible(false)
+      setIntroVeilMounted(false)
+      return
+    }
+
+    const safeDuration = Math.max(introVeilDurationMs, 0)
+    const safeFade = Math.max(introVeilFadeMs, 0)
+    const visibleDuration = Math.max(safeDuration - safeFade, 0)
+
+    setIntroVeilMounted(true)
+    setIntroVeilVisible(true)
+
+    introVeilFadeTimeoutRef.current = window.setTimeout(() => {
+      setIntroVeilVisible(false)
+    }, visibleDuration)
+
+    introVeilUnmountTimeoutRef.current = window.setTimeout(() => {
+      setIntroVeilMounted(false)
+    }, safeDuration)
+
+    return clearIntroVeilTimers
+  }, [
+    clearIntroVeilTimers,
+    introVeilDurationMs,
+    introVeilEnabled,
+    introVeilFadeMs,
+    visible,
+  ])
+
+  useEffect(() => {
     setPosterQuality(YOUTUBE_MAXRES_POSTER)
   }, [videoId])
 
   useEffect(
     () => () => {
       clearPlaybackCheck()
-      clearPreparingTimer()
       clearPausedRecovery()
+      clearIntroVeilTimers()
       try {
         playerRef.current?.destroy?.()
       } catch {
@@ -440,11 +458,14 @@ export const PreparedYouTubeResultPlayer = forwardRef<
       }
       playerRef.current = null
     },
-    [clearPausedRecovery, clearPlaybackCheck, clearPreparingTimer],
+    [clearIntroVeilTimers, clearPausedRecovery, clearPlaybackCheck],
   )
 
   const showFallback = visible && (playbackState === "blocked" || playbackState === "error")
-  const posterUrl = videoId ? getYouTubePosterUrl(videoId, posterQuality) : null
+  const posterUrl =
+    posterShieldEnabled && videoId
+      ? getYouTubePosterUrl(videoId, posterQuality)
+      : null
   const showPosterShield =
     Boolean(posterShieldEnabled && posterUrl && visible && playbackState !== "playing")
   const safeIframeScale = Number.isFinite(iframeScale) ? iframeScale : 1
@@ -609,6 +630,21 @@ export const PreparedYouTubeResultPlayer = forwardRef<
           />
         ) : null}
 
+        {introVeilMounted ? (
+          <div
+            aria-hidden="true"
+            className={cn(
+              "pointer-events-none absolute inset-0 z-30 transition-opacity ease-out",
+              introVeilVisible ? "opacity-100" : "opacity-0",
+            )}
+            style={{
+              transitionDuration: `${Math.max(introVeilFadeMs, 0)}ms`,
+              background:
+                "linear-gradient(to bottom, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.18) 24%, rgba(0,0,0,0.06) 58%, rgba(0,0,0,0.72) 100%)",
+            }}
+          />
+        ) : null}
+
         <div
           className="absolute inset-0 z-40 cursor-default bg-transparent [touch-action:none]"
           aria-hidden="true"
@@ -616,14 +652,6 @@ export const PreparedYouTubeResultPlayer = forwardRef<
           onDoubleClick={stopEvent}
           onPointerDown={stopEvent}
         />
-
-        {visible && showPreparing && !showFallback ? (
-          <div className="pointer-events-none absolute inset-x-0 bottom-[max(28px,env(safe-area-inset-bottom))] z-50 flex justify-center px-6 text-center">
-            <p className="rounded-full border border-gold/25 bg-black/45 px-5 py-3 font-serif text-sm uppercase tracking-[0.22em] text-[#f5eedc]/90">
-              Preparando mensaje...
-            </p>
-          </div>
-        ) : null}
 
         {showFallback ? (
           <div className="absolute inset-0 z-[60] flex items-center justify-center bg-black/62 px-6 backdrop-blur-[2px]">

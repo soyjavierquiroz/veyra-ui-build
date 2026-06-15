@@ -508,6 +508,9 @@ export function FunnelOrchestrator() {
         topUiShieldHeight={funnelConfig.resultYoutubeTopUiShieldHeight}
         topUiShieldOpacity={funnelConfig.resultYoutubeTopUiShieldOpacity}
         posterShieldEnabled={funnelConfig.resultYoutubePosterShieldEnabled}
+        introVeilEnabled={funnelConfig.resultYoutubeIntroVeilEnabled}
+        introVeilDurationMs={funnelConfig.resultYoutubeIntroVeilDurationMs}
+        introVeilFadeMs={funnelConfig.resultYoutubeIntroVeilFadeMs}
         onEnded={handleResultVideoEnded}
       />
       {stage === "video" && (

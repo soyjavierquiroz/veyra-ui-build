@@ -40,6 +40,9 @@ export type FunnelConfig = {
   resultYoutubeTopUiShieldHeight: number
   resultYoutubeTopUiShieldOpacity: number
   resultYoutubePosterShieldEnabled: boolean
+  resultYoutubeIntroVeilEnabled: boolean
+  resultYoutubeIntroVeilDurationMs: number
+  resultYoutubeIntroVeilFadeMs: number
   resultVideoFallbackDurationSeconds: number
   whatsappNumber: string
   whatsappBaseUrl: string
@@ -195,7 +198,7 @@ export const funnelConfig: FunnelConfig = {
   ),
   resultYoutubeBottomUiShieldEnabled: readBoolean(
     process.env.NEXT_PUBLIC_RESULT_YOUTUBE_BOTTOM_UI_SHIELD_ENABLED,
-    true,
+    false,
   ),
   resultYoutubeBottomUiShieldHeight: readNumber(
     process.env.NEXT_PUBLIC_RESULT_YOUTUBE_BOTTOM_UI_SHIELD_HEIGHT,
@@ -207,7 +210,7 @@ export const funnelConfig: FunnelConfig = {
   ),
   resultYoutubeTopUiShieldEnabled: readBoolean(
     process.env.NEXT_PUBLIC_RESULT_YOUTUBE_TOP_UI_SHIELD_ENABLED,
-    true,
+    false,
   ),
   resultYoutubeTopUiShieldHeight: readNumber(
     process.env.NEXT_PUBLIC_RESULT_YOUTUBE_TOP_UI_SHIELD_HEIGHT,
@@ -217,9 +220,19 @@ export const funnelConfig: FunnelConfig = {
     process.env.NEXT_PUBLIC_RESULT_YOUTUBE_TOP_UI_SHIELD_OPACITY,
     0.45,
   ),
-  resultYoutubePosterShieldEnabled: readBoolean(
-    process.env.NEXT_PUBLIC_RESULT_YOUTUBE_POSTER_SHIELD_ENABLED,
+  resultYoutubePosterShieldEnabled:
+    process.env.NEXT_PUBLIC_RESULT_YOUTUBE_POSTER_SHIELD_ENABLED === "true",
+  resultYoutubeIntroVeilEnabled: readBoolean(
+    process.env.NEXT_PUBLIC_RESULT_YOUTUBE_INTRO_VEIL_ENABLED,
     true,
+  ),
+  resultYoutubeIntroVeilDurationMs: readNumber(
+    process.env.NEXT_PUBLIC_RESULT_YOUTUBE_INTRO_VEIL_DURATION_MS,
+    2000,
+  ),
+  resultYoutubeIntroVeilFadeMs: readNumber(
+    process.env.NEXT_PUBLIC_RESULT_YOUTUBE_INTRO_VEIL_FADE_MS,
+    700,
   ),
   resultVideoFallbackDurationSeconds: readNumber(
     process.env.NEXT_PUBLIC_RESULT_VIDEO_FALLBACK_DURATION_SECONDS,
