@@ -79,8 +79,8 @@ Los deep links no garantizan autoplay con audio. Las escenas con audio pueden re
 - Usa un prepared YouTube result player persistente montado desde el orquestador.
 - Cuando EXP 4 detecta el patrón dominante, el mismo player persistente se prepara con el Short correcto mediante preconnect/dns-prefetch, YouTube IFrame API y `cueVideoById`, sin autoplay ni audio.
 - Al presionar `REVELAR MENSAJE DE VEYRA`, no se crea otro iframe: se revela ese mismo player preparado y se llama `unMute()`, `setVolume(100)` y `playVideo()`.
-- Usa ajustes visuales separados de la VSL: wrapper 9:16 dentro del shell, escala `1.04`, offsets `0`, máscara inferior `48px` y logo mask activada por defecto.
-- Se agregó una máscara visual configurable para cubrir la marca/UI `Shorts` dentro del iframe sin tocar CSS interno de YouTube.
+- Usa ajustes visuales separados de la VSL: wrapper 9:16 dentro del shell, escala `1.04`, offsets `0`, máscara inferior suave `40px` y logo mask activada por defecto.
+- Se usa una soft logo mask configurable para cubrir/disimular la marca/UI `Shorts` dentro del iframe sin tocar CSS interno de YouTube; no es un bloque sólido.
 - En móvil ocupa toda la pantalla disponible del dispositivo dentro de `100dvh`.
 - En desktop respeta el shell móvil centrado del funnel (`max-width` aprox. 460px) y no se abre a todo el ancho de la ventana.
 - Usa audio ambiental de resultado: `/audio/loop-result.mp3`.
@@ -105,15 +105,18 @@ Variables de ajuste EXP 5:
 - `NEXT_PUBLIC_RESULT_YOUTUBE_IFRAME_OFFSET_X` default `0`
 - `NEXT_PUBLIC_RESULT_YOUTUBE_IFRAME_OFFSET_Y` default `0`
 - `NEXT_PUBLIC_RESULT_YOUTUBE_MASK_TOP` default `0`
-- `NEXT_PUBLIC_RESULT_YOUTUBE_MASK_BOTTOM` default `48`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_MASK_BOTTOM` default `40`
 - `NEXT_PUBLIC_RESULT_YOUTUBE_MASK_LEFT` default `0`
 - `NEXT_PUBLIC_RESULT_YOUTUBE_MASK_RIGHT` default `0`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_MODE` default `soft`
 - `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_ENABLED` default activo
 - `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_X` default `50`
-- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_Y` default `50`
-- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_WIDTH` default `180`
-- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_HEIGHT` default `78`
-- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_RADIUS` default `18`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_Y` default `49`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_WIDTH` default `132`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_HEIGHT` default `44`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_RADIUS` default `999`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_BLUR` default `14`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_OPACITY` default `0.22`
 - `NEXT_PUBLIC_RESULT_VIDEO_FALLBACK_DURATION_SECONDS` default `65`
 
 Mapeo:

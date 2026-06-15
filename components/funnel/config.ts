@@ -1,4 +1,5 @@
 import type { PatternKey } from "./types"
+import type { ResultLogoMaskMode } from "./video-player/prepared-youtube-result-player"
 
 export type FunnelMode = "demo" | "production"
 export type VslProvider = "bunny" | "youtube"
@@ -24,11 +25,14 @@ export type FunnelConfig = {
   resultYoutubeMaskLeft: number
   resultYoutubeMaskRight: number
   resultYoutubeLogoMaskEnabled: boolean
+  resultYoutubeLogoMaskMode: ResultLogoMaskMode
   resultYoutubeLogoMaskX: number
   resultYoutubeLogoMaskY: number
   resultYoutubeLogoMaskWidth: number
   resultYoutubeLogoMaskHeight: number
   resultYoutubeLogoMaskRadius: number
+  resultYoutubeLogoMaskBlur: number
+  resultYoutubeLogoMaskOpacity: number
   resultVideoFallbackDurationSeconds: number
   whatsappNumber: string
   whatsappBaseUrl: string
@@ -61,6 +65,15 @@ function readNumber(value: string | undefined, fallback: number): number {
 
   const numeric = Number(cleaned)
   return Number.isFinite(numeric) ? numeric : fallback
+}
+
+function readResultLogoMaskMode(): ResultLogoMaskMode {
+  const value = cleanPublicEnv(
+    process.env.NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_MODE,
+  )
+
+  if (value === "off" || value === "solid") return value
+  return "soft"
 }
 
 const mode = readMode()
@@ -131,7 +144,7 @@ export const funnelConfig: FunnelConfig = {
   ),
   resultYoutubeMaskBottom: readNumber(
     process.env.NEXT_PUBLIC_RESULT_YOUTUBE_MASK_BOTTOM,
-    48,
+    40,
   ),
   resultYoutubeMaskLeft: readNumber(
     process.env.NEXT_PUBLIC_RESULT_YOUTUBE_MASK_LEFT,
@@ -143,25 +156,34 @@ export const funnelConfig: FunnelConfig = {
   ),
   resultYoutubeLogoMaskEnabled:
     process.env.NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_ENABLED !== "false",
+  resultYoutubeLogoMaskMode: readResultLogoMaskMode(),
   resultYoutubeLogoMaskX: readNumber(
     process.env.NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_X,
     50,
   ),
   resultYoutubeLogoMaskY: readNumber(
     process.env.NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_Y,
-    50,
+    49,
   ),
   resultYoutubeLogoMaskWidth: readNumber(
     process.env.NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_WIDTH,
-    180,
+    132,
   ),
   resultYoutubeLogoMaskHeight: readNumber(
     process.env.NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_HEIGHT,
-    78,
+    44,
   ),
   resultYoutubeLogoMaskRadius: readNumber(
     process.env.NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_RADIUS,
-    18,
+    999,
+  ),
+  resultYoutubeLogoMaskBlur: readNumber(
+    process.env.NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_BLUR,
+    14,
+  ),
+  resultYoutubeLogoMaskOpacity: readNumber(
+    process.env.NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_OPACITY,
+    0.22,
   ),
   resultVideoFallbackDurationSeconds: readNumber(
     process.env.NEXT_PUBLIC_RESULT_VIDEO_FALLBACK_DURATION_SECONDS,

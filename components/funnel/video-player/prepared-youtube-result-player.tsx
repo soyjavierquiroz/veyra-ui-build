@@ -18,6 +18,8 @@ import {
   preloadYouTubeIframeApi,
 } from "./youtube-shorts-vsl-player"
 
+export type ResultLogoMaskMode = "off" | "soft" | "solid"
+
 export type PreparedYouTubeResultPlayerHandle = {
   prepare: (videoUrl: string) => void
   playWithSound: () => void
@@ -38,11 +40,14 @@ export type PreparedYouTubeResultPlayerProps = {
   maskLeft?: number
   maskRight?: number
   logoMaskEnabled?: boolean
+  logoMaskMode?: ResultLogoMaskMode
   logoMaskX?: number
   logoMaskY?: number
   logoMaskWidth?: number
   logoMaskHeight?: number
   logoMaskRadius?: number
+  logoMaskBlur?: number
+  logoMaskOpacity?: number
   autoPlayWhenVisible?: boolean
   onEnded?: () => void
   onPlaybackBlocked?: () => void
@@ -69,6 +74,10 @@ type YouTubeEvent = {
 const PLAYBACK_CHECK_DELAY_MS = 1600
 const PREPARING_LABEL_DELAY_MS = 600
 
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max)
+}
+
 function stopEvent(event: SyntheticEvent<HTMLElement>) {
   event.preventDefault()
   event.stopPropagation()
@@ -91,11 +100,14 @@ export const PreparedYouTubeResultPlayer = forwardRef<
     maskLeft = 0,
     maskRight = 0,
     logoMaskEnabled = true,
+    logoMaskMode = "soft",
     logoMaskX = 50,
-    logoMaskY = 50,
-    logoMaskWidth = 180,
-    logoMaskHeight = 78,
-    logoMaskRadius = 18,
+    logoMaskY = 49,
+    logoMaskWidth = 132,
+    logoMaskHeight = 44,
+    logoMaskRadius = 999,
+    logoMaskBlur = 14,
+    logoMaskOpacity = 0.22,
     autoPlayWhenVisible = true,
     onEnded,
     onPlaybackBlocked,
@@ -401,6 +413,46 @@ export const PreparedYouTubeResultPlayer = forwardRef<
   )
 
   const showFallback = visible && (playbackState === "blocked" || playbackState === "error")
+  const shouldShowLogoMask = logoMaskEnabled && logoMaskMode !== "off"
+  const safeLogoMaskOpacity = clamp(logoMaskOpacity, 0, 1)
+  const safeLogoMaskBlur = Math.max(logoMaskBlur, 0)
+  const logoMaskStyle =
+    logoMaskMode === "solid"
+      ? {
+          left: `${logoMaskX}%`,
+          top: `${logoMaskY}%`,
+          width: `${logoMaskWidth}px`,
+          height: `${logoMaskHeight}px`,
+          transform: "translate(-50%, -50%)",
+          borderRadius: `${logoMaskRadius}px`,
+          background:
+            "radial-gradient(ellipse at center, rgba(0,0,0,0.58) 0%, rgba(0,0,0,0.4) 44%, rgba(0,0,0,0) 78%)",
+          backdropFilter: "blur(8px)",
+          WebkitBackdropFilter: "blur(8px)",
+          maskImage:
+            "radial-gradient(ellipse at center, #000 0%, #000 44%, rgba(0,0,0,0.45) 64%, transparent 84%)",
+          WebkitMaskImage:
+            "radial-gradient(ellipse at center, #000 0%, #000 44%, rgba(0,0,0,0.45) 64%, transparent 84%)",
+        }
+      : {
+          left: `${logoMaskX}%`,
+          top: `${logoMaskY}%`,
+          width: `${logoMaskWidth}px`,
+          height: `${logoMaskHeight}px`,
+          transform: "translate(-50%, -50%)",
+          borderRadius: `${logoMaskRadius}px`,
+          background: `radial-gradient(ellipse at center, rgba(0,0,0,${safeLogoMaskOpacity}) 0%, rgba(0,0,0,${
+            safeLogoMaskOpacity * 0.68
+          }) 32%, rgba(0,0,0,${
+            safeLogoMaskOpacity * 0.28
+          }) 58%, rgba(0,0,0,0) 78%)`,
+          backdropFilter: `blur(${safeLogoMaskBlur}px) saturate(0.85) brightness(0.72)`,
+          WebkitBackdropFilter: `blur(${safeLogoMaskBlur}px) saturate(0.85) brightness(0.72)`,
+          maskImage:
+            "radial-gradient(ellipse at center, #000 0%, #000 42%, rgba(0,0,0,0.55) 62%, transparent 82%)",
+          WebkitMaskImage:
+            "radial-gradient(ellipse at center, #000 0%, #000 42%, rgba(0,0,0,0.55) 62%, transparent 82%)",
+        }
 
   return (
     <section
@@ -430,7 +482,11 @@ export const PreparedYouTubeResultPlayer = forwardRef<
         />
         <div
           className="pointer-events-none absolute bottom-0 left-0 right-0 z-20 bg-black"
-          style={{ height: `${Math.max(maskBottom, 0)}px` }}
+          style={{
+            height: `${Math.max(maskBottom, 0)}px`,
+            background:
+              "linear-gradient(to top, rgba(0,0,0,0.68), rgba(0,0,0,0.28), transparent)",
+          }}
         />
         <div
           className="pointer-events-none absolute bottom-0 left-0 top-0 z-20 bg-black"
@@ -441,21 +497,11 @@ export const PreparedYouTubeResultPlayer = forwardRef<
           style={{ width: `${Math.max(maskRight, 0)}px` }}
         />
 
-        {logoMaskEnabled ? (
+        {shouldShowLogoMask ? (
           <div
             aria-hidden="true"
             className="pointer-events-none absolute z-30"
-            style={{
-              left: `${logoMaskX}%`,
-              top: `${logoMaskY}%`,
-              width: `${logoMaskWidth}px`,
-              height: `${logoMaskHeight}px`,
-              transform: "translate(-50%, -50%)",
-              borderRadius: `${logoMaskRadius}px`,
-              background:
-                "radial-gradient(circle at center, rgba(0,0,0,0.96) 0%, rgba(0,0,0,0.92) 52%, rgba(0,0,0,0) 76%)",
-              backdropFilter: "blur(2px)",
-            }}
+            style={logoMaskStyle}
           />
         ) : null}
 

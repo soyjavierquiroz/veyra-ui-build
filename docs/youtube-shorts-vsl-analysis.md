@@ -277,7 +277,7 @@ EXP 5 intenta autoplay con sonido justo después del click `REVELAR MENSAJE DE V
 
 ## Ajustes visuales y prewarm en EXP 5
 
-EXP 5 usa ajustes visuales separados de la VSL para evitar que el crop/máscaras pensados para el video de Janny deformen los Shorts de respuesta. Los defaults de resultado son específicos para Shorts: wrapper `9:16`, `iframeScale=1.04`, offsets `0`, máscara inferior `48px`, logo mask activo y sin barra simulada.
+EXP 5 usa ajustes visuales separados de la VSL para evitar que el crop/máscaras pensados para el video de Janny deformen los Shorts de respuesta. Los defaults de resultado son específicos para Shorts: wrapper `9:16`, `iframeScale=1.04`, offsets `0`, máscara inferior suave `40px`, soft logo mask activo y sin barra simulada.
 
 Variables de ajuste específicas de EXP 5:
 
@@ -288,12 +288,15 @@ Variables de ajuste específicas de EXP 5:
 - `NEXT_PUBLIC_RESULT_YOUTUBE_MASK_BOTTOM`
 - `NEXT_PUBLIC_RESULT_YOUTUBE_MASK_LEFT`
 - `NEXT_PUBLIC_RESULT_YOUTUBE_MASK_RIGHT`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_MODE`
 - `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_ENABLED`
 - `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_X`
 - `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_Y`
 - `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_WIDTH`
 - `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_HEIGHT`
 - `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_RADIUS`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_BLUR`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_OPACITY`
 - `NEXT_PUBLIC_RESULT_VIDEO_FALLBACK_DURATION_SECONDS`
 
 El player soporta offsets controlados y aplica el iframe con `position:absolute`, `inset:0`, `width/height/minWidth/minHeight:100%`, centrado por transform. En modo vertical, el wrapper usa proporción visual `9:16` para que el Short se sienta full-screen dentro del shell móvil y no quede desplazado lateralmente.
@@ -315,4 +318,17 @@ Para ocultar visualmente la UI/marca `Shorts`, el result player agrega una másc
 - `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_HEIGHT`
 - `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_RADIUS`
 
-Los defaults actuales de resultado son `iframeScale=1.04`, `maskBottom=48`, logo mask activo en `50% / 50%`, `180x78px`, radio `18px`. El iframe queda clippeado dentro del shell móvil centrado (`max-width` aprox. `460px`) y no usa `fixed`, `w-screen`, `h-screen` ni `100vw`.
+Los defaults actuales de resultado son `iframeScale=1.04`, `maskBottom=40`, logo mask `soft`, activo en `50% / 49%`, `132x44px`, radio `999px`, blur `14px` y opacity `0.22`. El iframe queda clippeado dentro del shell móvil centrado (`max-width` aprox. `460px`) y no usa `fixed`, `w-screen`, `h-screen` ni `100vw`.
+
+## Soft logo mask en EXP 5
+
+La primera máscara de logo era demasiado sólida y podía verse como un recuadro negro en medio del video. Se reemplazó por una soft logo mask con `radial-gradient` elíptico, feather por `mask-image`, `backdrop-filter` con blur/saturación/brillo y tamaño reducido. El objetivo es disimular la marca/UI `Shorts` sin que el parche parezca un bloque.
+
+La máscara es configurable por env:
+
+- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_MODE=soft`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_MODE=off`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_BLUR=14`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_OPACITY=0.22`
+
+El modo `solid` queda como opción de diagnóstico, pero EXP 5 usa `soft` por defecto.
