@@ -53,7 +53,7 @@ Los deep links no garantizan autoplay con audio. Las escenas con audio pueden re
   - `Tu patrón dominante fue detectado.`
   - `Veyra tiene un mensaje para ti.`
 - Botón: `REVELAR MENSAJE DE VEYRA`.
-- Ese botón lleva a EXP 5 e inicia el video personalizado.
+- Ese botón lleva a EXP 5, inicia el loop ambiental de resultado y dispara el video personalizado.
 - Loop ambiental: `/audio/loop-quiz.mp3` con volumen objetivo `0.4`.
 - Los audios principales usan Web Audio API con preload/decoding para reducir retrasos de reproducción.
 - Audio principal de intro/P1: `/audio/quiz-p1-final.mp3`, inicia al presionar `CRUZAR EL UMBRAL`.
@@ -73,6 +73,14 @@ Los deep links no garantizan autoplay con audio. Las escenas con audio pueden re
 - El texto del patrón, bridge y CTA aparecen superpuestos sobre el video.
 - No se muestra como tarjeta embebida.
 - Cada video incluye audio integrado.
+- Usa audio ambiental de resultado: `/audio/loop-result.mp3`.
+- El loop de resultado inicia cuando la usuaria presiona `REVELAR MENSAJE DE VEYRA`.
+- El loop suena debajo del video personalizado de Veyra.
+- Volumen objetivo del loop de resultado: `0.25`.
+- El loop se mantiene activo durante EXP 5.
+- El loop se detiene y resetea cuando la usuaria presiona `ABRIR EL CAMINO HACIA JANNY`.
+- El loop no sigue sonando en VSL.
+- Por deep link no se fuerza autoplay del loop de resultado.
 - No usa audios separados de resultado.
 - No usa video base común.
 - Al terminar el video muestra bridge por patrón y CTA: `ABRIR EL CAMINO HACIA JANNY`.

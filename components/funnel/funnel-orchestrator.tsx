@@ -18,6 +18,7 @@ import { Exp10Offer } from "./exp10-offer"
 import { Exp11WhatsappOp, type OpEntry } from "./exp11-whatsapp-op"
 
 const QUIZ_LOOP_VOLUME = 0.4
+const RESULT_LOOP_VOLUME = 0.25
 
 const QUIZ_PRIMARY_AUDIO_SOURCES = [
   "/audio/quiz-p1-final.mp3",
@@ -44,6 +45,7 @@ export function FunnelOrchestrator() {
   const introAudioRef = useRef<HTMLAudioElement>(null)
   const introAudioStarted = useRef(false)
   const quizLoopAudioRef = useRef<HTMLAudioElement | null>(null)
+  const resultLoopAudioRef = useRef<HTMLAudioElement | null>(null)
   const quizPrimaryFallbackAudioRef = useRef<HTMLAudioElement | null>(null)
   const quizAudioContextRef = useRef<AudioContext | null>(null)
   const quizAudioBuffersRef = useRef<Map<string, AudioBuffer>>(new Map())
@@ -197,6 +199,37 @@ export function FunnelOrchestrator() {
     audio.currentTime = 0
   }, [])
 
+  const startResultLoop = useCallback(() => {
+    const audio = resultLoopAudioRef.current
+    if (!audio) return
+
+    try {
+      audio.loop = true
+      audio.volume = RESULT_LOOP_VOLUME
+
+      if (!audio.paused) return
+
+      audio.currentTime = 0
+      void audio.play().catch(() => {
+        // Best-effort only: browser autoplay policies must never block the flow.
+      })
+    } catch {
+      // Best-effort only: audio failures must never block the flow.
+    }
+  }, [])
+
+  const stopResultLoop = useCallback(() => {
+    const audio = resultLoopAudioRef.current
+    if (!audio) return
+
+    try {
+      audio.pause()
+      audio.currentTime = 0
+    } catch {
+      // Best-effort only: audio failures must never block the flow.
+    }
+  }, [])
+
   const stopQuizPrimaryFallbackAudio = useCallback(() => {
     const audio = quizPrimaryFallbackAudioRef.current
     if (!audio) return
@@ -346,24 +379,32 @@ export function FunnelOrchestrator() {
   }, [stage, stopQuizAudio])
 
   useEffect(() => {
+    if (stage === "vsl") {
+      stopResultLoop()
+    }
+  }, [stage, stopResultLoop])
+
+  useEffect(() => {
     void preloadQuizPrimaryAudio()
   }, [preloadQuizPrimaryAudio])
 
   useEffect(() => {
     return () => {
       stopQuizAudio()
+      stopResultLoop()
     }
-  }, [stopQuizAudio])
+  }, [stopQuizAudio, stopResultLoop])
 
   const handleRevealVeyraMessage = useCallback(
     (p: PatternKey) => {
       setPattern(p)
       stopQuizAudio()
+      startResultLoop()
       trackFunnelEvent("pattern_revealed", { pattern: p })
       setRevealVideoStartToken((token) => token + 1)
       go("reading")
     },
-    [go, stopQuizAudio],
+    [go, startResultLoop, stopQuizAudio],
   )
 
   return (
@@ -372,6 +413,12 @@ export function FunnelOrchestrator() {
       <audio
         ref={quizLoopAudioRef}
         src="/audio/loop-quiz.mp3"
+        preload="auto"
+        loop
+      />
+      <audio
+        ref={resultLoopAudioRef}
+        src="/audio/loop-result.mp3"
         preload="auto"
         loop
       />
@@ -429,6 +476,7 @@ export function FunnelOrchestrator() {
           onEnter={stopQuizAudio}
           onComplete={() => {
             stopQuizAudio()
+            stopResultLoop()
             go("vsl")
           }}
         />
