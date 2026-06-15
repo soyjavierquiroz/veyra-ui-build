@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import type { PatternKey, Stage } from "./types"
+import { versionAsset } from "./asset-version"
 import { funnelConfig, resultMp4VideosByPattern } from "./config"
 import { trackFunnelEvent } from "./lib/analytics"
 import { getInitialSceneFromUrl, getPatternFromUrl } from "./lib/deep-link"
@@ -27,24 +28,32 @@ const RESULT_LOOP_VOLUME = 0.18
 const RESULT_LOOP_FADE_IN_MS = 800
 const QUIZ_LOOP_FADE_OUT_MS = 800
 const QUIZ_PRIMARY_FADE_OUT_MS = 600
+const INTRO_AUDIO_SRC = versionAsset("/audio/intro-rings.mp3")
+const QUIZ_LOOP_AUDIO_SRC = versionAsset("/audio/loop-quiz.mp3")
+const RESULT_LOOP_AUDIO_SRC = versionAsset("/audio/loop-result.mp3")
+const QUIZ_P1_AUDIO_SRC = versionAsset("/audio/quiz-p1-final.mp3")
 
 const QUIZ_PRIMARY_AUDIO_SOURCES = [
-  "/audio/quiz-p1-final.mp3",
-  "/audio/quiz-p2-final.mp3",
-  "/audio/quiz-p3-final.mp3",
-  "/audio/quiz-p4-final.mp3",
-  "/audio/quiz-p5-final.mp3",
-  "/audio/quiz-p6-final.mp3",
+  QUIZ_P1_AUDIO_SRC,
+  versionAsset("/audio/quiz-p2-final.mp3"),
+  versionAsset("/audio/quiz-p3-final.mp3"),
+  versionAsset("/audio/quiz-p4-final.mp3"),
+  versionAsset("/audio/quiz-p5-final.mp3"),
+  versionAsset("/audio/quiz-p6-final.mp3"),
 ] as const
 
 const QUIZ_PRIMARY_AUDIO_BY_ANSWERED_QUESTION_INDEX: Partial<
   Record<number, string>
 > = {
-  0: "/audio/quiz-p2-final.mp3",
-  1: "/audio/quiz-p3-final.mp3",
-  2: "/audio/quiz-p4-final.mp3",
-  3: "/audio/quiz-p5-final.mp3",
-  4: "/audio/quiz-p6-final.mp3",
+  0: QUIZ_PRIMARY_AUDIO_SOURCES[1],
+  1: QUIZ_PRIMARY_AUDIO_SOURCES[2],
+  2: QUIZ_PRIMARY_AUDIO_SOURCES[3],
+  3: QUIZ_PRIMARY_AUDIO_SOURCES[4],
+  4: QUIZ_PRIMARY_AUDIO_SOURCES[5],
+}
+
+function getResultMp4Src(pattern: PatternKey) {
+  return versionAsset(resultMp4VideosByPattern[pattern])
 }
 
 function fadeAudioElement(
@@ -122,7 +131,7 @@ export function FunnelOrchestrator() {
     // Query deep links are for internal scene review without a visible QA panel.
     if (initialStage === "reading") {
       const initialPattern = getPatternFromUrl() ?? "A"
-      const initialResultSrc = resultMp4VideosByPattern[initialPattern]
+      const initialResultSrc = getResultMp4Src(initialPattern)
       setPattern(initialPattern)
       setPreparedResultVideoSrc(initialResultSrc)
       setResultPlayerReadyToReveal(false)
@@ -678,7 +687,7 @@ export function FunnelOrchestrator() {
 
   const handlePatternReadyForReading = useCallback(
     (p: PatternKey) => {
-      const resultVideoSrc = resultMp4VideosByPattern[p]
+      const resultVideoSrc = getResultMp4Src(p)
       setPattern(p)
       setPreparedResultVideoSrc(resultVideoSrc)
       setResultPlayerReadyToReveal(false)
@@ -734,16 +743,16 @@ export function FunnelOrchestrator() {
 
   return (
     <main className="relative min-h-screen w-full overflow-x-hidden bg-mystic text-foreground">
-      <audio ref={introAudioRef} src="/audio/intro-rings.mp3" preload="auto" />
+      <audio ref={introAudioRef} src={INTRO_AUDIO_SRC} preload="auto" />
       <audio
         ref={quizLoopAudioRef}
-        src="/audio/loop-quiz.mp3"
+        src={QUIZ_LOOP_AUDIO_SRC}
         preload="auto"
         loop
       />
       <audio
         ref={resultLoopAudioRef}
-        src="/audio/loop-result.mp3"
+        src={RESULT_LOOP_AUDIO_SRC}
         preload="auto"
         loop
       />
@@ -791,7 +800,7 @@ export function FunnelOrchestrator() {
           onComplete={() => {
             void resumeQuizAudioContext()
             startQuizLoop()
-            void playQuizPrimaryAudio("/audio/quiz-p1-final.mp3")
+            void playQuizPrimaryAudio(QUIZ_P1_AUDIO_SRC)
             go("quiz")
           }}
         />
@@ -810,7 +819,7 @@ export function FunnelOrchestrator() {
             stopQuizAudio()
           }}
           onPatternReady={(p) => {
-            const resultVideoSrc = resultMp4VideosByPattern[p]
+            const resultVideoSrc = getResultMp4Src(p)
             setPattern(p)
             setPreparedResultVideoSrc(resultVideoSrc)
             setResultPlayerReadyToReveal(false)

@@ -1,9 +1,10 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
+import { versionAsset } from "./asset-version"
 import { FunnelLanding } from "./funnel-landing"
 
-const INTRO_VIDEO_SRC = "/videos/veyra-llamando-final.mp4"
+const INTRO_VIDEO_SRC = versionAsset("/videos/veyra-llamando-final.mp4")
 
 type Exp1VideoProps = {
   onStart: () => void

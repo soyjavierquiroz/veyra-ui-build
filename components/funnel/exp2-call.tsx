@@ -3,9 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import Image from "next/image"
 import { Mic, Phone, PhoneOff, Volume2 } from "lucide-react"
+import { versionAsset } from "./asset-version"
 import { Particles } from "./particles"
 
-const CALL_AUDIO_SRC = "/audio/veyra-llamada-final.mp3"
+const CALL_AUDIO_SRC = versionAsset("/audio/veyra-llamada-final.mp3")
 const CALL_VISUAL_END_SECONDS = 72
 const CALL_PROGRESS_EASING_POWER = 2.2
 const CALL_PROGRESS_SIZE = 204

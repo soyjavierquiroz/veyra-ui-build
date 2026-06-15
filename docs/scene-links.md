@@ -23,6 +23,13 @@ Los enlaces directos usan query params sobre `/`. No crean rutas nuevas ni muest
 
 Los deep links no garantizan autoplay con audio. Las escenas con audio pueden requerir gesto del usuario; EXP 5 espera ese gesto con el botón único sobre el player preparado.
 
+## Asset versioning / cache busting
+
+- Los assets públicos de audio/video se cargan con `?v=<NEXT_PUBLIC_ASSET_VERSION>`.
+- Esto evita caché vieja de Cloudflare/navegador cuando se reemplazan MP3/MP4 con el mismo nombre.
+- Versión actual: `ed12a5d`.
+- Si se cambian assets, actualizar `NEXT_PUBLIC_ASSET_VERSION` o el fallback en `components/funnel/asset-version.ts`.
+
 ## EXP 3 Scanner + Revelación de Veyra
 
 - Link directo: https://mnle.reconociendotupoder.com/?scene=exp3-scanner
