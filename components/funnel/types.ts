@@ -1,16 +1,18 @@
 export type Stage =
+  // Main funnel scenes. `landing` is accepted as a query alias for `video`.
   | "landing"
   | "video"
   | "call"
   | "scanner"
   | "quiz"
   | "reading"
-  | "portal"
   | "vsl"
+  | "offer"
+  // Legacy review scenes kept for deep links and the standalone /whatsapp/ route.
+  | "portal"
   | "whatsapp-hook"
   | "login"
   | "feed"
-  | "offer"
   | "whatsapp-op"
 
 export type FunnelStep = Stage

@@ -2,6 +2,25 @@
 
 Los enlaces directos usan query params sobre `/`. No crean rutas nuevas ni muestran un panel visible.
 
+## Flujo principal actual
+
+Landing
+→ EXP 1 video llamada entrante
+→ EXP 2 llamada Veyra
+→ EXP 3 scanner
+→ EXP 4 quiz
+→ EXP 5 lectura/respuesta MP4
+→ VSL
+→ Oferta
+
+- La VSL es la última experiencia antes de la Oferta.
+- EXP 6/7/8/9/11 quedan fuera del flujo principal.
+- YouTube sigue fuera del runtime activo.
+- EXP 5 usa MP4 local versionado con `versionAsset()`.
+- La Oferta activa es `exp10-offer`.
+
+## Deep links principales
+
 - https://mnle.reconociendotupoder.com/?scene=landing
 - https://mnle.reconociendotupoder.com/?scene=exp1-video
 - https://mnle.reconociendotupoder.com/?scene=exp2-call
@@ -13,12 +32,17 @@ Los enlaces directos usan query params sobre `/`. No crean rutas nuevas ni muest
 - https://mnle.reconociendotupoder.com/?scene=exp5-reading&pattern=culpa
 - https://mnle.reconociendotupoder.com/?scene=exp5-reading&pattern=nostalgia
 - https://mnle.reconociendotupoder.com/?scene=exp5-reading&pattern=ansiedad-silencio
-- https://mnle.reconociendotupoder.com/?scene=exp6-portal
 - https://mnle.reconociendotupoder.com/?scene=vsl-interlude
+- https://mnle.reconociendotupoder.com/?scene=exp10-offer
+
+## Deep links legacy de auditoria
+
+Estos enlaces siguen disponibles para revision manual, pero no pertenecen al flujo principal ni son destinos de transiciones activas entre EXP 5, VSL y Oferta.
+
+- https://mnle.reconociendotupoder.com/?scene=exp6-portal
 - https://mnle.reconociendotupoder.com/?scene=exp7-whatsapp-hook
 - https://mnle.reconociendotupoder.com/?scene=exp8-login
 - https://mnle.reconociendotupoder.com/?scene=exp9-feed
-- https://mnle.reconociendotupoder.com/?scene=exp10-offer
 - https://mnle.reconociendotupoder.com/?scene=exp11-whatsapp-op
 
 Los deep links no garantizan autoplay con audio. Las escenas con audio pueden requerir gesto del usuario; EXP 5 espera ese gesto con el botón único sobre el player preparado.
@@ -142,6 +166,8 @@ Deep links:
 
 - Deep link: https://mnle.reconociendotupoder.com/?scene=vsl-interlude
 - Flujo principal: `EXP 5` → `ABRIR EL CAMINO HACIA JANNY` → VSL full-screen mobile-first.
+- Al terminar la VSL, el flujo va directo a Oferta en `exp10-offer`.
+- No pasa por portal, WhatsApp hook, login, feed ni operación WhatsApp antes de mostrar la Oferta.
 - La VSL activa usa Bunny/HLS mediante `VslVideoPlayer`.
 - La ruta YouTube de VSL fue retirada del runtime activo para evitar iframe/autoplay inestable en móviles.
 - Configuración:
@@ -163,3 +189,16 @@ Deep links:
 - No muestra controles nativos.
 - Bloquea clicks/acciones sobre el video con `pointer-events: none` y overlay transparente.
 - Muestra una barra de avance simulada superpuesta abajo, no manipulable por la usuaria.
+
+## EXP 10 Oferta
+
+- Deep link: https://mnle.reconociendotupoder.com/?scene=exp10-offer
+- Es la escena posterior directa a la VSL en el flujo principal.
+- Los CTAs de compra/duda abren la ruta `/whatsapp/` con el modo correspondiente.
+- La operación WhatsApp no es una experiencia obligatoria antes de ver la Oferta.
+
+## Escenas legacy fuera del flujo principal
+
+- `exp6-portal`, `exp7-whatsapp-hook`, `exp8-login`, `exp9-feed` y `exp11-whatsapp-op` siguen disponibles solo por deep link de auditoria o por la ruta standalone `/whatsapp/` cuando aplica.
+- Ninguna de estas escenas se usa entre EXP 5 y VSL.
+- Ninguna de estas escenas se usa entre VSL y Oferta.

@@ -17,7 +17,7 @@ import { Exp7WhatsappHook } from "./exp7-whatsapp-hook"
 import { Exp8Login } from "./exp8-login"
 import { Exp9Feed } from "./exp9-feed"
 import { Exp10Offer } from "./exp10-offer"
-import { Exp11WhatsappOp, type OpEntry } from "./exp11-whatsapp-op"
+import { Exp11WhatsappOp } from "./exp11-whatsapp-op"
 import {
   ResultMp4Player,
   type ResultMp4PlayerHandle,
@@ -103,7 +103,6 @@ export function FunnelOrchestrator() {
   const [resultRevealRequested, setResultRevealRequested] = useState(false)
   const [resultVideoPlaying, setResultVideoPlaying] = useState(false)
   const [showResultBridge, setShowResultBridge] = useState(false)
-  const [opEntry, setOpEntry] = useState<OpEntry>("buy")
   const introAudioRef = useRef<HTMLAudioElement>(null)
   const introAudioStarted = useRef(false)
   const quizLoopAudioRef = useRef<HTMLAudioElement | null>(null)
@@ -150,6 +149,11 @@ export function FunnelOrchestrator() {
     },
     [stage],
   )
+
+  const openWhatsappFlow = useCallback((mode: "buy" | "doubt") => {
+    const query = mode === "doubt" ? "?modo=duda" : "?modo=compra"
+    window.location.href = `/whatsapp/${query}`
+  }, [])
 
   const startExperience = useCallback(() => {
     trackFunnelEvent("funnel_started", { entry: "exp1_overlay" })
@@ -883,7 +887,7 @@ export function FunnelOrchestrator() {
         </div>
       )}
       {stage === "portal" && <Exp6Portal onComplete={() => go("vsl")} />}
-      {stage === "vsl" && <VslInterlude onComplete={() => go("whatsapp-hook")} />}
+      {stage === "vsl" && <VslInterlude onComplete={() => go("offer")} />}
       {stage === "whatsapp-hook" && (
         <Exp7WhatsappHook onComplete={() => go("login")} />
       )}
@@ -893,17 +897,15 @@ export function FunnelOrchestrator() {
         <Exp10Offer
           onPrimary={() => {
             trackFunnelEvent("offer_cta_clicked", { intent: "buy" })
-            setOpEntry("buy")
-            go("whatsapp-op")
+            openWhatsappFlow("buy")
           }}
           onSecondary={() => {
             trackFunnelEvent("offer_cta_clicked", { intent: "doubt" })
-            setOpEntry("doubt")
-            go("whatsapp-op")
+            openWhatsappFlow("doubt")
           }}
         />
       )}
-      {stage === "whatsapp-op" && <Exp11WhatsappOp entry={opEntry} />}
+      {stage === "whatsapp-op" && <Exp11WhatsappOp entry="buy" />}
     </main>
   )
 }
