@@ -124,7 +124,16 @@ Deep links:
 
 - Deep link: https://mnle.reconociendotupoder.com/?scene=vsl-interlude
 - Flujo principal: `EXP 5` → `ABRIR EL CAMINO HACIA JANNY` → VSL full-screen mobile-first.
-- Usa un player Bunny/Panda-style adaptado desde:
+- La VSL soporta provider `bunny` o `youtube` vía `funnelConfig.vslProvider`.
+- Por defecto usa `bunny` si `NEXT_PUBLIC_VSL_PROVIDER` no es `youtube`.
+- Bunny se mantiene con:
+  `NEXT_PUBLIC_VSL_PROVIDER=bunny`
+  `NEXT_PUBLIC_VSL_VIDEO_URL=https://vz-.../playlist.m3u8`
+- YouTube Shorts se configura con:
+  `NEXT_PUBLIC_VSL_PROVIDER=youtube`
+  `NEXT_PUBLIC_VSL_YOUTUBE_URL=https://www.youtube.com/shorts/{id}`
+- Si `provider=youtube` y no hay URL válida, muestra `Short de YouTube pendiente de configuración.`
+- El provider Bunny usa un player Panda-style adaptado desde:
   `/home/sensorial.pameflorescrea.com/source_boilerplate/src/components/themes/expert/components/video-player`
 - El README fuente indica Bunny.net como stream HLS `.m3u8` sobre `<video>` nativo con `hls.js`, modo VSL, autoplay, UI limpia y barra de progreso psicológico.
 - En Veyra el player vive en `components/funnel/video-player/vsl-video-player.tsx`.
@@ -132,6 +141,19 @@ Deep links:
 - Si `NEXT_PUBLIC_VSL_VIDEO_URL` no existe o está vacía, usa la URL temporal Bunny:
   `https://vz-febf8c0d-fb8.b-cdn.net/1924db19-affb-41ea-a457-4195d85671c6/playlist.m3u8`
 - Para cambiar el video luego, definir `NEXT_PUBLIC_VSL_VIDEO_URL` o actualizar `TEMPORARY_BUNNY_VSL_URL` en `components/funnel/config.ts`.
+- El provider YouTube vive en `components/funnel/video-player/youtube-shorts-vsl-player.tsx`.
+- El player YouTube extrae `videoId` desde URLs `shorts`, `youtu.be`, `watch?v=`, `embed`, `/v/` o ID directo.
+- YouTube usa IFrame API client-side y modo clean experimental:
+  `controls=0`, `disablekb=1`, `playsinline=1`, `rel=0`, `fs=0`, `iv_load_policy=3`, `enablejsapi=1`.
+- El modo clean agrega overlay blocker, crop/scale del iframe, máscaras visuales, gradientes propios y barra simulada.
+- Variables de ajuste YouTube:
+  `NEXT_PUBLIC_YOUTUBE_CLEAN_MODE`
+  `NEXT_PUBLIC_YOUTUBE_IFRAME_SCALE`
+  `NEXT_PUBLIC_YOUTUBE_MASK_TOP`
+  `NEXT_PUBLIC_YOUTUBE_MASK_BOTTOM`
+  `NEXT_PUBLIC_YOUTUBE_MASK_LEFT`
+  `NEXT_PUBLIC_YOUTUBE_MASK_RIGHT`
+- Defaults YouTube: clean mode activo, iframe scale `1.12`, mask bottom `82px`, top/left/right `0px`.
 - El player intenta autoplay con audio al montar después del click real en `ABRIR EL CAMINO HACIA JANNY`.
 - Si el navegador bloquea la reproducción/autoplay, muestra el fallback: `REPRODUCIR MENSAJE DE JANNY`.
 - No muestra pantalla previa, header `EXP 7`, card, placeholder ni botón `Continuar` antes del video.
