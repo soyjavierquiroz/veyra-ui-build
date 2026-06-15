@@ -56,6 +56,15 @@ const vslProvider: VslProvider =
 export const TEMPORARY_BUNNY_VSL_URL =
   "https://vz-febf8c0d-fb8.b-cdn.net/1924db19-affb-41ea-a457-4195d85671c6/playlist.m3u8"
 
+export const resultYoutubeShorts = {
+  abandono: "https://www.youtube.com/shorts/rKRWUiWTI3A",
+  validacion: "https://www.youtube.com/shorts/lHGOaV-hfEs",
+  cierre: "https://www.youtube.com/shorts/Yd-2MW9zMDo",
+  culpa: "https://www.youtube.com/shorts/92IEKoTjs64",
+  nostalgia: "https://www.youtube.com/shorts/rKRWUiWTI3A",
+  "ansiedad-silencio": "https://www.youtube.com/shorts/3OZyBOh6jGg",
+} as const
+
 export const funnelConfig: FunnelConfig = {
   mode,
   exp1VideoUrl: cleanPublicEnv(process.env.NEXT_PUBLIC_EXP1_VIDEO_URL) ?? "",

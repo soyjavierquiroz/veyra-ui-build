@@ -68,15 +68,20 @@ Los deep links no garantizan autoplay con audio. Las escenas con audio pueden re
 
 ## EXP 5 Mensaje Personalizado de Veyra
 
-- Reproduce un video personalizado según patrón dominante.
-- Los videos personalizados se reproducen como fondo full-screen de la escena.
+- Reproduce un YouTube Short personalizado según patrón dominante.
+- Los Shorts personalizados se reproducen como fondo full-screen de la escena.
 - El texto del patrón, bridge y CTA aparecen superpuestos sobre el video.
-- No se muestra como tarjeta embebida.
+- No se muestra como embed normal, tarjeta, header externo, marco ni bloque con márgenes.
 - Cada video incluye audio integrado.
+- Intenta autoplay con sonido inmediatamente después del click `REVELAR MENSAJE DE VEYRA`.
+- Si el navegador bloquea autoplay por no tener gesto válido, muestra el fallback: `REPRODUCIR MENSAJE DE VEYRA`.
+- Usa el player YouTube clean mode con controles ocultos, crop/scale, máscaras visuales, gradientes y overlay transparente para bloquear interacción.
+- En móvil ocupa toda la pantalla disponible del dispositivo dentro de `100dvh`.
+- En desktop respeta el shell móvil centrado del funnel (`max-width` aprox. 460px) y no se abre a todo el ancho de la ventana.
 - Usa audio ambiental de resultado: `/audio/loop-result.mp3`.
 - El loop de resultado inicia cuando la usuaria presiona `REVELAR MENSAJE DE VEYRA`.
 - El loop suena debajo del video personalizado de Veyra.
-- Volumen objetivo del loop de resultado: `0.25`.
+- Volumen objetivo del loop de resultado: `0.15`.
 - El loop se mantiene activo durante EXP 5.
 - El loop se detiene y resetea cuando la usuaria presiona `ABRIR EL CAMINO HACIA JANNY`.
 - El loop no sigue sonando en VSL.
@@ -85,17 +90,17 @@ Los deep links no garantizan autoplay con audio. Las escenas con audio pueden re
 - No usa video base común.
 - Al terminar el video muestra bridge por patrón y CTA: `ABRIR EL CAMINO HACIA JANNY`.
 - En el flujo principal ese CTA lleva directo a la VSL full-screen, sin pasar por EXP 6.
-- Mantiene fallback si `play()` falla o si video no carga; si `play()` falla, muestra el botón de recuperación: `REVELAR MENSAJE DE VEYRA`.
+- Los MP4 locales `resp*-veyra-final.mp4` ya no son la fuente principal de EXP 5.
 - EXP 5 acepta `pattern`. Si se abre `?scene=exp5-reading` sin pattern, usa `abandono`.
 
 Mapeo:
 
-- `resp1-veyra-final.mp4` → `abandono` → `MIEDO A QUE TE OLVIDE`
-- `resp2-veyra-final.mp4` → `validacion` → `BÚSQUEDA DE VALIDACIÓN`
-- `resp3-veyra-final.mp4` → `cierre` → `NECESIDAD DE CIERRE`
-- `resp4-veyra-final.mp4` → `culpa` → `CULPA POR ALEJARTE`
-- `resp5-veyra-final.mp4` → `nostalgia` → `NOSTALGIA POR LO BONITO`
-- `resp6-veyra-final.mp4` → `ansiedad-silencio` → `ANSIEDAD POR SILENCIO`
+- Respuesta 1 → `abandono` → `MIEDO A QUE TE OLVIDE` → https://www.youtube.com/shorts/rKRWUiWTI3A
+- Respuesta 2 → `validacion` → `BÚSQUEDA DE VALIDACIÓN` → https://www.youtube.com/shorts/lHGOaV-hfEs
+- Respuesta 3 → `cierre` → `NECESIDAD DE CIERRE` → https://www.youtube.com/shorts/Yd-2MW9zMDo
+- Respuesta 4 → `culpa` → `CULPA POR ALEJARTE` → https://www.youtube.com/shorts/92IEKoTjs64
+- Respuesta 5 → `nostalgia` → `NOSTALGIA POR LO BONITO` → https://www.youtube.com/shorts/rKRWUiWTI3A
+- Respuesta 6 → `ansiedad-silencio` → `ANSIEDAD POR SILENCIO` → https://www.youtube.com/shorts/3OZyBOh6jGg
 
 Deep links:
 

@@ -18,7 +18,7 @@ import { Exp10Offer } from "./exp10-offer"
 import { Exp11WhatsappOp, type OpEntry } from "./exp11-whatsapp-op"
 
 const QUIZ_LOOP_VOLUME = 0.4
-const RESULT_LOOP_VOLUME = 0.25
+const RESULT_LOOP_VOLUME = 0.15
 
 const QUIZ_PRIMARY_AUDIO_SOURCES = [
   "/audio/quiz-p1-final.mp3",

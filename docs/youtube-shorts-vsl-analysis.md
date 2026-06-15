@@ -259,3 +259,18 @@ Fuentes oficiales consultadas:
 - Se implementó modo clean experimental con playerVars, iframe scale/crop, máscaras, gradientes, blocker transparente y barra simulada.
 - Si YouTube no tiene URL válida, se muestra `Short de YouTube pendiente de configuración.`
 - Si autoplay con sonido falla, se muestra el fallback `REPRODUCIR MENSAJE DE JANNY`.
+
+## Uso extendido en EXP 5
+
+El mismo patrón de YouTube clean mode se extendió a EXP 5 para los 6 videos de respuesta de Veyra. EXP 5 ya no usa los MP4 locales `resp*-veyra-final.mp4` como fuente principal; ahora monta el player de YouTube Shorts dentro del shell mobile-first y selecciona el Short según el patrón dominante.
+
+Mapeo activo:
+
+- `abandono` / `MIEDO A QUE TE OLVIDE`: https://www.youtube.com/shorts/rKRWUiWTI3A
+- `validacion` / `BÚSQUEDA DE VALIDACIÓN`: https://www.youtube.com/shorts/lHGOaV-hfEs
+- `cierre` / `NECESIDAD DE CIERRE`: https://www.youtube.com/shorts/Yd-2MW9zMDo
+- `culpa` / `CULPA POR ALEJARTE`: https://www.youtube.com/shorts/92IEKoTjs64
+- `nostalgia` / `NOSTALGIA POR LO BONITO`: https://www.youtube.com/shorts/rKRWUiWTI3A
+- `ansiedad-silencio` / `ANSIEDAD POR SILENCIO`: https://www.youtube.com/shorts/3OZyBOh6jGg
+
+EXP 5 intenta autoplay con sonido justo después del click `REVELAR MENSAJE DE VEYRA`. Si el navegador bloquea el autoplay, el fallback visible para esta escena es `REPRODUCIR MENSAJE DE VEYRA`. El CTA final sigue siendo `ABRIR EL CAMINO HACIA JANNY`, y el loop `/audio/loop-result.mp3` debe detenerse antes de entrar a la VSL.

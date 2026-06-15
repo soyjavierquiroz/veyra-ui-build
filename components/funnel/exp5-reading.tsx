@@ -1,71 +1,60 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
-import { ArrowRight, Play } from "lucide-react"
+import { useCallback, useEffect, useState } from "react"
+import { ArrowRight } from "lucide-react"
 import type { PatternKey } from "./types"
 import { PATTERNS } from "./types"
+import { funnelConfig, resultYoutubeShorts } from "./config"
 import { Particles } from "./particles"
+import { YouTubeShortsVslPlayer } from "./video-player/youtube-shorts-vsl-player"
 
 type ResultVideoConfig = {
-  video: string
+  videoUrl: string
   shortText: string
   bridge: string
 }
 
 const RESULT_VIDEOS: Record<PatternKey, ResultVideoConfig> = {
   A: {
-    video: "/videos/resp1-veyra-final.mp4",
+    videoUrl: resultYoutubeShorts.abandono,
     shortText:
       "No buscabas solo una respuesta.\nBuscabas una señal de que todavía existes para él.",
     bridge: "Veyra reveló el miedo.\nJanny puede ayudarte a no abandonarte tú.",
   },
   B: {
-    video: "/videos/resp2-veyra-final.mp4",
+    videoUrl: resultYoutubeShorts.validacion,
     shortText:
       "No querías solo que respondiera.\nQuerías sentir que todavía importas.",
     bridge:
       "Veyra reveló la búsqueda.\nJanny puede ayudarte a recuperar tu centro.",
   },
   C: {
-    video: "/videos/resp3-veyra-final.mp4",
+    videoUrl: resultYoutubeShorts.cierre,
     shortText:
       "Tu mente pide una explicación.\nPero tu emoción puede estar buscando volver a abrir la puerta.",
     bridge:
       "Veyra reveló la pregunta abierta.\nJanny puede ayudarte a ordenar lo que duele adentro.",
   },
   D: {
-    video: "/videos/resp4-veyra-final.mp4",
+    videoUrl: resultYoutubeShorts.culpa,
     shortText: "Una parte de ti cree que cuidarte también puede lastimar.",
     bridge:
       "Veyra reveló la culpa.\nJanny puede ayudarte a elegirte sin castigarte.",
   },
   E: {
-    video: "/videos/resp5-veyra-final.mp4",
+    videoUrl: resultYoutubeShorts.nostalgia,
     shortText:
       "No extrañas solo a esa persona.\nExtrañas cómo te sentías cuando parecía posible.",
     bridge:
       "Veyra reveló la nostalgia.\nJanny puede ayudarte a mirar la historia completa.",
   },
   F: {
-    video: "/videos/resp6-veyra-final.mp4",
+    videoUrl: resultYoutubeShorts["ansiedad-silencio"],
     shortText:
       "Tu impulso no buscaba una conversación.\nBuscaba apagar la angustia que aparece cuando él no responde.",
     bridge:
       "Veyra reveló la ansiedad.\nJanny puede ayudarte a sostener la pausa sin obedecer la urgencia.",
   },
-}
-
-const FALLBACK_BRIDGE_DELAY_MS = 2200
-
-function resetVideo(video: HTMLVideoElement | null) {
-  if (!video) return
-
-  try {
-    video.pause()
-    video.currentTime = 0
-  } catch {
-    // Best-effort only: media cleanup must never block navigation.
-  }
 }
 
 export function Exp5Reading({
@@ -79,103 +68,23 @@ export function Exp5Reading({
   onEnter?: () => void
   onComplete: () => void
 }) {
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const timersRef = useRef<number[]>([])
   const [showBridge, setShowBridge] = useState(false)
-  const [playBlocked, setPlayBlocked] = useState(false)
-  const [fallbackPending, setFallbackPending] = useState(false)
-  const [videoLoadFailed, setVideoLoadFailed] = useState(false)
 
   const config = RESULT_VIDEOS[pattern] ?? RESULT_VIDEOS.A
   const info = PATTERNS[pattern] ?? PATTERNS.A
 
-  const clearTimers = useCallback(() => {
-    timersRef.current.forEach((timer) => window.clearTimeout(timer))
-    timersRef.current = []
-  }, [])
-
-  const scheduleBridgeFallback = useCallback(() => {
-    setFallbackPending(true)
-    const timer = window.setTimeout(() => {
-      timersRef.current = timersRef.current.filter((id) => id !== timer)
-      setFallbackPending(false)
-      setShowBridge(true)
-    }, FALLBACK_BRIDGE_DELAY_MS)
-
-    timersRef.current.push(timer)
-  }, [])
-
-  const playVideo = useCallback(async () => {
-    const video = videoRef.current
-    if (!video) {
-      setPlayBlocked(true)
-      return false
-    }
-
-    try {
-      video.muted = false
-      video.currentTime = 0
-      await video.play()
-      setPlayBlocked(false)
-      setFallbackPending(false)
-      return true
-    } catch {
-      setPlayBlocked(true)
-      return false
-    }
-  }, [])
-
   useEffect(() => {
     onEnter?.()
-    clearTimers()
     setShowBridge(false)
-    setPlayBlocked(false)
-    setFallbackPending(false)
-    setVideoLoadFailed(false)
-
-    const video = videoRef.current
-    if (video) {
-      video.muted = false
-      video.load()
-    }
-
-    void playVideo()
-
-    return () => {
-      clearTimers()
-      resetVideo(videoRef.current)
-    }
-  }, [clearTimers, config.video, onEnter, playVideo, startToken])
-
-  const handleRecoveryClick = async () => {
-    clearTimers()
-    setPlayBlocked(false)
-    const played = await playVideo()
-
-    if (!played) {
-      setPlayBlocked(false)
-      scheduleBridgeFallback()
-    }
-  }
+  }, [config.videoUrl, onEnter, startToken])
 
   const handleComplete = () => {
-    clearTimers()
-    resetVideo(videoRef.current)
     onComplete()
   }
 
-  const handleVideoEnded = () => {
-    setPlayBlocked(false)
-    setFallbackPending(false)
+  const handleVideoEnded = useCallback(() => {
     setShowBridge(true)
-  }
-
-  const handleVideoError = () => {
-    setPlayBlocked(false)
-    setFallbackPending(false)
-    setVideoLoadFailed(true)
-    setShowBridge(true)
-  }
+  }, [])
 
   return (
     <section className="relative flex min-h-screen w-full min-w-[320px] justify-center overflow-hidden bg-mystic text-white">
@@ -183,19 +92,24 @@ export function Exp5Reading({
         <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_50%_28%,oklch(0.36_0.15_304/.34),transparent_34%),radial-gradient(circle_at_50%_78%,oklch(0.72_0.12_86/.12),transparent_34%),linear-gradient(180deg,oklch(0.06_0.03_292),oklch(0.12_0.07_300)_48%,oklch(0.05_0.02_292))]" />
         <div className="pointer-events-none absolute left-1/2 top-1/2 z-0 size-[360px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-gold/10 blur-[1px] access-portal" />
 
-        <video
-          ref={videoRef}
-          src={config.video}
-          className={`absolute inset-0 z-0 h-full w-full object-cover object-center transition-opacity duration-700 ${
-            showBridge ? "opacity-40" : "opacity-100"
-          } ${videoLoadFailed ? "opacity-0" : ""}`}
-          playsInline
-          controls={false}
-          preload="auto"
-          loop={false}
-          muted={false}
+        <YouTubeShortsVslPlayer
+          key={`${pattern}-${startToken}-${config.videoUrl}`}
+          videoUrl={config.videoUrl}
+          autoPlay
+          startWithSound
+          blockUserInteraction
+          cleanMode={funnelConfig.youtubeCleanMode}
+          iframeScale={funnelConfig.youtubeIframeScale}
+          maskTop={funnelConfig.youtubeMaskTop}
+          maskBottom={funnelConfig.youtubeMaskBottom}
+          maskLeft={funnelConfig.youtubeMaskLeft}
+          maskRight={funnelConfig.youtubeMaskRight}
+          fallbackLabel="REPRODUCIR MENSAJE DE VEYRA"
+          showSimulatedProgress={false}
           onEnded={handleVideoEnded}
-          onError={handleVideoError}
+          className={`absolute inset-0 z-0 h-full w-full transition-opacity duration-700 ${
+            showBridge ? "opacity-40" : "opacity-100"
+          }`}
         />
 
         <div className="pointer-events-none absolute inset-0 z-10 bg-black/10" />
@@ -207,20 +121,24 @@ export function Exp5Reading({
           <Particles count={22} />
         </div>
 
-        <div className="relative z-20 flex min-h-[100dvh] w-full flex-col justify-between px-5 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(2.4rem,env(safe-area-inset-top))] sm:px-6">
-          <header className="mx-auto max-w-[92%] text-center">
-            <p className="text-[0.68rem] uppercase tracking-[0.3em] text-[#f5eedc]/80">
-              Tu patrón dominante es:
-            </p>
-            <h1 className="mt-2 font-serif text-2xl leading-tight text-gold text-balance drop-shadow-[0_0_18px_oklch(0.05_0.02_292/.9)]">
-              {info.title}
-            </h1>
-          </header>
-
+        <div
+          className={`relative z-20 flex min-h-[100dvh] w-full flex-col justify-between px-5 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(2.4rem,env(safe-area-inset-top))] sm:px-6 ${
+            showBridge ? "" : "pointer-events-none"
+          }`}
+        >
+          <div aria-hidden="true" />
           <div className="min-h-[34vh]" />
 
           {showBridge ? (
             <div className="animate-float-up space-y-5 text-center">
+              <div className="space-y-2">
+                <p className="text-[0.68rem] uppercase tracking-[0.3em] text-[#f5eedc]/80">
+                  Tu patrón dominante es:
+                </p>
+                <h1 className="font-serif text-2xl leading-tight text-gold text-balance drop-shadow-[0_0_18px_oklch(0.05_0.02_292/.9)]">
+                  {info.title}
+                </h1>
+              </div>
               <div className="space-y-3">
                 {config.bridge.split("\n").map((line) => (
                   <p
@@ -257,28 +175,6 @@ export function Exp5Reading({
           )}
         </div>
 
-        {playBlocked && !showBridge && (
-          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-5 bg-[linear-gradient(180deg,oklch(0.06_0.03_292/.78),oklch(0.12_0.07_300/.9))] px-6 text-center backdrop-blur-sm">
-            <p className="font-serif text-2xl leading-relaxed text-[#f5eedc] text-balance">
-              Veyra tiene un mensaje para ti.
-            </p>
-            <button
-              onClick={handleRecoveryClick}
-              className="flex w-full max-w-xs items-center justify-center gap-2 rounded-full border border-gold/70 bg-[linear-gradient(135deg,oklch(0.33_0.16_302/.96),oklch(0.18_0.08_295/.96))] px-5 py-4 text-center font-medium uppercase tracking-wide text-gold glow-violet transition-transform active:scale-95"
-            >
-              <Play className="size-4 fill-current" />
-              REVELAR MENSAJE DE VEYRA
-            </button>
-          </div>
-        )}
-
-        {fallbackPending && !showBridge && (
-          <div className="absolute inset-0 z-30 flex items-center justify-center bg-[linear-gradient(180deg,oklch(0.06_0.03_292/.78),oklch(0.12_0.07_300/.9))] px-6 text-center backdrop-blur-sm">
-            <p className="font-serif text-2xl leading-relaxed text-[#f5eedc] text-balance">
-              Veyra tiene un mensaje para ti.
-            </p>
-          </div>
-        )}
       </div>
     </section>
   )

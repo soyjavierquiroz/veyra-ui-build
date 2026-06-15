@@ -25,6 +25,8 @@ export type YouTubeShortsVslPlayerProps = {
   maskBottom?: number
   maskLeft?: number
   maskRight?: number
+  fallbackLabel?: string
+  showSimulatedProgress?: boolean
   className?: string
   onEnded?: () => void
   onPlaybackBlocked?: () => void
@@ -151,6 +153,8 @@ export function YouTubeShortsVslPlayer({
   maskBottom = 82,
   maskLeft = 0,
   maskRight = 0,
+  fallbackLabel = "REPRODUCIR MENSAJE DE JANNY",
+  showSimulatedProgress = true,
   className,
   onEnded,
   onPlaybackBlocked,
@@ -457,17 +461,19 @@ export function YouTubeShortsVslPlayer({
             className="flex max-w-full flex-wrap items-center justify-center gap-2 rounded-full bg-gold px-5 py-4 text-center text-sm font-semibold uppercase leading-tight tracking-[0.14em] text-background shadow-xl shadow-gold/20 transition-transform active:scale-95"
           >
             <Play className="size-4 fill-current" />
-            REPRODUCIR MENSAJE DE JANNY
+            {fallbackLabel}
           </button>
         </div>
       ) : null}
 
-      <div className="pointer-events-none absolute bottom-[max(22px,env(safe-area-inset-bottom))] left-6 right-6 z-40 h-1.5 overflow-hidden rounded-full bg-white/15">
-        <div
-          className="h-full rounded-r-full bg-gradient-to-r from-primary to-gold shadow-[0_0_18px_rgba(235,199,120,0.45)] transition-[width] duration-300 ease-linear"
-          style={{ width: `${progress}%` }}
-        />
-      </div>
+      {showSimulatedProgress ? (
+        <div className="pointer-events-none absolute bottom-[max(22px,env(safe-area-inset-bottom))] left-6 right-6 z-40 h-1.5 overflow-hidden rounded-full bg-white/15">
+          <div
+            className="h-full rounded-r-full bg-gradient-to-r from-primary to-gold shadow-[0_0_18px_rgba(235,199,120,0.45)] transition-[width] duration-300 ease-linear"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      ) : null}
     </div>
   )
 }
