@@ -128,7 +128,7 @@ export const funnelConfig: FunnelConfig = {
     process.env.NEXT_PUBLIC_RESULT_YOUTUBE_CLEAN_MODE !== "false",
   resultYoutubeIframeScale: readNumber(
     process.env.NEXT_PUBLIC_RESULT_YOUTUBE_IFRAME_SCALE,
-    1.04,
+    1,
   ),
   resultYoutubeIframeOffsetX: readNumber(
     process.env.NEXT_PUBLIC_RESULT_YOUTUBE_IFRAME_OFFSET_X,
@@ -144,7 +144,7 @@ export const funnelConfig: FunnelConfig = {
   ),
   resultYoutubeMaskBottom: readNumber(
     process.env.NEXT_PUBLIC_RESULT_YOUTUBE_MASK_BOTTOM,
-    40,
+    0,
   ),
   resultYoutubeMaskLeft: readNumber(
     process.env.NEXT_PUBLIC_RESULT_YOUTUBE_MASK_LEFT,

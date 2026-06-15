@@ -277,7 +277,7 @@ EXP 5 intenta autoplay con sonido justo después del click `REVELAR MENSAJE DE V
 
 ## Ajustes visuales y prewarm en EXP 5
 
-EXP 5 usa ajustes visuales separados de la VSL para evitar que el crop/máscaras pensados para el video de Janny deformen los Shorts de respuesta. Los defaults de resultado son específicos para Shorts: wrapper `9:16`, `iframeScale=1.04`, offsets `0`, máscara inferior suave `40px`, soft logo mask activo y sin barra simulada.
+EXP 5 usa ajustes visuales separados de la VSL para evitar que el crop/máscaras pensados para el video de Janny deformen los Shorts de respuesta. Los defaults de resultado son específicos para Shorts: `fitMode="native"`, `iframeScale=1`, offsets `0`, máscaras de borde `0`, soft logo mask activo y sin barra simulada.
 
 Variables de ajuste específicas de EXP 5:
 
@@ -299,7 +299,7 @@ Variables de ajuste específicas de EXP 5:
 - `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_OPACITY`
 - `NEXT_PUBLIC_RESULT_VIDEO_FALLBACK_DURATION_SECONDS`
 
-El player soporta offsets controlados y aplica el iframe con `position:absolute`, `inset:0`, `width/height/minWidth/minHeight:100%`, centrado por transform. En modo vertical, el wrapper usa proporción visual `9:16` para que el Short se sienta full-screen dentro del shell móvil y no quede desplazado lateralmente.
+El player soporta offsets controlados y aplica el iframe con `position:absolute`, `inset:0`, `width/height/minWidth/minHeight:100%`. En el modo no-zoom de EXP 5 no se aplica transform cuando `iframeScale=1` y offsets `0`; el iframe ocupa el shell móvil sin wrapper 9:16 adicional ni crop agresivo.
 
 Cuando EXP 4 detecta el patrón dominante, el orquestador prepara solo el Short correspondiente en el mismo player persistente que luego se revela. La preparación agrega `preconnect`/`dns-prefetch`, carga la YouTube IFrame API de forma idempotente y cuea el video sin llamar `playVideo()`, sin desmutear y sin reproducir audio. El click `REVELAR MENSAJE DE VEYRA` sigue siendo el gesto que intenta iniciar autoplay con sonido en EXP 5.
 
@@ -318,7 +318,15 @@ Para ocultar visualmente la UI/marca `Shorts`, el result player agrega una másc
 - `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_HEIGHT`
 - `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_RADIUS`
 
-Los defaults actuales de resultado son `iframeScale=1.04`, `maskBottom=40`, logo mask `soft`, activo en `50% / 49%`, `132x44px`, radio `999px`, blur `14px` y opacity `0.22`. El iframe queda clippeado dentro del shell móvil centrado (`max-width` aprox. `460px`) y no usa `fixed`, `w-screen`, `h-screen` ni `100vw`.
+Los defaults actuales de resultado son `iframeScale=1`, offsets `0`, máscaras de borde `0`, logo mask `soft`, activo en `50% / 49%`, `132x44px`, radio `999px`, blur `14px` y opacity `0.22`. El iframe queda dentro del shell móvil centrado (`max-width` aprox. `460px`) y no usa `fixed`, `w-screen`, `h-screen` ni `100vw`.
+
+## EXP 5 no-zoom mode
+
+EXP 5 desactivó el zoom por defecto para probar los YouTube Shorts en escala real. El result player usa `fitMode="native"`, `verticalMode={true}`, `NEXT_PUBLIC_RESULT_YOUTUBE_IFRAME_SCALE=1`, `NEXT_PUBLIC_RESULT_YOUTUBE_IFRAME_OFFSET_X=0` y `NEXT_PUBLIC_RESULT_YOUTUBE_IFRAME_OFFSET_Y=0`.
+
+El iframe se monta como `absolute inset-0 h-full w-full` dentro del shell mobile-first. Si no hay env explícito de escala u offset, no se aplica `transform`, no se agranda el iframe y no se usa crop agresivo para ocultar partes de YouTube.
+
+Cualquier ocultamiento visual futuro debe hacerse con overlays suaves, gradientes o soft masks encima del video. No se debe resolver logo/UI con zoom/crop que corte rostro, cuerpo o elementos importantes. Para probar sin máscara de logo: `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_MODE=off`.
 
 ## Soft logo mask en EXP 5
 

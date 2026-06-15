@@ -20,7 +20,7 @@ export type YouTubeShortsVslPlayerProps = {
   simulatedDurationSeconds?: number
   blockUserInteraction?: boolean
   cleanMode?: boolean
-  fitMode?: "cover" | "contain"
+  fitMode?: "cover" | "contain" | "native"
   verticalMode?: boolean
   iframeScale?: number
   iframeOffsetX?: number
@@ -454,6 +454,14 @@ export function YouTubeShortsVslPlayer({
     )
   }
 
+  const safeIframeScale = Number.isFinite(iframeScale) ? iframeScale : 1
+  const safeIframeOffsetX = Number.isFinite(iframeOffsetX) ? iframeOffsetX : 0
+  const safeIframeOffsetY = Number.isFinite(iframeOffsetY) ? iframeOffsetY : 0
+  const shouldUseNativeLayout = fitMode === "native"
+  const shouldTransformNativeIframe =
+    cleanMode &&
+    (safeIframeScale !== 1 || safeIframeOffsetX !== 0 || safeIframeOffsetY !== 0)
+
   return (
     <div
       className={cn("relative h-full w-full overflow-hidden bg-black", className)}
@@ -464,17 +472,30 @@ export function YouTubeShortsVslPlayer({
       data-vertical-mode={verticalMode ? "true" : "false"}
     >
       <div
-        className={cn(
-          "absolute left-1/2 top-1/2 h-full -translate-x-1/2 -translate-y-1/2",
-          verticalMode ? "aspect-[9/16] w-auto min-w-full" : "w-full",
-          fitMode === "contain" ? "max-h-full max-w-full" : "",
-        )}
-        style={{
-          transform: `translate(calc(-50% + ${iframeOffsetX}px), calc(-50% + ${iframeOffsetY}px)) scale(${
-            cleanMode ? iframeScale : 1
-          })`,
-          transformOrigin: "center center",
-        }}
+        className={
+          shouldUseNativeLayout
+            ? "absolute inset-0 h-full w-full overflow-hidden"
+            : cn(
+                "absolute left-1/2 top-1/2 h-full -translate-x-1/2 -translate-y-1/2",
+                verticalMode ? "aspect-[9/16] w-auto min-w-full" : "w-full",
+                fitMode === "contain" ? "max-h-full max-w-full" : "",
+              )
+        }
+        style={
+          shouldUseNativeLayout
+            ? shouldTransformNativeIframe
+              ? {
+                  transform: `translate(${safeIframeOffsetX}px, ${safeIframeOffsetY}px) scale(${safeIframeScale})`,
+                  transformOrigin: "center center",
+                }
+              : undefined
+            : {
+                transform: `translate(calc(-50% + ${safeIframeOffsetX}px), calc(-50% + ${safeIframeOffsetY}px)) scale(${
+                  cleanMode ? safeIframeScale : 1
+                })`,
+                transformOrigin: "center center",
+              }
+        }
       >
         <div ref={playerHostRef} className="absolute inset-0 h-full w-full" />
       </div>

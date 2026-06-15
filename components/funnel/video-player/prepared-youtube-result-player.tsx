@@ -19,6 +19,7 @@ import {
 } from "./youtube-shorts-vsl-player"
 
 export type ResultLogoMaskMode = "off" | "soft" | "solid"
+export type ResultYouTubeFitMode = "cover" | "contain" | "native"
 
 export type PreparedYouTubeResultPlayerHandle = {
   prepare: (videoUrl: string) => void
@@ -32,6 +33,8 @@ export type PreparedYouTubeResultPlayerProps = {
   active: boolean
   visible: boolean
   fallbackLabel?: string
+  fitMode?: ResultYouTubeFitMode
+  verticalMode?: boolean
   iframeScale?: number
   iframeOffsetX?: number
   iframeOffsetY?: number
@@ -92,11 +95,13 @@ export const PreparedYouTubeResultPlayer = forwardRef<
     active,
     visible,
     fallbackLabel = "REPRODUCIR MENSAJE DE VEYRA",
-    iframeScale = 1.04,
+    fitMode = "native",
+    verticalMode = true,
+    iframeScale = 1,
     iframeOffsetX = 0,
     iframeOffsetY = 0,
     maskTop = 0,
-    maskBottom = 48,
+    maskBottom = 0,
     maskLeft = 0,
     maskRight = 0,
     logoMaskEnabled = true,
@@ -413,6 +418,11 @@ export const PreparedYouTubeResultPlayer = forwardRef<
   )
 
   const showFallback = visible && (playbackState === "blocked" || playbackState === "error")
+  const safeIframeScale = Number.isFinite(iframeScale) ? iframeScale : 1
+  const safeIframeOffsetX = Number.isFinite(iframeOffsetX) ? iframeOffsetX : 0
+  const safeIframeOffsetY = Number.isFinite(iframeOffsetY) ? iframeOffsetY : 0
+  const shouldTransformNativeIframe =
+    safeIframeScale !== 1 || safeIframeOffsetX !== 0 || safeIframeOffsetY !== 0
   const shouldShowLogoMask = logoMaskEnabled && logoMaskMode !== "off"
   const safeLogoMaskOpacity = clamp(logoMaskOpacity, 0, 1)
   const safeLogoMaskBlur = Math.max(logoMaskBlur, 0)
@@ -463,17 +473,36 @@ export const PreparedYouTubeResultPlayer = forwardRef<
       aria-hidden={!visible}
     >
       <div className="relative h-[100dvh] min-h-[100dvh] w-full max-w-[460px] overflow-hidden bg-black">
-        <div className="absolute inset-0 overflow-hidden bg-black">
-          <div
-            className="absolute left-1/2 top-1/2 aspect-[9/16] h-full max-h-full overflow-hidden"
-            style={{
-              width: "min(100%, calc(100dvh * 9 / 16))",
-              transform: `translate(calc(-50% + ${iframeOffsetX}px), calc(-50% + ${iframeOffsetY}px)) scale(${iframeScale})`,
-              transformOrigin: "center center",
-            }}
-          >
-            <div ref={playerHostRef} className="absolute inset-0 h-full w-full" />
-          </div>
+        <div
+          className="absolute inset-0 h-full w-full overflow-hidden bg-black"
+          data-fit-mode={fitMode}
+          data-vertical-mode={verticalMode ? "true" : "false"}
+        >
+          {fitMode === "cover" ? (
+            <div
+              className="absolute left-1/2 top-1/2 aspect-[9/16] h-full max-h-full overflow-hidden"
+              style={{
+                width: "min(100%, calc(100dvh * 9 / 16))",
+                transform: `translate(calc(-50% + ${safeIframeOffsetX}px), calc(-50% + ${safeIframeOffsetY}px)) scale(${safeIframeScale})`,
+                transformOrigin: "center center",
+              }}
+            >
+              <div ref={playerHostRef} className="absolute inset-0 h-full w-full" />
+            </div>
+          ) : (
+            <div
+              ref={playerHostRef}
+              className="absolute inset-0 h-full w-full overflow-hidden"
+              style={
+                shouldTransformNativeIframe
+                  ? {
+                      transform: `translate(${safeIframeOffsetX}px, ${safeIframeOffsetY}px) scale(${safeIframeScale})`,
+                      transformOrigin: "center center",
+                    }
+                  : undefined
+              }
+            />
+          )}
         </div>
 
         <div
@@ -505,8 +534,21 @@ export const PreparedYouTubeResultPlayer = forwardRef<
           />
         ) : null}
 
-        <div className="pointer-events-none absolute inset-x-0 top-0 z-20 h-28 bg-gradient-to-b from-black/55 to-transparent" />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-40 bg-gradient-to-t from-black/70 to-transparent" />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 z-20 h-20"
+          style={{
+            background: "linear-gradient(to bottom, rgba(0,0,0,0.35), transparent)",
+          }}
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-24"
+          style={{
+            background:
+              "linear-gradient(to top, rgba(0,0,0,0.55), rgba(0,0,0,0.22), transparent)",
+          }}
+        />
 
         <div
           className="absolute inset-0 z-40 cursor-default bg-transparent [touch-action:none]"

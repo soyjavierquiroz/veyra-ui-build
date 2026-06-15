@@ -483,6 +483,8 @@ export function FunnelOrchestrator() {
         active={Boolean(preparedResultVideoUrl) && stage !== "vsl"}
         visible={stage === "reading"}
         fallbackLabel="REPRODUCIR MENSAJE DE VEYRA"
+        fitMode="native"
+        verticalMode={true}
         iframeScale={funnelConfig.resultYoutubeIframeScale}
         iframeOffsetX={funnelConfig.resultYoutubeIframeOffsetX}
         iframeOffsetY={funnelConfig.resultYoutubeIframeOffsetY}
