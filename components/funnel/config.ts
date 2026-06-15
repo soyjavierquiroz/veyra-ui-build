@@ -43,6 +43,7 @@ export type FunnelConfig = {
   resultYoutubeIntroVeilEnabled: boolean
   resultYoutubeIntroVeilDurationMs: number
   resultYoutubeIntroVeilFadeMs: number
+  resultYoutubeIntroVeilOpacity: number
   resultVideoFallbackDurationSeconds: number
   whatsappNumber: string
   whatsappBaseUrl: string
@@ -233,6 +234,10 @@ export const funnelConfig: FunnelConfig = {
   resultYoutubeIntroVeilFadeMs: readNumber(
     process.env.NEXT_PUBLIC_RESULT_YOUTUBE_INTRO_VEIL_FADE_MS,
     900,
+  ),
+  resultYoutubeIntroVeilOpacity: readNumber(
+    process.env.NEXT_PUBLIC_RESULT_YOUTUBE_INTRO_VEIL_OPACITY,
+    0.88,
   ),
   resultVideoFallbackDurationSeconds: readNumber(
     process.env.NEXT_PUBLIC_RESULT_VIDEO_FALLBACK_DURATION_SECONDS,

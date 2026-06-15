@@ -59,6 +59,8 @@ export function FunnelOrchestrator() {
   const quizLoopAudioRef = useRef<HTMLAudioElement | null>(null)
   const resultLoopAudioRef = useRef<HTMLAudioElement | null>(null)
   const quizPrimaryFallbackAudioRef = useRef<HTMLAudioElement | null>(null)
+  const resultRevealVeilFadeTimeoutRef = useRef<number | null>(null)
+  const resultRevealVeilUnmountTimeoutRef = useRef<number | null>(null)
   const quizAudioContextRef = useRef<AudioContext | null>(null)
   const quizAudioBuffersRef = useRef<Map<string, AudioBuffer>>(new Map())
   const quizAudioPreloadPromiseRef = useRef<Promise<void> | null>(null)
@@ -67,6 +69,8 @@ export function FunnelOrchestrator() {
   const preparedResultPlayerRef =
     useRef<PreparedYouTubeResultPlayerHandle | null>(null)
   const resultFallbackTimerRef = useRef<number | null>(null)
+  const [resultRevealVeilMounted, setResultRevealVeilMounted] = useState(false)
+  const [resultRevealVeilVisible, setResultRevealVeilVisible] = useState(false)
 
   useEffect(() => {
     const initialStage = getInitialSceneFromUrl()
@@ -402,6 +406,58 @@ export function FunnelOrchestrator() {
     resultFallbackTimerRef.current = null
   }, [])
 
+  const clearResultRevealVeilTimers = useCallback(() => {
+    if (resultRevealVeilFadeTimeoutRef.current !== null) {
+      window.clearTimeout(resultRevealVeilFadeTimeoutRef.current)
+      resultRevealVeilFadeTimeoutRef.current = null
+    }
+
+    if (resultRevealVeilUnmountTimeoutRef.current !== null) {
+      window.clearTimeout(resultRevealVeilUnmountTimeoutRef.current)
+      resultRevealVeilUnmountTimeoutRef.current = null
+    }
+  }, [])
+
+  const showResultRevealVeil = useCallback(() => {
+    clearResultRevealVeilTimers()
+    setResultRevealVeilMounted(true)
+    setResultRevealVeilVisible(true)
+  }, [clearResultRevealVeilTimers])
+
+  const hideResultRevealVeil = useCallback(() => {
+    clearResultRevealVeilTimers()
+    setResultRevealVeilVisible(false)
+    setResultRevealVeilMounted(false)
+  }, [clearResultRevealVeilTimers])
+
+  const dismissResultRevealVeil = useCallback(() => {
+    clearResultRevealVeilTimers()
+
+    if (!funnelConfig.resultYoutubeIntroVeilEnabled) {
+      setResultRevealVeilVisible(false)
+      setResultRevealVeilMounted(false)
+      return
+    }
+
+    const safeDuration = Math.max(
+      funnelConfig.resultYoutubeIntroVeilDurationMs,
+      0,
+    )
+    const safeFade = Math.max(funnelConfig.resultYoutubeIntroVeilFadeMs, 0)
+    const visibleDuration = Math.max(safeDuration - safeFade, 0)
+
+    setResultRevealVeilMounted(true)
+    setResultRevealVeilVisible(true)
+
+    resultRevealVeilFadeTimeoutRef.current = window.setTimeout(() => {
+      setResultRevealVeilVisible(false)
+    }, visibleDuration)
+
+    resultRevealVeilUnmountTimeoutRef.current = window.setTimeout(() => {
+      setResultRevealVeilMounted(false)
+    }, safeDuration)
+  }, [clearResultRevealVeilTimers])
+
   const startResultFallbackTimer = useCallback(() => {
     clearResultFallbackTimer()
     resultFallbackTimerRef.current = window.setTimeout(() => {
@@ -412,10 +468,11 @@ export function FunnelOrchestrator() {
 
   const handleResultVideoEnded = useCallback(() => {
     clearResultFallbackTimer()
+    hideResultRevealVeil()
     setResultRevealRequested(false)
     setResultVideoPlaying(false)
     setShowResultBridge(true)
-  }, [clearResultFallbackTimer])
+  }, [clearResultFallbackTimer, hideResultRevealVeil])
 
   useEffect(() => {
     if (stage === "quiz") return
@@ -430,14 +487,29 @@ export function FunnelOrchestrator() {
   }, [stage, stopResultLoop])
 
   useEffect(() => {
-    if (stage === "reading") return
+    if (stage === "reading") {
+      if (showResultBridge) {
+        hideResultRevealVeil()
+        return
+      }
+
+      showResultRevealVeil()
+      return
+    }
 
     clearResultFallbackTimer()
+    hideResultRevealVeil()
     setShowResultBridge(false)
     setResultRevealRequested(false)
     setResultVideoPlaying(false)
     setResultPlayerReadyToReveal(false)
-  }, [clearResultFallbackTimer, stage])
+  }, [
+    clearResultFallbackTimer,
+    hideResultRevealVeil,
+    showResultBridge,
+    showResultRevealVeil,
+    stage,
+  ])
 
   useEffect(() => {
     void preloadQuizPrimaryAudio()
@@ -446,11 +518,17 @@ export function FunnelOrchestrator() {
   useEffect(() => {
     return () => {
       clearResultFallbackTimer()
+      clearResultRevealVeilTimers()
       preparedResultPlayerRef.current?.stop()
       stopQuizAudio()
       stopResultLoop()
     }
-  }, [clearResultFallbackTimer, stopQuizAudio, stopResultLoop])
+  }, [
+    clearResultFallbackTimer,
+    clearResultRevealVeilTimers,
+    stopQuizAudio,
+    stopResultLoop,
+  ])
 
   const handlePatternReadyForReading = useCallback(
     (p: PatternKey) => {
@@ -461,31 +539,37 @@ export function FunnelOrchestrator() {
       setResultRevealRequested(false)
       setResultVideoPlaying(false)
       setShowResultBridge(false)
+      showResultRevealVeil()
       stopQuizAudio()
       preparedResultPlayerRef.current?.prepare(resultVideoUrl)
       trackFunnelEvent("pattern_revealed", { pattern: p })
       go("reading")
     },
-    [go, stopQuizAudio],
+    [go, showResultRevealVeil, stopQuizAudio],
   )
 
   const handleRevealPreparedResult = useCallback(() => {
-    if (!preparedResultPlayerRef.current?.isReady()) return
+    const player = preparedResultPlayerRef.current
+    if (!player?.isReadyToReveal()) return
 
+    player.revealWithSound()
     setResultRevealRequested(true)
     setResultVideoPlaying(false)
     setShowResultBridge(false)
-    startResultLoop()
+    dismissResultRevealVeil()
     startResultFallbackTimer()
-    preparedResultPlayerRef.current.playWithSound()
-  }, [startResultFallbackTimer, startResultLoop])
+    startResultLoop()
+  }, [dismissResultRevealVeil, startResultFallbackTimer, startResultLoop])
 
   const handleResultPlaybackFailed = useCallback(() => {
     clearResultFallbackTimer()
     setResultRevealRequested(false)
     setResultVideoPlaying(false)
-    setResultPlayerReadyToReveal(preparedResultPlayerRef.current?.isReady() ?? false)
-  }, [clearResultFallbackTimer])
+    showResultRevealVeil()
+    setResultPlayerReadyToReveal(
+      preparedResultPlayerRef.current?.isReadyToReveal() ?? false,
+    )
+  }, [clearResultFallbackTimer, showResultRevealVeil])
 
   const showRevealResultButton =
     stage === "reading" &&
@@ -547,6 +631,7 @@ export function FunnelOrchestrator() {
         introVeilEnabled={funnelConfig.resultYoutubeIntroVeilEnabled}
         introVeilDurationMs={funnelConfig.resultYoutubeIntroVeilDurationMs}
         introVeilFadeMs={funnelConfig.resultYoutubeIntroVeilFadeMs}
+        introVeilOpacity={funnelConfig.resultYoutubeIntroVeilOpacity}
         onReadyToReveal={() => {
           setResultPlayerReadyToReveal(true)
         }}
@@ -619,8 +704,31 @@ export function FunnelOrchestrator() {
             setResultPlayerReadyToReveal(false)
             setResultRevealRequested(false)
             setResultVideoPlaying(false)
+            hideResultRevealVeil()
             setShowResultBridge(false)
             go("vsl")
+          }}
+        />
+      )}
+      {stage === "reading" && resultRevealVeilMounted && !showResultBridge && (
+        <div
+          aria-hidden="true"
+          className={`pointer-events-none absolute inset-0 z-[60] transition-opacity ease-out ${
+            resultRevealVeilVisible ? "opacity-100" : "opacity-0"
+          }`}
+          style={{
+            opacity: resultRevealVeilVisible
+              ? Math.min(
+                  Math.max(funnelConfig.resultYoutubeIntroVeilOpacity, 0),
+                  1,
+                )
+              : 0,
+            transitionDuration: `${Math.max(
+              funnelConfig.resultYoutubeIntroVeilFadeMs,
+              0,
+            )}ms`,
+            background:
+              "radial-gradient(circle at center, rgba(20,0,45,0.32), rgba(0,0,0,0.62)), linear-gradient(to bottom, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.76) 28%, rgba(0,0,0,0.62) 58%, rgba(0,0,0,0.92) 100%)",
           }}
         />
       )}

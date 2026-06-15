@@ -71,20 +71,21 @@ Los deep links no garantizan autoplay con audio. Las escenas con audio pueden re
 - No se muestra como embed normal, tarjeta, header externo, marco ni bloque con márgenes.
 - Cada video incluye audio integrado.
 - EXP 5 monta/prepara el player YouTube correspondiente al patrón.
-- Mientras el player se prepara, no muestra botón falso, thumbnail, poster ni fallback.
+- El player empieza a reproducirse automáticamente muted detrás de un overlay oscuro.
+- Mientras el muted pre-roll no llega a `PLAYING`, no muestra botón falso, thumbnail, poster ni fallback.
 - El único botón previo al video es `REVELAR MENSAJE DE VEYRA`, ubicado sobre el player.
-- Ese botón solo aparece cuando el player preparado está ready/cued y listo para recibir `playVideo()`.
-- Ese botón ejecuta `playWithSound()` directamente como gesto real de usuario.
+- Ese botón solo aparece cuando YouTube ya llegó a `PLAYING` durante el muted pre-roll.
+- Ese botón ejecuta `seekTo(0, true)`, `unMute()`, `setVolume(100)` y `playVideo()` directamente como gesto real de usuario.
 - Si YouTube falla después del click, reaparece el mismo botón `REVELAR MENSAJE DE VEYRA` para reintentar sobre el mismo player preparado.
 - No existe botón `REPRODUCIR MENSAJE DE VEYRA` en EXP 5.
 - Usa el prepared YouTube result player en modo no-zoom por defecto, con controles ocultos, velo inicial suave y overlay transparente para bloquear interacción.
 - Usa un prepared YouTube result player persistente montado desde el orquestador.
-- Cuando EXP 4 detecta el patrón dominante, el mismo player persistente se prepara con el Short correcto mediante preconnect/dns-prefetch, YouTube IFrame API y `cueVideoById`, sin autoplay ni audio.
-- Al presionar `REVELAR MENSAJE DE VEYRA`, no se crea otro iframe: se revela ese mismo player preparado y se llama `unMute()`, `setVolume(100)` y `playVideo()`.
+- Cuando EXP 4 detecta el patrón dominante, EXP 5 prepara el Short correcto mediante preconnect/dns-prefetch, YouTube IFrame API, mute, volumen `0` y `playVideo()` muted.
+- Al presionar `REVELAR MENSAJE DE VEYRA`, no se crea otro iframe: se revela ese mismo player ya corriendo muted y se reinicia desde `0` con sonido.
 - Usa ajustes visuales separados de la VSL: `fitMode="native"`, escala `1`, offsets `0`, máscaras de borde `0` y logo mask central apagada por defecto.
 - El ocultamiento visual se hace con gradientes/overlays/masks suaves encima del video, no con zoom agresivo ni crop para sacar elementos del cuadro.
 - EXP 5 no usa poster/thumbnail por defecto; no espera imágenes externas antes de mostrar el video.
-- Se usa un intro veil visual propio por 3 segundos; no muestra texto, no usa imagen y no bloquea el play. El fade default es 900ms.
+- Se usa un overlay/intro veil oscuro: antes del click cubre el muted pre-roll; después del click permanece 3 segundos y desvanece con fade default de 900ms. No muestra texto, no usa imagen y no bloquea el play.
 - Bottom UI shield y top UI shield siguen configurables, pero están apagados por defecto para esta prueba.
 - Poster shield sigue configurable, pero está apagado por defecto y solo se activa con `NEXT_PUBLIC_RESULT_YOUTUBE_POSTER_SHIELD_ENABLED=true`.
 - El iframe de YouTube usa `pointer-events: none`.
@@ -99,10 +100,11 @@ Los deep links no garantizan autoplay con audio. Las escenas con audio pueden re
 - El loop se mantiene activo durante EXP 5.
 - El loop se detiene y resetea cuando la usuaria presiona `ABRIR EL CAMINO HACIA JANNY`.
 - El loop no sigue sonando en VSL.
-- Por deep link no se fuerza autoplay del video ni del loop de resultado; se prepara el player y el botón aparece cuando está ready.
+- Por deep link no se fuerza autoplay con sonido ni el loop de resultado; se inicia muted pre-roll y el botón aparece cuando YouTube llega a `PLAYING` muted.
 - No usa audios separados de resultado.
 - No usa video base común.
-- Al terminar el video muestra bridge por patrón y CTA: `ABRIR EL CAMINO HACIA JANNY`.
+- Al terminar el video con sonido muestra bridge por patrón y CTA: `ABRIR EL CAMINO HACIA JANNY`.
+- Un `ENDED` del muted pre-roll no dispara bridge.
 - Si YouTube no emite `ended`, EXP 5 muestra el bridge por fallback de duración.
 - En el flujo principal ese CTA lleva directo a la VSL full-screen, sin pasar por EXP 6.
 - Los MP4 locales `resp*-veyra-final.mp4` ya no son la fuente principal de EXP 5.
@@ -136,6 +138,7 @@ Variables de ajuste EXP 5:
 - `NEXT_PUBLIC_RESULT_YOUTUBE_INTRO_VEIL_ENABLED` default `true`
 - `NEXT_PUBLIC_RESULT_YOUTUBE_INTRO_VEIL_DURATION_MS` default `3000`
 - `NEXT_PUBLIC_RESULT_YOUTUBE_INTRO_VEIL_FADE_MS` default `900`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_INTRO_VEIL_OPACITY` default `0.88`
 - `NEXT_PUBLIC_RESULT_VIDEO_FALLBACK_DURATION_SECONDS` default `65`
 
 Mapeo:

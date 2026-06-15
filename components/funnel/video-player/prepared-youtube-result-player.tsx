@@ -21,9 +21,12 @@ export type ResultYouTubeFitMode = "cover" | "contain" | "native"
 
 export type PreparedYouTubeResultPlayerHandle = {
   prepare: (videoUrl: string) => void
+  startMutedPreroll: () => void
+  revealWithSound: () => void
   playWithSound: () => void
   stop: () => void
   reset: () => void
+  isReadyToReveal: () => boolean
   isReady: () => boolean
 }
 
@@ -60,15 +63,23 @@ export type PreparedYouTubeResultPlayerProps = {
   introVeilEnabled?: boolean
   introVeilDurationMs?: number
   introVeilFadeMs?: number
-  shouldPlay?: boolean
-  revealRequested?: boolean
+  introVeilOpacity?: number
   onReadyToReveal?: () => void
   onPlaying?: () => void
   onPlaybackFailed?: () => void
   onEnded?: () => void
 }
 
-type PlaybackState = "idle" | "preparing" | "ready" | "playing" | "blocked" | "error" | "ended"
+type PlaybackState =
+  | "idle"
+  | "loading"
+  | "muted-preroll"
+  | "muted-playing"
+  | "ready-to-reveal"
+  | "revealing"
+  | "playing-with-sound"
+  | "ended"
+  | "error"
 
 type YouTubePlayer = {
   cueVideoById?: (videoId: string) => void
@@ -76,6 +87,7 @@ type YouTubePlayer = {
   getIframe?: () => HTMLIFrameElement
   mute?: () => void
   playVideo?: () => void
+  seekTo?: (seconds: number, allowSeekAhead: boolean) => void
   stopVideo?: () => void
   unMute?: () => void
   setVolume?: (volume: number) => void
@@ -86,7 +98,8 @@ type YouTubeEvent = {
   target: YouTubePlayer
 }
 
-const PLAYBACK_CHECK_DELAY_MS = 4000
+const REVEAL_PLAYBACK_CHECK_MS = 4000
+const MUTED_PREROLL_RETRY_MS = 500
 const YOUTUBE_MAXRES_POSTER = "maxresdefault"
 const YOUTUBE_HQ_POSTER = "hqdefault"
 
@@ -135,8 +148,7 @@ export const PreparedYouTubeResultPlayer = forwardRef<
     introVeilEnabled = true,
     introVeilDurationMs = 3000,
     introVeilFadeMs = 900,
-    shouldPlay = false,
-    revealRequested = false,
+    introVeilOpacity = 0.88,
     onReadyToReveal,
     onPlaying,
     onPlaybackFailed,
@@ -148,15 +160,18 @@ export const PreparedYouTubeResultPlayer = forwardRef<
   const playerRef = useRef<YouTubePlayer | null>(null)
   const preparedVideoIdRef = useRef<string | null>(null)
   const pendingVideoIdRef = useRef<string | null>(null)
-  const pendingPlayRef = useRef(false)
-  const revealAttemptedRef = useRef(false)
+  const revealRequestedRef = useRef(false)
+  const hasRevealedWithSoundRef = useRef(false)
+  const hasSoundPlaybackConfirmedRef = useRef(false)
   const readyToRevealRef = useRef(false)
+  const mutedPrerollRetryCountRef = useRef(0)
   const bufferingRef = useRef(false)
   const playbackCheckTimeoutRef = useRef<number | null>(null)
+  const mutedPrerollRetryTimeoutRef = useRef<number | null>(null)
   const pausedRecoveryTimeoutRef = useRef<number | null>(null)
   const introVeilFadeTimeoutRef = useRef<number | null>(null)
   const introVeilUnmountTimeoutRef = useRef<number | null>(null)
-  const isPlayingRef = useRef(false)
+  const isSoundPlayingRef = useRef(false)
   const internalStopRef = useRef(false)
   const [playbackState, setPlaybackState] = useState<PlaybackState>("idle")
   const [posterQuality, setPosterQuality] = useState(YOUTUBE_MAXRES_POSTER)
@@ -171,6 +186,12 @@ export const PreparedYouTubeResultPlayer = forwardRef<
     if (playbackCheckTimeoutRef.current === null) return
     window.clearTimeout(playbackCheckTimeoutRef.current)
     playbackCheckTimeoutRef.current = null
+  }, [])
+
+  const clearMutedPrerollRetry = useCallback(() => {
+    if (mutedPrerollRetryTimeoutRef.current === null) return
+    window.clearTimeout(mutedPrerollRetryTimeoutRef.current)
+    mutedPrerollRetryTimeoutRef.current = null
   }, [])
 
   const clearPausedRecovery = useCallback(() => {
@@ -206,31 +227,12 @@ export const PreparedYouTubeResultPlayer = forwardRef<
   }, [])
 
   const markReadyToReveal = useCallback(() => {
+    if (readyToRevealRef.current) return
+
     readyToRevealRef.current = true
-    setPlaybackState("ready")
+    setPlaybackState("ready-to-reveal")
     onReadyToReveal?.()
   }, [onReadyToReveal])
-
-  const reportPlaybackFailed = useCallback(() => {
-    pendingPlayRef.current = false
-    isPlayingRef.current = false
-    bufferingRef.current = false
-    setPlaybackState("blocked")
-    onPlaybackFailed?.()
-  }, [onPlaybackFailed])
-
-  const schedulePlaybackCheck = useCallback(() => {
-    clearPlaybackCheck()
-    playbackCheckTimeoutRef.current = window.setTimeout(() => {
-      if (isPlayingRef.current) return
-      if (bufferingRef.current) {
-        schedulePlaybackCheck()
-        return
-      }
-
-      reportPlaybackFailed()
-    }, PLAYBACK_CHECK_DELAY_MS)
-  }, [clearPlaybackCheck, reportPlaybackFailed])
 
   const showIntroVeil = useCallback(() => {
     clearIntroVeilTimers()
@@ -263,48 +265,134 @@ export const PreparedYouTubeResultPlayer = forwardRef<
     visible,
   ])
 
-  const cuePreparedVideo = useCallback(
+  const reportPlaybackFailed = useCallback(() => {
+    revealRequestedRef.current = false
+    hasRevealedWithSoundRef.current = false
+    hasSoundPlaybackConfirmedRef.current = false
+    isSoundPlayingRef.current = false
+    bufferingRef.current = false
+    setPlaybackState("ready-to-reveal")
+    onPlaybackFailed?.()
+  }, [onPlaybackFailed])
+
+  const scheduleRevealPlaybackCheck = useCallback(() => {
+    clearPlaybackCheck()
+    playbackCheckTimeoutRef.current = window.setTimeout(() => {
+      if (isSoundPlayingRef.current) return
+      if (bufferingRef.current) {
+        scheduleRevealPlaybackCheck()
+        return
+      }
+
+      reportPlaybackFailed()
+    }, REVEAL_PLAYBACK_CHECK_MS)
+  }, [clearPlaybackCheck, reportPlaybackFailed])
+
+  const startMutedPreroll = useCallback(() => {
+    const player = playerRef.current
+    if (!player || !preparedVideoIdRef.current || !armed) return
+
+    clearPlaybackCheck()
+    clearPausedRecovery()
+    clearMutedPrerollRetry()
+    revealRequestedRef.current = false
+    hasRevealedWithSoundRef.current = false
+    hasSoundPlaybackConfirmedRef.current = false
+    isSoundPlayingRef.current = false
+    bufferingRef.current = false
+    internalStopRef.current = false
+    setPlaybackState("muted-preroll")
+
+    try {
+      player.mute?.()
+      player.setVolume?.(0)
+      player.playVideo?.()
+    } catch {
+      setPlaybackState("error")
+      return
+    }
+
+    if (mutedPrerollRetryCountRef.current > 0) return
+
+    mutedPrerollRetryTimeoutRef.current = window.setTimeout(() => {
+      mutedPrerollRetryTimeoutRef.current = null
+      if (readyToRevealRef.current || revealRequestedRef.current) return
+
+      mutedPrerollRetryCountRef.current += 1
+      try {
+        player.mute?.()
+        player.setVolume?.(0)
+        player.playVideo?.()
+      } catch {
+        setPlaybackState("error")
+      }
+    }, MUTED_PREROLL_RETRY_MS)
+  }, [
+    armed,
+    clearMutedPrerollRetry,
+    clearPausedRecovery,
+    clearPlaybackCheck,
+  ])
+
+  const loadVideoForMutedPreroll = useCallback(
     (targetVideoId: string) => {
       const player = playerRef.current
       if (!player) return false
 
+      readyToRevealRef.current = false
+      mutedPrerollRetryCountRef.current = 0
+      preparedVideoIdRef.current = targetVideoId
+      pendingVideoIdRef.current = null
+      internalStopRef.current = false
+
       try {
         player.mute?.()
+        player.setVolume?.(0)
         player.cueVideoById?.(targetVideoId)
-        preparedVideoIdRef.current = targetVideoId
-        pendingVideoIdRef.current = null
-        internalStopRef.current = false
-        markReadyToReveal()
-        return true
       } catch {
-        readyToRevealRef.current = false
         setPlaybackState("error")
         return false
       }
+
+      startMutedPreroll()
+      return true
     },
-    [markReadyToReveal],
+    [startMutedPreroll],
   )
 
-  const playWithSound = useCallback((showVeil = true) => {
-    revealAttemptedRef.current = true
-    pendingPlayRef.current = true
-    bufferingRef.current = false
-    setPlaybackState("preparing")
-
+  const revealWithSound = useCallback(() => {
     const player = playerRef.current
-    if (!player) return
+    if (!player || !readyToRevealRef.current) return
+
+    clearPlaybackCheck()
+    clearPausedRecovery()
+    clearMutedPrerollRetry()
+    revealRequestedRef.current = true
+    hasRevealedWithSoundRef.current = true
+    hasSoundPlaybackConfirmedRef.current = false
+    isSoundPlayingRef.current = false
+    bufferingRef.current = false
+    internalStopRef.current = false
+    setPlaybackState("revealing")
+    showIntroVeil()
 
     try {
-      internalStopRef.current = false
-      if (showVeil) showIntroVeil()
+      player.seekTo?.(0, true)
       player.unMute?.()
       player.setVolume?.(100)
       player.playVideo?.()
-      schedulePlaybackCheck()
+      scheduleRevealPlaybackCheck()
     } catch {
       reportPlaybackFailed()
     }
-  }, [reportPlaybackFailed, schedulePlaybackCheck, showIntroVeil])
+  }, [
+    clearMutedPrerollRetry,
+    clearPausedRecovery,
+    clearPlaybackCheck,
+    reportPlaybackFailed,
+    scheduleRevealPlaybackCheck,
+    showIntroVeil,
+  ])
 
   const prepare = useCallback(
     (nextVideoUrl: string) => {
@@ -314,21 +402,28 @@ export const PreparedYouTubeResultPlayer = forwardRef<
       ensureYouTubePreconnects()
 
       if (preparedVideoIdRef.current === nextVideoId && playerRef.current) {
-        markReadyToReveal()
+        if (!readyToRevealRef.current && !hasRevealedWithSoundRef.current) {
+          startMutedPreroll()
+        }
         return
       }
 
       pendingVideoIdRef.current = nextVideoId
       readyToRevealRef.current = false
+      revealRequestedRef.current = false
+      hasRevealedWithSoundRef.current = false
+      hasSoundPlaybackConfirmedRef.current = false
+      isSoundPlayingRef.current = false
       bufferingRef.current = false
-      setPlaybackState("preparing")
+      mutedPrerollRetryCountRef.current = 0
+      setPlaybackState("loading")
 
       void preloadYouTubeIframeApi()
         .then((YT) => {
           if (!playerHostRef.current) return
 
           if (playerRef.current) {
-            cuePreparedVideo(nextVideoId)
+            loadVideoForMutedPreroll(nextVideoId)
             return
           }
 
@@ -354,36 +449,53 @@ export const PreparedYouTubeResultPlayer = forwardRef<
               onReady: (event: { target: YouTubePlayer }) => {
                 applyIframeStyles(event.target)
                 playerRef.current = event.target
-                cuePreparedVideo(nextVideoId)
-
-                if (pendingPlayRef.current) {
-                  playWithSound()
-                }
+                preparedVideoIdRef.current = nextVideoId
+                pendingVideoIdRef.current = null
+                startMutedPreroll()
               },
               onStateChange: (event: YouTubeEvent) => {
                 const state = event.data
                 applyIframeStyles(event.target)
 
                 if (state === YT.PlayerState.PLAYING) {
-                  pendingPlayRef.current = false
-                  isPlayingRef.current = true
+                  clearMutedPrerollRetry()
                   bufferingRef.current = false
-                  clearPlaybackCheck()
-                  clearPausedRecovery()
-                  setPlaybackState("playing")
-                  onPlaying?.()
+
+                  if (revealRequestedRef.current) {
+                    isSoundPlayingRef.current = true
+                    hasSoundPlaybackConfirmedRef.current = true
+                    clearPlaybackCheck()
+                    clearPausedRecovery()
+                    setPlaybackState("playing-with-sound")
+                    onPlaying?.()
+                    return
+                  }
+
+                  setPlaybackState("muted-playing")
+                  markReadyToReveal()
                   return
                 }
 
                 if (state === YT.PlayerState.ENDED) {
-                  pendingPlayRef.current = false
-                  isPlayingRef.current = false
-                  bufferingRef.current = false
-                  internalStopRef.current = true
                   clearPlaybackCheck()
                   clearPausedRecovery()
-                  setPlaybackState("ended")
-                  onEnded?.()
+                  bufferingRef.current = false
+
+                  if (hasSoundPlaybackConfirmedRef.current) {
+                    revealRequestedRef.current = false
+                    isSoundPlayingRef.current = false
+                    internalStopRef.current = true
+                    setPlaybackState("ended")
+                    onEnded?.()
+                    return
+                  }
+
+                  try {
+                    event.target.seekTo?.(0, true)
+                  } catch {
+                    // Best-effort only; a muted pre-roll end must not advance the funnel.
+                  }
+                  startMutedPreroll()
                   return
                 }
 
@@ -394,31 +506,42 @@ export const PreparedYouTubeResultPlayer = forwardRef<
 
                 if (state === YT.PlayerState.CUED) {
                   bufferingRef.current = false
-                  if (!isPlayingRef.current && preparedVideoIdRef.current) {
-                    markReadyToReveal()
+                  if (!readyToRevealRef.current && !revealRequestedRef.current) {
+                    startMutedPreroll()
                   }
                   return
                 }
 
                 if (state === YT.PlayerState.PAUSED) {
-                  isPlayingRef.current = false
                   bufferingRef.current = false
-                  if (visible && !internalStopRef.current) {
-                    clearPausedRecovery()
-                    pausedRecoveryTimeoutRef.current = window.setTimeout(() => {
-                      playWithSound(false)
-                    }, 250)
-                  }
+                  if (!visible || internalStopRef.current) return
+
+                  clearPausedRecovery()
+                  pausedRecoveryTimeoutRef.current = window.setTimeout(() => {
+                    if (revealRequestedRef.current) {
+                      try {
+                        playerRef.current?.playVideo?.()
+                      } catch {
+                        reportPlaybackFailed()
+                      }
+                      return
+                    }
+
+                    if (!hasRevealedWithSoundRef.current) {
+                      startMutedPreroll()
+                    }
+                  }, 250)
                 }
               },
               onError: () => {
-                pendingPlayRef.current = false
-                isPlayingRef.current = false
+                revealRequestedRef.current = false
+                isSoundPlayingRef.current = false
                 bufferingRef.current = false
                 clearPlaybackCheck()
+                clearMutedPrerollRetry()
                 clearPausedRecovery()
                 setPlaybackState("error")
-                if (revealAttemptedRef.current) {
+                if (hasRevealedWithSoundRef.current) {
                   reportPlaybackFailed()
                 }
               },
@@ -426,30 +549,35 @@ export const PreparedYouTubeResultPlayer = forwardRef<
           })
         })
         .catch(() => {
-          pendingPlayRef.current = false
+          revealRequestedRef.current = false
           setPlaybackState("error")
         })
     },
     [
       applyIframeStyles,
+      clearMutedPrerollRetry,
       clearPausedRecovery,
       clearPlaybackCheck,
-      cuePreparedVideo,
+      loadVideoForMutedPreroll,
       markReadyToReveal,
       onEnded,
       onPlaying,
-      playWithSound,
       reportPlaybackFailed,
+      startMutedPreroll,
       visible,
     ],
   )
 
   const stop = useCallback(() => {
-    pendingPlayRef.current = false
-    isPlayingRef.current = false
+    revealRequestedRef.current = false
+    hasRevealedWithSoundRef.current = false
+    hasSoundPlaybackConfirmedRef.current = false
+    readyToRevealRef.current = false
+    isSoundPlayingRef.current = false
     bufferingRef.current = false
     internalStopRef.current = true
     clearPlaybackCheck()
+    clearMutedPrerollRetry()
     clearPausedRecovery()
 
     try {
@@ -459,16 +587,19 @@ export const PreparedYouTubeResultPlayer = forwardRef<
       // Best-effort cleanup for the cross-origin iframe player.
     }
 
-    setPlaybackState(preparedVideoIdRef.current ? "ready" : "idle")
-  }, [clearPausedRecovery, clearPlaybackCheck])
+    setPlaybackState(preparedVideoIdRef.current ? "loading" : "idle")
+  }, [clearMutedPrerollRetry, clearPausedRecovery, clearPlaybackCheck])
 
   const reset = useCallback(() => {
     stop()
     pendingVideoIdRef.current = null
     preparedVideoIdRef.current = null
     readyToRevealRef.current = false
-    revealAttemptedRef.current = false
+    revealRequestedRef.current = false
+    hasRevealedWithSoundRef.current = false
+    hasSoundPlaybackConfirmedRef.current = false
     bufferingRef.current = false
+    mutedPrerollRetryCountRef.current = 0
     clearIntroVeilTimers()
     setIntroVeilVisible(false)
     setIntroVeilMounted(false)
@@ -479,12 +610,15 @@ export const PreparedYouTubeResultPlayer = forwardRef<
     ref,
     () => ({
       prepare,
-      playWithSound,
+      startMutedPreroll,
+      revealWithSound,
+      playWithSound: revealWithSound,
       stop,
       reset,
+      isReadyToReveal: () => readyToRevealRef.current,
       isReady: () => readyToRevealRef.current,
     }),
-    [prepare, playWithSound, reset, stop],
+    [prepare, reset, revealWithSound, startMutedPreroll, stop],
   )
 
   useEffect(() => {
@@ -493,17 +627,12 @@ export const PreparedYouTubeResultPlayer = forwardRef<
   }, [active, prepare, videoUrl])
 
   useEffect(() => {
-    if (
-      !visible ||
-      !active ||
-      !armed ||
-      !shouldPlay ||
-      revealRequested === false
-    ) {
-      return
-    }
-    playWithSound()
-  }, [active, armed, playWithSound, revealRequested, shouldPlay, visible])
+    if (!active || !armed || !videoId) return
+    if (!playerRef.current || preparedVideoIdRef.current !== videoId) return
+    if (readyToRevealRef.current || hasRevealedWithSoundRef.current) return
+
+    startMutedPreroll()
+  }, [active, armed, startMutedPreroll, videoId])
 
   useEffect(() => {
     if (visible) return
@@ -519,6 +648,7 @@ export const PreparedYouTubeResultPlayer = forwardRef<
   useEffect(
     () => () => {
       clearPlaybackCheck()
+      clearMutedPrerollRetry()
       clearPausedRecovery()
       clearIntroVeilTimers()
       try {
@@ -528,15 +658,21 @@ export const PreparedYouTubeResultPlayer = forwardRef<
       }
       playerRef.current = null
     },
-    [clearIntroVeilTimers, clearPausedRecovery, clearPlaybackCheck],
+    [
+      clearIntroVeilTimers,
+      clearMutedPrerollRetry,
+      clearPausedRecovery,
+      clearPlaybackCheck,
+    ],
   )
 
   const posterUrl =
     posterShieldEnabled && videoId
       ? getYouTubePosterUrl(videoId, posterQuality)
       : null
-  const showPosterShield =
-    Boolean(posterShieldEnabled && posterUrl && visible && playbackState !== "playing")
+  const showPosterShield = Boolean(
+    posterShieldEnabled && posterUrl && visible && playbackState !== "playing-with-sound",
+  )
   const safeIframeScale = Number.isFinite(iframeScale) ? iframeScale : 1
   const safeIframeOffsetX = Number.isFinite(iframeOffsetX) ? iframeOffsetX : 0
   const safeIframeOffsetY = Number.isFinite(iframeOffsetY) ? iframeOffsetY : 0
@@ -547,6 +683,7 @@ export const PreparedYouTubeResultPlayer = forwardRef<
   const safeLogoMaskBlur = Math.max(logoMaskBlur, 0)
   const safeBottomUiShieldOpacity = clamp(bottomUiShieldOpacity, 0, 1)
   const safeTopUiShieldOpacity = clamp(topUiShieldOpacity, 0, 1)
+  const safeIntroVeilOpacity = clamp(introVeilOpacity, 0, 1)
   const logoMaskStyle =
     logoMaskMode === "solid"
       ? {
@@ -707,9 +844,10 @@ export const PreparedYouTubeResultPlayer = forwardRef<
               introVeilVisible ? "opacity-100" : "opacity-0",
             )}
             style={{
+              opacity: introVeilVisible ? safeIntroVeilOpacity : 0,
               transitionDuration: `${Math.max(introVeilFadeMs, 0)}ms`,
               background:
-                "linear-gradient(to bottom, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.18) 24%, rgba(0,0,0,0.06) 58%, rgba(0,0,0,0.72) 100%)",
+                "radial-gradient(circle at center, rgba(20,0,45,0.32), rgba(0,0,0,0.62)), linear-gradient(to bottom, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.76) 28%, rgba(0,0,0,0.62) 58%, rgba(0,0,0,0.92) 100%)",
             }}
           />
         ) : null}
