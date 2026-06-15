@@ -75,10 +75,11 @@ Los deep links no garantizan autoplay con audio. Las escenas con audio pueden re
 - Cada video incluye audio integrado.
 - EXP 5 monta/prepara el player YouTube correspondiente al patrón.
 - El player empieza a reproducirse automáticamente muted detrás de un overlay oscuro.
-- Mientras el muted pre-roll no llega a `PLAYING`, no muestra botón falso, thumbnail, poster ni fallback.
-- El único botón previo al video es `REVELAR MENSAJE DE VEYRA`, ubicado sobre el player.
-- Ese botón solo aparece cuando YouTube ya llegó a `PLAYING` durante el muted pre-roll.
-- Ese botón ejecuta `seekTo(0, true)`, `unMute()`, `setVolume(100)` y `playVideo()` directamente como gesto real de usuario.
+- El player empieza con muted pre-roll usando `loadVideoById({ videoId, startSeconds: 0 })` y `playVideo()`.
+- Si el muted pre-roll llega a `PLAYING`, aparece el único botón previo al video: `REVELAR MENSAJE DE VEYRA`.
+- Si el muted pre-roll no llega a `PLAYING`, el mismo botón aparece igualmente tras un timeout aprox. de 2800ms para capturar el gesto real.
+- El botón `REVELAR MENSAJE DE VEYRA` está siempre en una capa superior al iframe, al play interno/logo de YouTube, al blocker y al velo oscuro.
+- Ese botón ejecuta `loadVideoById` o `seekTo(0, true)` según el estado, luego `unMute()`, `setVolume(100)` y `playVideo()` directamente como gesto real de usuario.
 - Si YouTube falla después del click, reaparece el mismo botón `REVELAR MENSAJE DE VEYRA` para reintentar sobre el mismo player preparado.
 - No existe botón `REPRODUCIR MENSAJE DE VEYRA` en EXP 5.
 - Usa el prepared YouTube result player en modo no-zoom por defecto, con controles ocultos, velo inicial suave y overlay transparente para bloquear interacción.
@@ -92,6 +93,7 @@ Los deep links no garantizan autoplay con audio. Las escenas con audio pueden re
 - Bottom UI shield y top UI shield siguen configurables, pero están apagados por defecto para esta prueba.
 - Poster shield sigue configurable, pero está apagado por defecto y solo se activa con `NEXT_PUBLIC_RESULT_YOUTUBE_POSTER_SHIELD_ENABLED=true`.
 - El iframe de YouTube usa `pointer-events: none`.
+- El iframe fuerza `allow="autoplay; encrypted-media; picture-in-picture; fullscreen"`.
 - Hay un blocker transparente encima del video para evitar que taps/clicks activen la UI interna de YouTube; fallback y bridge/CTA quedan en capas superiores.
 - `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_MODE` sigue existiendo para diagnóstico, pero el default ahora es `off`.
 - En móvil ocupa toda la pantalla disponible del dispositivo dentro de `100dvh`.
@@ -141,7 +143,7 @@ Variables de ajuste EXP 5:
 - `NEXT_PUBLIC_RESULT_YOUTUBE_INTRO_VEIL_ENABLED` default `true`
 - `NEXT_PUBLIC_RESULT_YOUTUBE_INTRO_VEIL_DURATION_MS` default `3000`
 - `NEXT_PUBLIC_RESULT_YOUTUBE_INTRO_VEIL_FADE_MS` default `900`
-- `NEXT_PUBLIC_RESULT_YOUTUBE_INTRO_VEIL_OPACITY` default `0.88`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_INTRO_VEIL_OPACITY` default `0.92`
 - `NEXT_PUBLIC_RESULT_VIDEO_FALLBACK_DURATION_SECONDS` default `65`
 
 Mapeo:

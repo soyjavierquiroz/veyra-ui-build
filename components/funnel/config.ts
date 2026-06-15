@@ -237,7 +237,7 @@ export const funnelConfig: FunnelConfig = {
   ),
   resultYoutubeIntroVeilOpacity: readNumber(
     process.env.NEXT_PUBLIC_RESULT_YOUTUBE_INTRO_VEIL_OPACITY,
-    0.88,
+    0.92,
   ),
   resultVideoFallbackDurationSeconds: readNumber(
     process.env.NEXT_PUBLIC_RESULT_VIDEO_FALLBACK_DURATION_SECONDS,

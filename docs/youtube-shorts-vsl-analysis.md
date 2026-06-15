@@ -277,13 +277,13 @@ Mapeo activo:
 
 EXP 4 ya no usa `REVELAR MENSAJE DE VEYRA` como botón de cambio de escena. Cuando detecta el patrón dominante, el orquestador prepara el Short correspondiente y entra automáticamente a EXP 5.
 
-EXP 5 monta el prepared player de YouTube del patrón y arranca un pre-roll real muted: `mute()`, `setVolume(0)` y `playVideo()`. Mientras YouTube no llega a `PLAYING` en muted pre-roll, no muestra botón falso, thumbnail, poster, pantalla de carga larga ni fallback. Cuando el player recibe `YT.PlayerState.PLAYING` muted, aparece el único botón previo al video: `REVELAR MENSAJE DE VEYRA`, superpuesto sobre el player y sobre el overlay oscuro.
+EXP 5 monta el prepared player de YouTube del patrón y arranca un pre-roll real muted: `loadVideoById({ videoId, startSeconds: 0 })`, `mute()`, `setVolume(0)` y `playVideo()`. Si el player recibe `YT.PlayerState.PLAYING` muted, aparece el único botón previo al video: `REVELAR MENSAJE DE VEYRA`, superpuesto sobre el player y sobre el overlay oscuro. Si YouTube no llega a `PLAYING` muted en aprox. 2800ms, el mismo botón aparece igualmente para convertir el click en el gesto real de reproducción.
 
-Ese botón es el gesto real de usuario: llama `seekTo(0, true)`, `unMute()`, `setVolume(100)` y `playVideo()` directamente sobre el mismo player ya corriendo muted. Luego oculta el botón, inicia el loop `/audio/loop-result.mp3` y mantiene el overlay oscuro durante 3000ms. El fade default es 900ms, la opacidad default es `0.88`, no muestra texto, no usa imagen externa y tiene `pointer-events: none`.
+Ese botón es el gesto real de usuario: según el estado del iframe llama `loadVideoById({ videoId, startSeconds: 0 })` o `seekTo(0, true)`, luego `unMute()`, `setVolume(100)` y `playVideo()` directamente sobre el mismo player. Luego oculta el botón, inicia el loop `/audio/loop-result.mp3` y mantiene el overlay oscuro durante 3000ms. El fade default es 900ms, la opacidad default es `0.92`, no muestra texto, no usa imagen externa y tiene `pointer-events: none`.
 
 Si YouTube falla después del click o no llega `PLAYING` después de al menos 4000ms, EXP 5 no muestra otro botón distinto. Reaparece el mismo botón `REVELAR MENSAJE DE VEYRA` para reintentar sobre el mismo player. No existe fallback `REPRODUCIR MENSAJE DE VEYRA` en EXP 5.
 
-Los deep links como `/?scene=exp5-reading&pattern=abandono` entran a EXP 5, arrancan muted pre-roll, muestran `REVELAR MENSAJE DE VEYRA` solo cuando YouTube ya está `PLAYING` muted y reproducen con sonido únicamente tras ese click. El CTA final sigue siendo `ABRIR EL CAMINO HACIA JANNY`, y el loop `/audio/loop-result.mp3` se detiene antes de entrar a la VSL.
+Los deep links como `/?scene=exp5-reading&pattern=abandono` entran a EXP 5, arrancan muted pre-roll, muestran `REVELAR MENSAJE DE VEYRA` cuando YouTube ya está `PLAYING` muted o, si autoplay muted no confirma, tras el timeout manual. El CTA final sigue siendo `ABRIR EL CAMINO HACIA JANNY`, y el loop `/audio/loop-result.mp3` se detiene antes de entrar a la VSL.
 
 El bridge solo acepta `ENDED` después de una reproducción con sonido confirmada. Si el muted pre-roll termina antes del click, no avanza el funnel: se reinicia o mantiene el pre-roll muted y el click siempre hace `seekTo(0, true)`.
 
@@ -296,8 +296,8 @@ Comportamiento actual:
 - `NEXT_PUBLIC_RESULT_YOUTUBE_POSTER_SHIELD_ENABLED` default `false`; no se renderiza thumbnail ni se genera URL de poster salvo que se active explícitamente con `true`.
 - No hay pantalla de carga ni texto `Preparando mensaje...`.
 - No existe fallback `REPRODUCIR MENSAJE DE VEYRA`; si falla la reproducción con sonido, reaparece `REVELAR MENSAJE DE VEYRA`.
-- Deep links de EXP 5 intentan autoplay muted, no autoplay con sonido; esperan `PLAYING` muted y click real.
-- El intro veil es una capa propia, sin imagen, `pointer-events: none`, con gradiente oscuro. Dura aprox. 3000ms, empieza a desvanecer a los 2100ms con fade de 900ms y usa opacidad default `0.88`.
+- Deep links de EXP 5 intentan autoplay muted, no autoplay con sonido; si no llega `PLAYING` muted, muestran el botón tras timeout.
+- El intro veil es una capa propia, sin imagen, `pointer-events: none`, con gradiente oscuro. Dura aprox. 3000ms, empieza a desvanecer a los 2100ms con fade de 900ms y usa opacidad default `0.92`.
 - Bottom UI shield y top UI shield quedan apagados por defecto. Si se necesita volver a suavizar UI persistente, se activan por env.
 - No cambia el framing: `fitMode="native"`, `iframeScale=1`, offsets `0`, sin crop vertical tipo Presto.
 
@@ -337,11 +337,11 @@ Variables de ajuste específicas de EXP 5:
 
 El player soporta offsets controlados y aplica el iframe con `position:absolute`, `inset:0`, `width/height/minWidth/minHeight:100%`. En el modo no-zoom de EXP 5 no se aplica transform cuando `iframeScale=1` y offsets `0`; el iframe ocupa el shell móvil sin wrapper 9:16 adicional ni crop agresivo.
 
-Cuando EXP 4 detecta el patrón dominante, el orquestador prepara solo el Short correspondiente en el mismo player persistente que luego se revela. La preparación agrega `preconnect`/`dns-prefetch`, carga la YouTube IFrame API de forma idempotente y arranca `playVideo()` muted con volumen `0`. El click `REVELAR MENSAJE DE VEYRA` es el gesto que reinicia desde `0` y activa sonido en EXP 5.
+Cuando EXP 4 detecta el patrón dominante, el orquestador prepara solo el Short correspondiente en el mismo player persistente que luego se revela. La preparación agrega `preconnect`/`dns-prefetch`, carga la YouTube IFrame API de forma idempotente, fuerza `allow="autoplay; encrypted-media; picture-in-picture; fullscreen"` en el iframe y arranca `loadVideoById` + `playVideo()` muted con volumen `0`. El click `REVELAR MENSAJE DE VEYRA` es el gesto que reinicia desde `0` y activa sonido en EXP 5.
 
 ## Prepared player y logo mask en EXP 5
 
-La estrategia de precarga de EXP 5 se cambió de un prewarm oculto suelto a un prepared player persistente montado por `FunnelOrchestrator`. Cuando EXP 4 detecta el patrón dominante, el player real de resultado ya montado carga el video, mutea, pone volumen `0` y ejecuta `playVideo()` para calentar el iframe con playback real. Al click `REVELAR MENSAJE DE VEYRA`, ese mismo player ejecuta `seekTo(0, true)`, `unMute()`, `setVolume(100)` y `playVideo()`, evitando crear un iframe nuevo al entrar a EXP 5.
+La estrategia de precarga de EXP 5 se cambió de un prewarm oculto suelto a un prepared player persistente montado por `FunnelOrchestrator`. Cuando EXP 4 detecta el patrón dominante, el player real de resultado ya montado carga el video con `loadVideoById`, mutea, pone volumen `0` y ejecuta `playVideo()` para calentar el iframe con playback real. Al click `REVELAR MENSAJE DE VEYRA`, ese mismo player ejecuta `loadVideoById` o `seekTo(0, true)` según el estado, luego `unMute()`, `setVolume(100)` y `playVideo()`, evitando crear un iframe nuevo al entrar a EXP 5.
 
 EXP 5 ya no monta `YouTubeShortsVslPlayer`; ahora funciona como capa de overlays, bridge y CTA sobre `PreparedYouTubeResultPlayer`. Esto evita doble iframe, doble audio y pérdida de preparación entre EXP 4 y EXP 5. El helper `prewarmYouTubeShort` queda limitado a preconnect/dns-prefetch/carga de API.
 
@@ -414,7 +414,7 @@ El ocultamiento principal durante el arranque ahora se maneja con un intro veil 
 - `NEXT_PUBLIC_RESULT_YOUTUBE_INTRO_VEIL_ENABLED=true`
 - `NEXT_PUBLIC_RESULT_YOUTUBE_INTRO_VEIL_DURATION_MS=3000`
 - `NEXT_PUBLIC_RESULT_YOUTUBE_INTRO_VEIL_FADE_MS=900`
-- `NEXT_PUBLIC_RESULT_YOUTUBE_INTRO_VEIL_OPACITY=0.88`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_INTRO_VEIL_OPACITY=0.92`
 
 Bottom/top shields quedan disponibles, pero apagados por defecto:
 
@@ -430,3 +430,11 @@ Poster shield queda disponible solo como opt-in:
 - `NEXT_PUBLIC_RESULT_YOUTUBE_POSTER_SHIELD_ENABLED=false`
 
 El iframe queda con `pointer-events: none` y el player mantiene un blocker transparente por encima. El botón único `REVELAR MENSAJE DE VEYRA` y el bridge/CTA están en capas superiores; si el intento falla, reaparece el mismo botón de revelación. No hay zoom por defecto: `fitMode="native"`, `iframeScale=1`, offsets `0`.
+
+## Fix EXP 5 — robust reveal over YouTube iframe
+
+EXP 5 ya no depende únicamente de `onReady` ni de que muted autoplay confirme `PLAYING`. El prepared player intenta un pre-roll muted real con `loadVideoById`, `mute()`, `setVolume(0)` y `playVideo()`, hace un retry muted a los 800ms, y si no recibe `PLAYING` en aprox. 2800ms marca el player como listo en modo manual para mostrar `REVELAR MENSAJE DE VEYRA`.
+
+El iframe se parchea al estar listo y en cada cambio de estado con `allow="autoplay; encrypted-media; picture-in-picture; fullscreen"`, `allowfullscreen="false"`, dimensiones absolutas al 100% y `pointer-events: none`. El blocker transparente queda sobre el iframe, el velo oscuro cubre la UI interna inicial de YouTube, y el botón propio vive en una capa superior para recibir el click.
+
+`revealWithSound()` ahora revisa el estado del player: si está `UNSTARTED`, `CUED`, `PAUSED`, `ENDED` o sin estado confiable, recarga desde `0` con `loadVideoById`; si ya está reproduciendo/bufferizando, hace `seekTo(0, true)`. Después siempre ejecuta `unMute()`, `setVolume(100)` y `playVideo()`. Si no llega a `PLAYING` con sonido en 4000ms, reaparece el mismo botón de reveal.

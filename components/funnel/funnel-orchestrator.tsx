@@ -730,7 +730,7 @@ export function FunnelOrchestrator() {
               0,
             )}ms`,
             background:
-              "radial-gradient(circle at center, rgba(20,0,45,0.32), rgba(0,0,0,0.62)), linear-gradient(to bottom, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.76) 28%, rgba(0,0,0,0.62) 58%, rgba(0,0,0,0.92) 100%)",
+              "linear-gradient(to bottom, rgba(0,0,0,0.94) 0%, rgba(0,0,0,0.82) 28%, rgba(0,0,0,0.72) 58%, rgba(0,0,0,0.94) 100%)",
           }}
         />
       )}
