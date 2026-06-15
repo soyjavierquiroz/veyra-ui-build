@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import type { PatternKey, Stage } from "./types"
-import { funnelConfig, resultYoutubeShortsByPattern } from "./config"
+import { funnelConfig, resultMp4VideosByPattern } from "./config"
 import { trackFunnelEvent } from "./lib/analytics"
 import { getInitialSceneFromUrl, getPatternFromUrl } from "./lib/deep-link"
 import { Exp1Video } from "./exp1-video"
@@ -18,12 +18,15 @@ import { Exp9Feed } from "./exp9-feed"
 import { Exp10Offer } from "./exp10-offer"
 import { Exp11WhatsappOp, type OpEntry } from "./exp11-whatsapp-op"
 import {
-  PreparedYouTubeResultPlayer,
-  type PreparedYouTubeResultPlayerHandle,
-} from "./video-player/prepared-youtube-result-player"
+  ResultMp4Player,
+  type ResultMp4PlayerHandle,
+} from "./video-player/result-mp4-player"
 
 const QUIZ_LOOP_VOLUME = 0.4
-const RESULT_LOOP_VOLUME = 0.15
+const RESULT_LOOP_VOLUME = 0.18
+const RESULT_LOOP_FADE_IN_MS = 800
+const QUIZ_LOOP_FADE_OUT_MS = 800
+const QUIZ_PRIMARY_FADE_OUT_MS = 600
 
 const QUIZ_PRIMARY_AUDIO_SOURCES = [
   "/audio/quiz-p1-final.mp3",
@@ -44,10 +47,46 @@ const QUIZ_PRIMARY_AUDIO_BY_ANSWERED_QUESTION_INDEX: Partial<
   4: "/audio/quiz-p6-final.mp3",
 }
 
+function fadeAudioElement(
+  audio: HTMLAudioElement,
+  targetVolume: number,
+  durationMs: number,
+  onComplete?: () => void,
+) {
+  const startVolume = audio.volume
+  const startedAt = performance.now()
+  let frameId: number | null = null
+  let cancelled = false
+
+  const step = (now: number) => {
+    if (cancelled) return
+
+    const progress =
+      durationMs <= 0 ? 1 : Math.min((now - startedAt) / durationMs, 1)
+    audio.volume = startVolume + (targetVolume - startVolume) * progress
+
+    if (progress >= 1) {
+      onComplete?.()
+      return
+    }
+
+    frameId = window.requestAnimationFrame(step)
+  }
+
+  frameId = window.requestAnimationFrame(step)
+
+  return () => {
+    cancelled = true
+    if (frameId !== null) {
+      window.cancelAnimationFrame(frameId)
+    }
+  }
+}
+
 export function FunnelOrchestrator() {
   const [stage, setStage] = useState<Stage>("video")
   const [pattern, setPattern] = useState<PatternKey>("A")
-  const [preparedResultVideoUrl, setPreparedResultVideoUrl] = useState<
+  const [preparedResultVideoSrc, setPreparedResultVideoSrc] = useState<
     string | null
   >(null)
   const [resultPlayerReadyToReveal, setResultPlayerReadyToReveal] =
@@ -61,6 +100,9 @@ export function FunnelOrchestrator() {
   const quizLoopAudioRef = useRef<HTMLAudioElement | null>(null)
   const resultLoopAudioRef = useRef<HTMLAudioElement | null>(null)
   const quizPrimaryFallbackAudioRef = useRef<HTMLAudioElement | null>(null)
+  const quizLoopFadeCancelRef = useRef<(() => void) | null>(null)
+  const resultLoopFadeCancelRef = useRef<(() => void) | null>(null)
+  const quizPrimaryStopTimeoutRef = useRef<number | null>(null)
   const resultRevealVeilFadeTimeoutRef = useRef<number | null>(null)
   const resultRevealVeilUnmountTimeoutRef = useRef<number | null>(null)
   const quizAudioContextRef = useRef<AudioContext | null>(null)
@@ -68,8 +110,7 @@ export function FunnelOrchestrator() {
   const quizAudioPreloadPromiseRef = useRef<Promise<void> | null>(null)
   const quizPrimarySourceRef = useRef<AudioBufferSourceNode | null>(null)
   const quizPrimaryGainRef = useRef<GainNode | null>(null)
-  const preparedResultPlayerRef =
-    useRef<PreparedYouTubeResultPlayerHandle | null>(null)
+  const resultPlayerRef = useRef<ResultMp4PlayerHandle | null>(null)
   const resultFallbackTimerRef = useRef<number | null>(null)
   const [resultRevealVeilMounted, setResultRevealVeilMounted] = useState(false)
   const [resultRevealVeilVisible, setResultRevealVeilVisible] = useState(false)
@@ -81,14 +122,13 @@ export function FunnelOrchestrator() {
     // Query deep links are for internal scene review without a visible QA panel.
     if (initialStage === "reading") {
       const initialPattern = getPatternFromUrl() ?? "A"
-      const initialResultUrl = resultYoutubeShortsByPattern[initialPattern]
+      const initialResultSrc = resultMp4VideosByPattern[initialPattern]
       setPattern(initialPattern)
-      setPreparedResultVideoUrl(initialResultUrl)
+      setPreparedResultVideoSrc(initialResultSrc)
       setResultPlayerReadyToReveal(false)
       setResultRevealRequested(false)
       setResultVideoPlaying(false)
       setShowResultBridge(false)
-      preparedResultPlayerRef.current?.prepare(initialResultUrl)
     }
     setStage(initialStage)
   }, [])
@@ -209,6 +249,8 @@ export function FunnelOrchestrator() {
     const audio = quizLoopAudioRef.current
     if (!audio) return
 
+    quizLoopFadeCancelRef.current?.()
+    quizLoopFadeCancelRef.current = null
     audio.volume = QUIZ_LOOP_VOLUME
     audio.loop = true
 
@@ -224,6 +266,8 @@ export function FunnelOrchestrator() {
     const audio = quizLoopAudioRef.current
     if (!audio) return
 
+    quizLoopFadeCancelRef.current?.()
+    quizLoopFadeCancelRef.current = null
     audio.pause()
     audio.currentTime = 0
   }, [])
@@ -234,14 +278,24 @@ export function FunnelOrchestrator() {
 
     try {
       audio.loop = true
-      audio.volume = RESULT_LOOP_VOLUME
+      resultLoopFadeCancelRef.current?.()
+      resultLoopFadeCancelRef.current = null
 
       if (!audio.paused) return
 
       audio.currentTime = 0
+      audio.volume = 0
       void audio.play().catch(() => {
         // Best-effort only: browser autoplay policies must never block the flow.
       })
+      resultLoopFadeCancelRef.current = fadeAudioElement(
+        audio,
+        RESULT_LOOP_VOLUME,
+        RESULT_LOOP_FADE_IN_MS,
+        () => {
+          resultLoopFadeCancelRef.current = null
+        },
+      )
     } catch {
       // Best-effort only: audio failures must never block the flow.
     }
@@ -252,8 +306,11 @@ export function FunnelOrchestrator() {
     if (!audio) return
 
     try {
+      resultLoopFadeCancelRef.current?.()
+      resultLoopFadeCancelRef.current = null
       audio.pause()
       audio.currentTime = 0
+      audio.volume = RESULT_LOOP_VOLUME
     } catch {
       // Best-effort only: audio failures must never block the flow.
     }
@@ -292,6 +349,11 @@ export function FunnelOrchestrator() {
   }, [])
 
   const stopQuizPrimaryAudio = useCallback(() => {
+    if (quizPrimaryStopTimeoutRef.current !== null) {
+      window.clearTimeout(quizPrimaryStopTimeoutRef.current)
+      quizPrimaryStopTimeoutRef.current = null
+    }
+
     try {
       quizPrimarySourceRef.current?.stop()
     } catch {
@@ -401,6 +463,62 @@ export function FunnelOrchestrator() {
     stopQuizPrimaryAudio()
   }, [stopQuizLoop, stopQuizPrimaryAudio])
 
+  const fadeOutQuizAudio = useCallback(() => {
+    const quizLoopAudio = quizLoopAudioRef.current
+
+    if (quizLoopAudio && !quizLoopAudio.paused) {
+      quizLoopFadeCancelRef.current?.()
+      quizLoopFadeCancelRef.current = fadeAudioElement(
+        quizLoopAudio,
+        0,
+        QUIZ_LOOP_FADE_OUT_MS,
+        () => {
+          quizLoopAudio.pause()
+          quizLoopAudio.currentTime = 0
+          quizLoopAudio.volume = QUIZ_LOOP_VOLUME
+          quizLoopFadeCancelRef.current = null
+        },
+      )
+    }
+
+    const fallbackAudio = quizPrimaryFallbackAudioRef.current
+
+    if (fallbackAudio && !fallbackAudio.paused) {
+      fadeAudioElement(fallbackAudio, 0, QUIZ_PRIMARY_FADE_OUT_MS, () => {
+        fallbackAudio.pause()
+        fallbackAudio.currentTime = 0
+        fallbackAudio.volume = 1
+      })
+    }
+
+    const audioContext = quizAudioContextRef.current
+    const gain = quizPrimaryGainRef.current
+
+    if (audioContext && gain) {
+      const now = audioContext.currentTime
+
+      try {
+        gain.gain.cancelScheduledValues(now)
+        gain.gain.setValueAtTime(gain.gain.value, now)
+        gain.gain.linearRampToValueAtTime(
+          0,
+          now + QUIZ_PRIMARY_FADE_OUT_MS / 1000,
+        )
+      } catch {
+        // If the scheduled fade cannot be applied, the timeout below still stops it.
+      }
+
+      if (quizPrimaryStopTimeoutRef.current !== null) {
+        window.clearTimeout(quizPrimaryStopTimeoutRef.current)
+      }
+
+      quizPrimaryStopTimeoutRef.current = window.setTimeout(() => {
+        quizPrimaryStopTimeoutRef.current = null
+        stopQuizPrimaryAudio()
+      }, QUIZ_PRIMARY_FADE_OUT_MS)
+    }
+  }, [stopQuizPrimaryAudio])
+
   const clearResultFallbackTimer = useCallback(() => {
     if (resultFallbackTimerRef.current === null) return
 
@@ -435,17 +553,11 @@ export function FunnelOrchestrator() {
   const dismissResultRevealVeil = useCallback(() => {
     clearResultRevealVeilTimers()
 
-    if (!funnelConfig.resultYoutubeIntroVeilEnabled) {
-      setResultRevealVeilVisible(false)
-      setResultRevealVeilMounted(false)
-      return
-    }
-
     const safeDuration = Math.max(
-      funnelConfig.resultYoutubeIntroVeilDurationMs,
+      funnelConfig.resultIntroVeilDurationMs,
       0,
     )
-    const safeFade = Math.max(funnelConfig.resultYoutubeIntroVeilFadeMs, 0)
+    const safeFade = Math.max(funnelConfig.resultIntroVeilFadeMs, 0)
     const visibleDuration = Math.max(safeDuration - safeFade, 0)
 
     setResultRevealVeilMounted(true)
@@ -477,7 +589,7 @@ export function FunnelOrchestrator() {
   }, [clearResultFallbackTimer, hideResultRevealVeil])
 
   useEffect(() => {
-    if (stage === "quiz") return
+    if (stage === "quiz" || stage === "reading") return
 
     stopQuizAudio()
   }, [stage, stopQuizAudio])
@@ -518,10 +630,42 @@ export function FunnelOrchestrator() {
   }, [preloadQuizPrimaryAudio])
 
   useEffect(() => {
+    if (!preparedResultVideoSrc) return
+
+    const selector = `link[rel="preload"][as="video"][href="${preparedResultVideoSrc}"]`
+    let link = document.head.querySelector<HTMLLinkElement>(selector)
+
+    if (!link) {
+      link = document.createElement("link")
+      link.rel = "preload"
+      link.as = "video"
+      link.href = preparedResultVideoSrc
+      document.head.appendChild(link)
+    }
+
+    resultPlayerRef.current?.preload()
+  }, [preparedResultVideoSrc])
+
+  useEffect(() => {
+    if (!preparedResultVideoSrc || resultPlayerReadyToReveal) return
+
+    const timer = window.setTimeout(() => {
+      resultPlayerRef.current?.preload()
+    }, funnelConfig.resultVideoReadyTimeoutMs)
+
+    return () => window.clearTimeout(timer)
+  }, [preparedResultVideoSrc, resultPlayerReadyToReveal])
+
+  useEffect(() => {
     return () => {
       clearResultFallbackTimer()
       clearResultRevealVeilTimers()
-      preparedResultPlayerRef.current?.stop()
+      resultPlayerRef.current?.stop()
+      quizLoopFadeCancelRef.current?.()
+      resultLoopFadeCancelRef.current?.()
+      if (quizPrimaryStopTimeoutRef.current !== null) {
+        window.clearTimeout(quizPrimaryStopTimeoutRef.current)
+      }
       stopQuizAudio()
       stopResultLoop()
     }
@@ -534,43 +678,51 @@ export function FunnelOrchestrator() {
 
   const handlePatternReadyForReading = useCallback(
     (p: PatternKey) => {
-      const resultVideoUrl = resultYoutubeShortsByPattern[p]
+      const resultVideoSrc = resultMp4VideosByPattern[p]
       setPattern(p)
-      setPreparedResultVideoUrl(resultVideoUrl)
+      setPreparedResultVideoSrc(resultVideoSrc)
       setResultPlayerReadyToReveal(false)
       setResultRevealRequested(false)
       setResultVideoPlaying(false)
       setShowResultBridge(false)
       showResultRevealVeil()
-      stopQuizAudio()
-      preparedResultPlayerRef.current?.prepare(resultVideoUrl)
+      resultPlayerRef.current?.preload()
       trackFunnelEvent("pattern_revealed", { pattern: p })
       go("reading")
     },
-    [go, showResultRevealVeil, stopQuizAudio],
+    [go, showResultRevealVeil],
   )
 
-  const handleRevealPreparedResult = useCallback(() => {
-    const player = preparedResultPlayerRef.current
-    if (!player?.isReadyToReveal()) return
+  const handleRevealPreparedResult = useCallback(async () => {
+    const player = resultPlayerRef.current
+    if (!player?.isReady()) return
 
-    player.revealWithSound()
+    try {
+      await player.playWithSound()
+    } catch {
+      return
+    }
+
+    fadeOutQuizAudio()
     setResultRevealRequested(true)
     setResultVideoPlaying(false)
     setShowResultBridge(false)
     dismissResultRevealVeil()
     startResultFallbackTimer()
     startResultLoop()
-  }, [dismissResultRevealVeil, startResultFallbackTimer, startResultLoop])
+  }, [
+    dismissResultRevealVeil,
+    fadeOutQuizAudio,
+    startResultFallbackTimer,
+    startResultLoop,
+  ])
 
   const handleResultPlaybackFailed = useCallback(() => {
     clearResultFallbackTimer()
     setResultRevealRequested(false)
     setResultVideoPlaying(false)
     showResultRevealVeil()
-    setResultPlayerReadyToReveal(
-      preparedResultPlayerRef.current?.isReadyToReveal() ?? false,
-    )
+    setResultPlayerReadyToReveal(resultPlayerRef.current?.isReady() ?? false)
   }, [clearResultFallbackTimer, showResultRevealVeil])
 
   const showRevealResultButton =
@@ -599,51 +751,28 @@ export function FunnelOrchestrator() {
         ref={quizPrimaryFallbackAudioRef}
         preload="auto"
       />
-      <PreparedYouTubeResultPlayer
-        ref={preparedResultPlayerRef}
-        videoUrl={preparedResultVideoUrl}
-        active={Boolean(preparedResultVideoUrl) && stage !== "vsl"}
-        visible={stage === "reading"}
-        armed={stage === "reading"}
-        fitMode="native"
-        verticalMode={true}
-        iframeScale={funnelConfig.resultYoutubeIframeScale}
-        iframeOffsetX={funnelConfig.resultYoutubeIframeOffsetX}
-        iframeOffsetY={funnelConfig.resultYoutubeIframeOffsetY}
-        maskTop={funnelConfig.resultYoutubeMaskTop}
-        maskBottom={funnelConfig.resultYoutubeMaskBottom}
-        maskLeft={funnelConfig.resultYoutubeMaskLeft}
-        maskRight={funnelConfig.resultYoutubeMaskRight}
-        logoMaskEnabled={funnelConfig.resultYoutubeLogoMaskEnabled}
-        logoMaskMode={funnelConfig.resultYoutubeLogoMaskMode}
-        logoMaskX={funnelConfig.resultYoutubeLogoMaskX}
-        logoMaskY={funnelConfig.resultYoutubeLogoMaskY}
-        logoMaskWidth={funnelConfig.resultYoutubeLogoMaskWidth}
-        logoMaskHeight={funnelConfig.resultYoutubeLogoMaskHeight}
-        logoMaskRadius={funnelConfig.resultYoutubeLogoMaskRadius}
-        logoMaskBlur={funnelConfig.resultYoutubeLogoMaskBlur}
-        logoMaskOpacity={funnelConfig.resultYoutubeLogoMaskOpacity}
-        bottomUiShieldEnabled={funnelConfig.resultYoutubeBottomUiShieldEnabled}
-        bottomUiShieldHeight={funnelConfig.resultYoutubeBottomUiShieldHeight}
-        bottomUiShieldOpacity={funnelConfig.resultYoutubeBottomUiShieldOpacity}
-        topUiShieldEnabled={funnelConfig.resultYoutubeTopUiShieldEnabled}
-        topUiShieldHeight={funnelConfig.resultYoutubeTopUiShieldHeight}
-        topUiShieldOpacity={funnelConfig.resultYoutubeTopUiShieldOpacity}
-        posterShieldEnabled={funnelConfig.resultYoutubePosterShieldEnabled}
-        introVeilEnabled={funnelConfig.resultYoutubeIntroVeilEnabled}
-        introVeilDurationMs={funnelConfig.resultYoutubeIntroVeilDurationMs}
-        introVeilFadeMs={funnelConfig.resultYoutubeIntroVeilFadeMs}
-        introVeilOpacity={funnelConfig.resultYoutubeIntroVeilOpacity}
-        onReadyToReveal={() => {
-          setResultPlayerReadyToReveal(true)
-        }}
-        onPlaying={() => {
-          setResultVideoPlaying(true)
-          setResultRevealRequested(true)
-        }}
-        onPlaybackFailed={handleResultPlaybackFailed}
-        onEnded={handleResultVideoEnded}
-      />
+      {preparedResultVideoSrc && stage !== "vsl" && (
+        <ResultMp4Player
+          ref={resultPlayerRef}
+          src={preparedResultVideoSrc}
+          visible={stage === "reading"}
+          autoPreload
+          objectFit={funnelConfig.resultVideoObjectFit}
+          revealRequested={resultRevealRequested}
+          introVeilActive={resultRevealVeilMounted}
+          introVeilDurationMs={funnelConfig.resultIntroVeilDurationMs}
+          introVeilFadeMs={funnelConfig.resultIntroVeilFadeMs}
+          onReadyToReveal={() => {
+            setResultPlayerReadyToReveal(true)
+          }}
+          onPlaying={() => {
+            setResultVideoPlaying(true)
+            setResultRevealRequested(true)
+          }}
+          onPlaybackFailed={handleResultPlaybackFailed}
+          onEnded={handleResultVideoEnded}
+        />
+      )}
       {stage === "video" && (
         <Exp1Video
           onStart={startExperience}
@@ -681,14 +810,13 @@ export function FunnelOrchestrator() {
             stopQuizAudio()
           }}
           onPatternReady={(p) => {
-            const resultVideoUrl = resultYoutubeShortsByPattern[p]
+            const resultVideoSrc = resultMp4VideosByPattern[p]
             setPattern(p)
-            setPreparedResultVideoUrl(resultVideoUrl)
+            setPreparedResultVideoSrc(resultVideoSrc)
             setResultPlayerReadyToReveal(false)
             setResultRevealRequested(false)
             setResultVideoPlaying(false)
-            stopQuizAudio()
-            preparedResultPlayerRef.current?.prepare(resultVideoUrl)
+            resultPlayerRef.current?.preload()
           }}
           onComplete={handlePatternReadyForReading}
         />
@@ -701,8 +829,8 @@ export function FunnelOrchestrator() {
             stopQuizAudio()
             stopResultLoop()
             clearResultFallbackTimer()
-            preparedResultPlayerRef.current?.reset()
-            setPreparedResultVideoUrl(null)
+            resultPlayerRef.current?.reset()
+            setPreparedResultVideoSrc(null)
             setResultPlayerReadyToReveal(false)
             setResultRevealRequested(false)
             setResultVideoPlaying(false)
@@ -721,12 +849,12 @@ export function FunnelOrchestrator() {
           style={{
             opacity: resultRevealVeilVisible
               ? Math.min(
-                  Math.max(funnelConfig.resultYoutubeIntroVeilOpacity, 0),
+                  Math.max(funnelConfig.resultIntroVeilOpacity, 0),
                   1,
                 )
               : 0,
             transitionDuration: `${Math.max(
-              funnelConfig.resultYoutubeIntroVeilFadeMs,
+              funnelConfig.resultIntroVeilFadeMs,
               0,
             )}ms`,
             background:

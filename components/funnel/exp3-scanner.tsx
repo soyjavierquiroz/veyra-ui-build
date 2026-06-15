@@ -37,7 +37,7 @@ const VEYRA_REVEAL_FULL_SECONDS = 23.8
 const CTA_SECONDS = 64.5
 
 const scannerSteps: ScannerStep[] = [
-  { from: 0, to: 2.7, kind: "scan", text: "Iniciando lectura emocional…" },
+  { from: 1, to: 2.7, kind: "scan", text: "Iniciando lectura emocional…" },
   {
     from: 2.9,
     to: 5.2,
@@ -45,7 +45,7 @@ const scannerSteps: ScannerStep[] = [
     text: "Detectando actividad en el chat pendiente…",
   },
   {
-    from: 5.5,
+    from: 5.6,
     to: 8.2,
     kind: "progress",
     percent: 20,
@@ -53,7 +53,7 @@ const scannerSteps: ScannerStep[] = [
     text: "Señal encontrada: impulso de escribir desde ansiedad.",
   },
   {
-    from: 8.4,
+    from: 8.5,
     to: 10.5,
     kind: "progress",
     percent: 40,
@@ -61,7 +61,7 @@ const scannerSteps: ScannerStep[] = [
     text: "Nivel de urgencia emocional: alto.",
   },
   {
-    from: 11,
+    from: 11.1,
     to: 14.8,
     kind: "progress",
     percent: 60,
@@ -69,7 +69,7 @@ const scannerSteps: ScannerStep[] = [
     text: "Necesidad detectada: respuesta, cierre o alivio inmediato.",
   },
   {
-    from: 15.2,
+    from: 15.25,
     to: 18.5,
     kind: "progress",
     percent: 80,
@@ -77,7 +77,7 @@ const scannerSteps: ScannerStep[] = [
     text: "Riesgo actual: enviar un mensaje que después puede doler.",
   },
   {
-    from: 19,
+    from: 19.03,
     to: SCANNER_COMPLETE_SECONDS,
     kind: "progress",
     percent: 100,
@@ -154,10 +154,11 @@ function getVeyraCopy(elapsedSeconds: number) {
 }
 
 function getVisualProgress(step: ScannerStep, elapsedSeconds: number) {
-  if (step.kind === "progress") return step.percent
-  if (elapsedSeconds >= SCANNER_COMPLETE_SECONDS) return 100
-  if (elapsedSeconds >= 5.5) return 20
-  return Math.max(4, Math.round((elapsedSeconds / 5.5) * 18))
+  void step
+  return Math.min(
+    100,
+    Math.max(4, Math.round((elapsedSeconds / SCANNER_COMPLETE_SECONDS) * 100)),
+  )
 }
 
 export function Exp3Scanner({ onComplete }: { onComplete: () => void }) {
@@ -165,8 +166,7 @@ export function Exp3Scanner({ onComplete }: { onComplete: () => void }) {
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const [isActivating, setIsActivating] = useState(false)
   const [videoEnded, setVideoEnded] = useState(false)
-  const startTimeRef = useRef<number | null>(null)
-  const activationTimeoutRef = useRef<number | null>(null)
+  const rafRef = useRef<number | null>(null)
   const hasStartedRef = useRef(false)
   const scannerAudioRef = useRef<HTMLAudioElement | null>(null)
   const veyraVideoRef = useRef<HTMLVideoElement | null>(null)
@@ -205,23 +205,47 @@ export function Exp3Scanner({ onComplete }: { onComplete: () => void }) {
   useEffect(() => {
     if (phase === "idle") return
 
-    const id = window.setInterval(() => {
-      if (!startTimeRef.current) return
+    const tick = () => {
+      const audio = scannerAudioRef.current
+      const nextElapsed = audio?.currentTime ?? 0
 
-      const nextElapsed = (Date.now() - startTimeRef.current) / 1000
       setElapsedSeconds(nextElapsed)
-      if (phase === "activating" && nextElapsed < 0.68) return
-      setPhase(getPhase(nextElapsed))
-    }, 100)
+      setIsActivating(nextElapsed < 0.68)
 
-    return () => window.clearInterval(id)
+      if (nextElapsed < 0.68) {
+        setPhase("activating")
+      } else {
+        setPhase(getPhase(nextElapsed))
+      }
+
+      rafRef.current = window.requestAnimationFrame(tick)
+    }
+
+    rafRef.current = window.requestAnimationFrame(tick)
+
+    return () => {
+      if (rafRef.current !== null) {
+        window.cancelAnimationFrame(rafRef.current)
+        rafRef.current = null
+      }
+    }
   }, [phase])
 
   useEffect(() => {
-    if (!shouldStartVeyraVideo || hasStartedVeyraVideoRef.current) return
-
     const video = veyraVideoRef.current
     if (!video) return
+
+    if (!shouldStartVeyraVideo) {
+      if (hasStartedVeyraVideoRef.current) {
+        video.pause()
+        video.currentTime = 0
+        hasStartedVeyraVideoRef.current = false
+      }
+
+      return
+    }
+
+    if (hasStartedVeyraVideoRef.current) return
 
     video.muted = true
     video.currentTime = 0
@@ -237,8 +261,9 @@ export function Exp3Scanner({ onComplete }: { onComplete: () => void }) {
 
   useEffect(() => {
     return () => {
-      if (activationTimeoutRef.current) {
-        window.clearTimeout(activationTimeoutRef.current)
+      if (rafRef.current !== null) {
+        window.cancelAnimationFrame(rafRef.current)
+        rafRef.current = null
       }
 
       const audio = scannerAudioRef.current
@@ -278,17 +303,11 @@ export function Exp3Scanner({ onComplete }: { onComplete: () => void }) {
     if (hasStartedRef.current || phase !== "idle") return
 
     hasStartedRef.current = true
-    startTimeRef.current = Date.now()
     setIsActivating(true)
     setElapsedSeconds(0)
     setVideoEnded(false)
     setPhase("activating")
     startScannerAudio()
-
-    activationTimeoutRef.current = window.setTimeout(() => {
-      setIsActivating(false)
-      setPhase("scanning")
-    }, 680)
   }
 
   function handleCrossThreshold() {

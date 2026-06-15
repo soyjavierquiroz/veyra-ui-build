@@ -28,6 +28,8 @@ Los deep links no garantizan autoplay con audio. Las escenas con audio pueden re
 - Link directo: https://mnle.reconociendotupoder.com/?scene=exp3-scanner
 - Abre EXP 3 en idle, sin audio automático.
 - El audio inicia únicamente al presionar la huella.
+- La UI del scanner usa `audio.currentTime` como reloj maestro.
+- Si el audio se pausa, espera o stallea, los pasos visuales no avanzan solos.
 - El scanner técnico llega a 100% a los 20.2s aprox.
 - El scanner desaparece durante la transferencia 20.2s-23.8s.
 - El video de Veyra inicia a los 21.8s aprox. desde `currentTime = 0`.
@@ -63,97 +65,48 @@ Los deep links no garantizan autoplay con audio. Las escenas con audio pueden re
 - Al responder la Pregunta 5, el audio primario anterior se detiene/reset antes de reproducir p6 para evitar solapes.
 - El loop y el audio principal inicial inician en el flujo real al presionar `CRUZAR EL UMBRAL`.
 - Por deep link no se fuerza autoplay.
-- Al entrar a EXP 5, p6 se detiene/reset si todavía sigue activo para que no suene encima del resultado YouTube.
-- El loop ambiental se detiene antes de entrar a EXP 5; el audio principal también se resetea por seguridad.
+- Al entrar automáticamente a EXP 5, `loop-quiz.mp3` y `quiz-p6-final.mp3` mantienen continuidad.
+- Al presionar `REVELAR MENSAJE DE VEYRA` en EXP 5, `loop-quiz.mp3` y `quiz-p6-final.mp3` hacen fade out antes de detenerse.
 
 ## EXP 5 Mensaje Personalizado de Veyra
 
-- Reproduce un YouTube Short personalizado según patrón dominante.
-- Los Shorts personalizados se reproducen como fondo full-screen de la escena.
-- El texto del patrón, bridge y CTA aparecen superpuestos sobre el video.
-- No se muestra como embed normal, tarjeta, header externo, marco ni bloque con márgenes.
-- Cada video incluye audio integrado.
-- EXP 5 monta/prepara el player YouTube correspondiente al patrón.
-- El player empieza a reproducirse automáticamente muted detrás de un overlay oscuro.
-- El player empieza con muted pre-roll usando `loadVideoById({ videoId, startSeconds: 0 })` y `playVideo()`.
-- Si el muted pre-roll llega a `PLAYING`, aparece el único botón previo al video: `REVELAR MENSAJE DE VEYRA`.
-- Si el muted pre-roll no llega a `PLAYING`, el mismo botón aparece igualmente tras un timeout aprox. de 2800ms para capturar el gesto real.
-- El botón `REVELAR MENSAJE DE VEYRA` está siempre en una capa superior al iframe, al play interno/logo de YouTube, al blocker y al velo oscuro.
-- Ese botón ejecuta `loadVideoById` o `seekTo(0, true)` según el estado, luego `unMute()`, `setVolume(100)` y `playVideo()` directamente como gesto real de usuario.
-- Si YouTube falla después del click, reaparece el mismo botón `REVELAR MENSAJE DE VEYRA` para reintentar sobre el mismo player preparado.
+- YouTube fue removido del runtime activo del funnel.
+- EXP 5 usa un `<video>` MP4 local por patrón, sin iframe, sin YouTube IFrame API y sin Shorts.
+- El video se monta como fondo full-screen dentro del shell mobile-first.
+- Default visual: `object-fit: cover`, sin zoom manual, sin transforms y sin crop agresivo adicional.
+- Puede probarse `contain` con `NEXT_PUBLIC_RESULT_VIDEO_OBJECT_FIT=contain` si un asset recorta demasiado.
+- Cuando EXP 4 detecta el patrón dominante, solo precarga el MP4 correspondiente mediante `<link rel="preload" as="video">` y `video.load()`.
+- No se precargan los 6 videos.
+- El botón único previo al video es `REVELAR MENSAJE DE VEYRA`.
+- El botón aparece cuando el MP4 emite `loadeddata`/`canplay`.
 - No existe botón `REPRODUCIR MENSAJE DE VEYRA` en EXP 5.
-- Usa el prepared YouTube result player en modo no-zoom por defecto, con controles ocultos, velo inicial suave y overlay transparente para bloquear interacción.
-- Usa un prepared YouTube result player persistente montado desde el orquestador.
-- Cuando EXP 4 detecta el patrón dominante, EXP 5 prepara el Short correcto mediante preconnect/dns-prefetch, YouTube IFrame API, mute, volumen `0` y `playVideo()` muted.
-- Al presionar `REVELAR MENSAJE DE VEYRA`, no se crea otro iframe: se revela ese mismo player ya corriendo muted y se reinicia desde `0` con sonido.
-- Usa ajustes visuales separados de la VSL: `fitMode="native"`, escala `1`, offsets `0`, máscaras de borde `0` y logo mask central apagada por defecto.
-- El ocultamiento visual se hace con gradientes/overlays/masks suaves encima del video, no con zoom agresivo ni crop para sacar elementos del cuadro.
-- EXP 5 no usa poster/thumbnail por defecto; no espera imágenes externas antes de mostrar el video.
-- Se usa un overlay/intro veil oscuro: antes del click cubre el muted pre-roll; después del click permanece 3 segundos y desvanece con fade default de 900ms. No muestra texto, no usa imagen y no bloquea el play.
-- Bottom UI shield y top UI shield siguen configurables, pero están apagados por defecto para esta prueba.
-- Poster shield sigue configurable, pero está apagado por defecto y solo se activa con `NEXT_PUBLIC_RESULT_YOUTUBE_POSTER_SHIELD_ENABLED=true`.
-- El iframe de YouTube usa `pointer-events: none`.
-- El iframe fuerza `allow="autoplay; encrypted-media; picture-in-picture; fullscreen"`.
-- Hay un blocker transparente encima del video para evitar que taps/clicks activen la UI interna de YouTube; fallback y bridge/CTA quedan en capas superiores.
-- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_MODE` sigue existiendo para diagnóstico, pero el default ahora es `off`.
-- En móvil ocupa toda la pantalla disponible del dispositivo dentro de `100dvh`.
-- En desktop respeta el shell móvil centrado del funnel (`max-width` aprox. 460px) y no se abre a todo el ancho de la ventana.
-- Usa audio ambiental de resultado: `/audio/loop-result.mp3`.
-- El loop de resultado inicia cuando la usuaria presiona el botón `REVELAR MENSAJE DE VEYRA` sobre el player.
-- El loop suena debajo del video personalizado de Veyra.
-- Volumen objetivo del loop de resultado: `0.15`.
-- El loop se mantiene activo durante EXP 5.
-- El loop se detiene y resetea cuando la usuaria presiona `ABRIR EL CAMINO HACIA JANNY`.
-- El loop no sigue sonando en VSL.
-- Por deep link no se fuerza autoplay con sonido ni el loop de resultado; se inicia muted pre-roll y el botón aparece cuando YouTube llega a `PLAYING` muted.
-- No usa audios separados de resultado.
-- No usa video base común.
-- Al terminar el video con sonido muestra bridge por patrón y CTA: `ABRIR EL CAMINO HACIA JANNY`.
-- Un `ENDED` del muted pre-roll no dispara bridge.
-- Si YouTube no emite `ended`, EXP 5 muestra el bridge por fallback de duración.
+- Al click real sobre `REVELAR MENSAJE DE VEYRA`, el MP4 se reinicia desde `0`, se reproduce con audio integrado y el botón se oculta.
+- Si la reproducción falla, reaparece el mismo botón `REVELAR MENSAJE DE VEYRA`.
+- Antes del click, el overlay oscuro/místico cubre el player y mantiene la experiencia preparada.
+- Después del click, el overlay permanece 3s y desvanece con fade de 900ms.
+- Al click, `loop-quiz.mp3` hace fade out de 800ms y `quiz-p6-final.mp3` hace fade out de 600ms si sigue sonando.
+- Al click, inicia `/audio/loop-result.mp3` con fade in de 800ms y volumen objetivo `0.18`.
+- El loop de resultado se detiene y resetea cuando la usuaria presiona `ABRIR EL CAMINO HACIA JANNY`.
+- El loop de resultado no sigue sonando en VSL.
+- Al terminar el MP4, por evento `ended` o fallback de `timeupdate`, muestra bridge por patrón y CTA: `ABRIR EL CAMINO HACIA JANNY`.
 - En el flujo principal ese CTA lleva directo a la VSL full-screen, sin pasar por EXP 6.
-- Los MP4 locales `resp*-veyra-final.mp4` ya no son la fuente principal de EXP 5.
 - EXP 5 acepta `pattern`. Si se abre `?scene=exp5-reading` sin pattern, usa `abandono`.
 
 Variables de ajuste EXP 5:
 
-- `NEXT_PUBLIC_RESULT_YOUTUBE_IFRAME_SCALE` default `1`
-- `NEXT_PUBLIC_RESULT_YOUTUBE_IFRAME_OFFSET_X` default `0`
-- `NEXT_PUBLIC_RESULT_YOUTUBE_IFRAME_OFFSET_Y` default `0`
-- `NEXT_PUBLIC_RESULT_YOUTUBE_MASK_TOP` default `0`
-- `NEXT_PUBLIC_RESULT_YOUTUBE_MASK_BOTTOM` default `0`
-- `NEXT_PUBLIC_RESULT_YOUTUBE_MASK_LEFT` default `0`
-- `NEXT_PUBLIC_RESULT_YOUTUBE_MASK_RIGHT` default `0`
-- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_MODE` default `off`
-- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_ENABLED` default activo
-- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_X` default `50`
-- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_Y` default `49`
-- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_WIDTH` default `132`
-- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_HEIGHT` default `44`
-- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_RADIUS` default `999`
-- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_BLUR` default `14`
-- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_OPACITY` default `0.22`
-- `NEXT_PUBLIC_RESULT_YOUTUBE_BOTTOM_UI_SHIELD_ENABLED` default `false`
-- `NEXT_PUBLIC_RESULT_YOUTUBE_BOTTOM_UI_SHIELD_HEIGHT` default `150`
-- `NEXT_PUBLIC_RESULT_YOUTUBE_BOTTOM_UI_SHIELD_OPACITY` default `0.82`
-- `NEXT_PUBLIC_RESULT_YOUTUBE_TOP_UI_SHIELD_ENABLED` default `false`
-- `NEXT_PUBLIC_RESULT_YOUTUBE_TOP_UI_SHIELD_HEIGHT` default `96`
-- `NEXT_PUBLIC_RESULT_YOUTUBE_TOP_UI_SHIELD_OPACITY` default `0.45`
-- `NEXT_PUBLIC_RESULT_YOUTUBE_POSTER_SHIELD_ENABLED` default `false`
-- `NEXT_PUBLIC_RESULT_YOUTUBE_INTRO_VEIL_ENABLED` default `true`
-- `NEXT_PUBLIC_RESULT_YOUTUBE_INTRO_VEIL_DURATION_MS` default `3000`
-- `NEXT_PUBLIC_RESULT_YOUTUBE_INTRO_VEIL_FADE_MS` default `900`
-- `NEXT_PUBLIC_RESULT_YOUTUBE_INTRO_VEIL_OPACITY` default `0.92`
+- `NEXT_PUBLIC_RESULT_VIDEO_OBJECT_FIT=cover|contain`, default `cover`
+- `NEXT_PUBLIC_RESULT_INTRO_VEIL_DURATION_MS`, default `3000`
+- `NEXT_PUBLIC_RESULT_INTRO_VEIL_FADE_MS`, default `900`
 - `NEXT_PUBLIC_RESULT_VIDEO_FALLBACK_DURATION_SECONDS` default `65`
 
 Mapeo:
 
-- Respuesta 1 → `abandono` → `MIEDO A QUE TE OLVIDE` → https://www.youtube.com/shorts/rKRWUiWTI3A
-- Respuesta 2 → `validacion` → `BÚSQUEDA DE VALIDACIÓN` → https://www.youtube.com/shorts/lHGOaV-hfEs
-- Respuesta 3 → `cierre` → `NECESIDAD DE CIERRE` → https://www.youtube.com/shorts/Yd-2MW9zMDo
-- Respuesta 4 → `culpa` → `CULPA POR ALEJARTE` → https://www.youtube.com/shorts/92IEKoTjs64
-- Respuesta 5 → `nostalgia` → `NOSTALGIA POR LO BONITO` → https://www.youtube.com/shorts/rKRWUiWTI3A
-- Respuesta 6 → `ansiedad-silencio` → `ANSIEDAD POR SILENCIO` → https://www.youtube.com/shorts/3OZyBOh6jGg
+- Respuesta 1 → `abandono` → `MIEDO A QUE TE OLVIDE` → `/videos/resp1-veyra-final.mp4`
+- Respuesta 2 → `validacion` → `BÚSQUEDA DE VALIDACIÓN` → `/videos/resp2-veyra-final.mp4`
+- Respuesta 3 → `cierre` → `NECESIDAD DE CIERRE` → `/videos/resp3-veyra-final.mp4`
+- Respuesta 4 → `culpa` → `CULPA POR ALEJARTE` → `/videos/resp4-veyra-final.mp4`
+- Respuesta 5 → `nostalgia` → `NOSTALGIA POR LO BONITO` → `/videos/resp5-veyra-final.mp4`
+- Respuesta 6 → `ansiedad-silencio` → `ANSIEDAD POR SILENCIO` → `/videos/resp6-veyra-final.mp4`
 
 Deep links:
 
@@ -182,15 +135,10 @@ Deep links:
 
 - Deep link: https://mnle.reconociendotupoder.com/?scene=vsl-interlude
 - Flujo principal: `EXP 5` → `ABRIR EL CAMINO HACIA JANNY` → VSL full-screen mobile-first.
-- La VSL soporta provider `bunny` o `youtube` vía `funnelConfig.vslProvider`.
-- Por defecto usa `bunny` si `NEXT_PUBLIC_VSL_PROVIDER` no es `youtube`.
-- Bunny se mantiene con:
-  `NEXT_PUBLIC_VSL_PROVIDER=bunny`
+- La VSL activa usa Bunny/HLS mediante `VslVideoPlayer`.
+- La ruta YouTube de VSL fue retirada del runtime activo para evitar iframe/autoplay inestable en móviles.
+- Configuración:
   `NEXT_PUBLIC_VSL_VIDEO_URL=https://vz-.../playlist.m3u8`
-- YouTube Shorts se configura con:
-  `NEXT_PUBLIC_VSL_PROVIDER=youtube`
-  `NEXT_PUBLIC_VSL_YOUTUBE_URL=https://www.youtube.com/shorts/{id}`
-- Si `provider=youtube` y no hay URL válida, muestra `Short de YouTube pendiente de configuración.`
 - El provider Bunny usa un player Panda-style adaptado desde:
   `/home/sensorial.pameflorescrea.com/source_boilerplate/src/components/themes/expert/components/video-player`
 - El README fuente indica Bunny.net como stream HLS `.m3u8` sobre `<video>` nativo con `hls.js`, modo VSL, autoplay, UI limpia y barra de progreso psicológico.
@@ -199,19 +147,6 @@ Deep links:
 - Si `NEXT_PUBLIC_VSL_VIDEO_URL` no existe o está vacía, usa la URL temporal Bunny:
   `https://vz-febf8c0d-fb8.b-cdn.net/1924db19-affb-41ea-a457-4195d85671c6/playlist.m3u8`
 - Para cambiar el video luego, definir `NEXT_PUBLIC_VSL_VIDEO_URL` o actualizar `TEMPORARY_BUNNY_VSL_URL` en `components/funnel/config.ts`.
-- El provider YouTube vive en `components/funnel/video-player/youtube-shorts-vsl-player.tsx`.
-- El player YouTube extrae `videoId` desde URLs `shorts`, `youtu.be`, `watch?v=`, `embed`, `/v/` o ID directo.
-- YouTube usa IFrame API client-side y modo clean experimental:
-  `controls=0`, `disablekb=1`, `playsinline=1`, `rel=0`, `fs=0`, `iv_load_policy=3`, `enablejsapi=1`.
-- El modo clean agrega overlay blocker, crop/scale del iframe, máscaras visuales, gradientes propios y barra simulada.
-- Variables de ajuste YouTube:
-  `NEXT_PUBLIC_YOUTUBE_CLEAN_MODE`
-  `NEXT_PUBLIC_YOUTUBE_IFRAME_SCALE`
-  `NEXT_PUBLIC_YOUTUBE_MASK_TOP`
-  `NEXT_PUBLIC_YOUTUBE_MASK_BOTTOM`
-  `NEXT_PUBLIC_YOUTUBE_MASK_LEFT`
-  `NEXT_PUBLIC_YOUTUBE_MASK_RIGHT`
-- Defaults YouTube: clean mode activo, iframe scale `1.12`, mask bottom `82px`, top/left/right `0px`.
 - El player intenta autoplay con audio al montar después del click real en `ABRIR EL CAMINO HACIA JANNY`.
 - Si el navegador bloquea la reproducción/autoplay, muestra el fallback: `REPRODUCIR MENSAJE DE JANNY`.
 - No muestra pantalla previa, header `EXP 7`, card, placeholder ni botón `Continuar` antes del video.

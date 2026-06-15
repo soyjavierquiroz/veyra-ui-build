@@ -1,5 +1,11 @@
 # Informe - YouTube Shorts para VSL Veyra
 
+## Estado final
+
+YouTube fue retirado del funnel activo por inestabilidad de iframe/autoplay/UI en móviles. EXP 5 volvió a MP4 local controlado, con precarga del video correcto por patrón y reproducción mediante `<video>` nativo.
+
+La VSL activa permanece en Bunny/HLS mediante `VslVideoPlayer`. Este documento queda como historial técnico de la exploración YouTube/Shorts y no describe el runtime activo actual.
+
 ## 1. Resumen ejecutivo
 
 Es viable usar un YouTube Short como fuente de la VSL si se trata como un video normal de YouTube por `videoId` y se reproduce mediante YouTube IFrame API en cliente. No es viable prometer una experiencia idéntica a Bunny/HLS: YouTube conserva control sobre branding, estado del embed, anuncios, tracking, políticas de autoplay y cambios futuros.
