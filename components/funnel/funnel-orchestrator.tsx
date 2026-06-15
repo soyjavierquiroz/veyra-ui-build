@@ -501,6 +501,13 @@ export function FunnelOrchestrator() {
         logoMaskRadius={funnelConfig.resultYoutubeLogoMaskRadius}
         logoMaskBlur={funnelConfig.resultYoutubeLogoMaskBlur}
         logoMaskOpacity={funnelConfig.resultYoutubeLogoMaskOpacity}
+        bottomUiShieldEnabled={funnelConfig.resultYoutubeBottomUiShieldEnabled}
+        bottomUiShieldHeight={funnelConfig.resultYoutubeBottomUiShieldHeight}
+        bottomUiShieldOpacity={funnelConfig.resultYoutubeBottomUiShieldOpacity}
+        topUiShieldEnabled={funnelConfig.resultYoutubeTopUiShieldEnabled}
+        topUiShieldHeight={funnelConfig.resultYoutubeTopUiShieldHeight}
+        topUiShieldOpacity={funnelConfig.resultYoutubeTopUiShieldOpacity}
+        posterShieldEnabled={funnelConfig.resultYoutubePosterShieldEnabled}
         onEnded={handleResultVideoEnded}
       />
       {stage === "video" && (

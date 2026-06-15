@@ -277,7 +277,7 @@ EXP 5 intenta autoplay con sonido justo después del click `REVELAR MENSAJE DE V
 
 ## Ajustes visuales y prewarm en EXP 5
 
-EXP 5 usa ajustes visuales separados de la VSL para evitar que el crop/máscaras pensados para el video de Janny deformen los Shorts de respuesta. Los defaults de resultado son específicos para Shorts: `fitMode="native"`, `iframeScale=1`, offsets `0`, máscaras de borde `0`, soft logo mask activo y sin barra simulada.
+EXP 5 usa ajustes visuales separados de la VSL para evitar que el crop/máscaras pensados para el video de Janny deformen los Shorts de respuesta. Los defaults de resultado son específicos para Shorts: `fitMode="native"`, `iframeScale=1`, offsets `0`, máscaras de borde `0`, logo mask central apagada y sin barra simulada.
 
 Variables de ajuste específicas de EXP 5:
 
@@ -309,7 +309,7 @@ La estrategia de precarga de EXP 5 se cambió de un prewarm oculto suelto a un p
 
 EXP 5 ya no monta `YouTubeShortsVslPlayer`; ahora funciona como capa de overlays, bridge y CTA sobre `PreparedYouTubeResultPlayer`. Esto evita doble iframe, doble audio y pérdida de preparación entre EXP 4 y EXP 5. El helper `prewarmYouTubeShort` queda limitado a preconnect/dns-prefetch/carga de API.
 
-Para ocultar visualmente la UI/marca `Shorts`, el result player agrega una máscara radial encima del iframe y por debajo del blocker/fallback. La máscara es configurable con:
+La máscara radial de logo queda disponible solo como herramienta de diagnóstico o ajuste manual. Para ocultar visualmente la UI/marca `Shorts`, el result player usa por defecto el bottom UI shield y poster shield. La máscara central se puede activar explícitamente con:
 
 - `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_ENABLED`
 - `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_X`
@@ -318,7 +318,7 @@ Para ocultar visualmente la UI/marca `Shorts`, el result player agrega una másc
 - `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_HEIGHT`
 - `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_RADIUS`
 
-Los defaults actuales de resultado son `iframeScale=1`, offsets `0`, máscaras de borde `0`, logo mask `soft`, activo en `50% / 49%`, `132x44px`, radio `999px`, blur `14px` y opacity `0.22`. El iframe queda dentro del shell móvil centrado (`max-width` aprox. `460px`) y no usa `fixed`, `w-screen`, `h-screen` ni `100vw`.
+Los defaults actuales de resultado son `iframeScale=1`, offsets `0`, máscaras de borde `0`, logo mask `off`, bottom UI shield activo, top UI shield activo y poster shield activo. El iframe queda dentro del shell móvil centrado (`max-width` aprox. `460px`) y no usa `fixed`, `w-screen`, `h-screen` ni `100vw`.
 
 ## EXP 5 no-zoom mode
 
@@ -339,4 +339,54 @@ La máscara es configurable por env:
 - `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_BLUR=14`
 - `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_OPACITY=0.22`
 
-El modo `solid` queda como opción de diagnóstico, pero EXP 5 usa `soft` por defecto.
+El modo `solid` queda como opción de diagnóstico. EXP 5 ya no usa `soft` por defecto; el default es `off` para evitar cualquier mancha o recuadro central.
+
+## Auditoría Presto — ocultamiento UI YouTube
+
+Auditoría local revisada en:
+
+- `/home/soy.grandiosamujer.com/public_html/wp-content/plugins/presto-player/`
+- `/home/soy.grandiosamujer.com/public_html/wp-content/plugins/presto-player-pro/`
+
+Hallazgos reales:
+
+- Presto usa Plyr para YouTube. El componente `presto-youtube` renderiza `.plyr__video-embed` con `data-plyr-provider="youtube"` y `data-plyr-embed-id`.
+- Presto configura YouTube con `rel: 0`, `showinfo: 0`, `iv_load_policy: 3`, `modestbranding: 1`, `customControls: true` y `playsinline`.
+- Presto sí usa poster. Si no hay poster explícito, intenta obtener thumbnail de YouTube en orden `maxresdefault`, `sddefault`, `hqdefault` y asignarlo a `player.poster`.
+- El poster de Plyr queda encima del video cuando el player está detenido (`.plyr--stopped.plyr__poster-enabled .plyr__poster { opacity: 1; }`). Por eso un ejemplo "sin logo" puede estar mostrando poster, no el iframe activo.
+- Presto sí tiene CSS específico `.presto-player__wrapper.hide-youtube-ui .plyr__video-embed iframe { top: -50%; height: 200%; }`.
+- Ese `hide-youtube-ui` es un hack de crop/overscan vertical, no un API oficial de YouTube. El propio CSS comenta que funciona solo cuando el contenedor mantiene aspect ratio fijo.
+- Presto también usa el wrapper de Plyr con `overflow: hidden`; en modo full UI Plyr usa un contenedor interno con `padding-bottom: 240%` y `transform: translateY(-38.28125%)`.
+- No se encontró un patrón equivalente de `pointer-events: none` aplicado al iframe de YouTube; el `pointer-events: none` explícito encontrado para providers apunta a Vimeo en estado playing y a elementos UI/preview de Plyr.
+- No se encontró en Pro una estrategia adicional relevante para ocultar la UI de YouTube.
+- La combinación que más reduce logo/UI en Presto es: controles nativos ocultos por params/Plyr, custom controls propios, poster/thumbnail sobre el iframe antes de reproducir, wrapper con overflow hidden y, si se activa `hide_youtube`, crop vertical del iframe.
+
+Qué replicamos en Veyra sin copiar código propietario:
+
+- Mantener `controls=0`, `disablekb=1`, `iv_load_policy=3`, `modestbranding=1`, `playsinline=1`, `rel=0`.
+- Usar poster propio de YouTube (`maxresdefault`, fallback `hqdefault`) como shield visual durante preparación/buffering y fade out al confirmar `PLAYING`.
+- Poner `pointer-events: none` al iframe y un blocker transparente encima para que taps/clicks no despierten UI interna de YouTube.
+- Usar gradientes propios arriba/abajo para suavizar UI visible.
+- No replicar por defecto el hack Presto `top:-50%; height:200%`, porque en Shorts de EXP 5 sería crop/zoom agresivo y puede cortar rostro o elementos importantes.
+
+## Ajuste Veyra — sin máscara central
+
+EXP 5 ya no usa máscara central por defecto. `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_MODE` sigue existiendo para diagnóstico, pero el default recomendado es `off`.
+
+El ocultamiento principal del logo/UI inferior de Shorts ahora se maneja con un bottom UI shield: un gradiente inferior configurable, no un bloque sólido ni una máscara en el centro. Defaults:
+
+- `NEXT_PUBLIC_RESULT_YOUTUBE_BOTTOM_UI_SHIELD_ENABLED=true`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_BOTTOM_UI_SHIELD_HEIGHT=150`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_BOTTOM_UI_SHIELD_OPACITY=0.82`
+
+También se agregó un top UI shield opcional para suavizar título/avatar superior sin cubrir el centro:
+
+- `NEXT_PUBLIC_RESULT_YOUTUBE_TOP_UI_SHIELD_ENABLED=true`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_TOP_UI_SHIELD_HEIGHT=96`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_TOP_UI_SHIELD_OPACITY=0.45`
+
+Y se agregó poster shield:
+
+- `NEXT_PUBLIC_RESULT_YOUTUBE_POSTER_SHIELD_ENABLED=true`
+
+El iframe queda con `pointer-events: none` y el player mantiene un blocker transparente por encima. Fallback y bridge/CTA están en capas superiores, por lo que el fallback sigue clickeable si autoplay falla y el CTA de EXP 5 no queda bloqueado. No hay zoom por defecto: `fitMode="native"`, `iframeScale=1`, offsets `0`.

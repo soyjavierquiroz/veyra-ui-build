@@ -278,6 +278,7 @@ export function YouTubeShortsVslPlayer({
     iframe.style.minWidth = "100%"
     iframe.style.minHeight = "100%"
     iframe.style.border = "0"
+    iframe.style.pointerEvents = "none"
   }, [])
 
   const requestPlayback = useCallback(() => {

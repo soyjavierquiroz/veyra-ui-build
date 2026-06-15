@@ -51,6 +51,13 @@ export type PreparedYouTubeResultPlayerProps = {
   logoMaskRadius?: number
   logoMaskBlur?: number
   logoMaskOpacity?: number
+  bottomUiShieldEnabled?: boolean
+  bottomUiShieldHeight?: number
+  bottomUiShieldOpacity?: number
+  topUiShieldEnabled?: boolean
+  topUiShieldHeight?: number
+  topUiShieldOpacity?: number
+  posterShieldEnabled?: boolean
   autoPlayWhenVisible?: boolean
   onEnded?: () => void
   onPlaybackBlocked?: () => void
@@ -76,6 +83,8 @@ type YouTubeEvent = {
 
 const PLAYBACK_CHECK_DELAY_MS = 1600
 const PREPARING_LABEL_DELAY_MS = 600
+const YOUTUBE_MAXRES_POSTER = "maxresdefault"
+const YOUTUBE_HQ_POSTER = "hqdefault"
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max)
@@ -84,6 +93,10 @@ function clamp(value: number, min: number, max: number) {
 function stopEvent(event: SyntheticEvent<HTMLElement>) {
   event.preventDefault()
   event.stopPropagation()
+}
+
+function getYouTubePosterUrl(videoId: string, quality: string) {
+  return `https://i.ytimg.com/vi/${videoId}/${quality}.jpg`
 }
 
 export const PreparedYouTubeResultPlayer = forwardRef<
@@ -105,7 +118,7 @@ export const PreparedYouTubeResultPlayer = forwardRef<
     maskLeft = 0,
     maskRight = 0,
     logoMaskEnabled = true,
-    logoMaskMode = "soft",
+    logoMaskMode = "off",
     logoMaskX = 50,
     logoMaskY = 49,
     logoMaskWidth = 132,
@@ -113,6 +126,13 @@ export const PreparedYouTubeResultPlayer = forwardRef<
     logoMaskRadius = 999,
     logoMaskBlur = 14,
     logoMaskOpacity = 0.22,
+    bottomUiShieldEnabled = true,
+    bottomUiShieldHeight = 150,
+    bottomUiShieldOpacity = 0.82,
+    topUiShieldEnabled = true,
+    topUiShieldHeight = 96,
+    topUiShieldOpacity = 0.45,
+    posterShieldEnabled = true,
     autoPlayWhenVisible = true,
     onEnded,
     onPlaybackBlocked,
@@ -131,6 +151,7 @@ export const PreparedYouTubeResultPlayer = forwardRef<
   const internalStopRef = useRef(false)
   const [playbackState, setPlaybackState] = useState<PlaybackState>("idle")
   const [showPreparing, setShowPreparing] = useState(false)
+  const [posterQuality, setPosterQuality] = useState(YOUTUBE_MAXRES_POSTER)
   const videoId = useMemo(
     () => (videoUrl ? extractYouTubeVideoId(videoUrl) : null),
     [videoUrl],
@@ -165,6 +186,7 @@ export const PreparedYouTubeResultPlayer = forwardRef<
     iframe.style.minWidth = "100%"
     iframe.style.minHeight = "100%"
     iframe.style.border = "0"
+    iframe.style.pointerEvents = "none"
   }, [])
 
   const schedulePlaybackCheck = useCallback(() => {
@@ -402,6 +424,10 @@ export const PreparedYouTubeResultPlayer = forwardRef<
     playWithSound()
   }, [active, autoPlayWhenVisible, playWithSound, visible])
 
+  useEffect(() => {
+    setPosterQuality(YOUTUBE_MAXRES_POSTER)
+  }, [videoId])
+
   useEffect(
     () => () => {
       clearPlaybackCheck()
@@ -418,6 +444,9 @@ export const PreparedYouTubeResultPlayer = forwardRef<
   )
 
   const showFallback = visible && (playbackState === "blocked" || playbackState === "error")
+  const posterUrl = videoId ? getYouTubePosterUrl(videoId, posterQuality) : null
+  const showPosterShield =
+    Boolean(posterShieldEnabled && posterUrl && visible && playbackState !== "playing")
   const safeIframeScale = Number.isFinite(iframeScale) ? iframeScale : 1
   const safeIframeOffsetX = Number.isFinite(iframeOffsetX) ? iframeOffsetX : 0
   const safeIframeOffsetY = Number.isFinite(iframeOffsetY) ? iframeOffsetY : 0
@@ -426,6 +455,8 @@ export const PreparedYouTubeResultPlayer = forwardRef<
   const shouldShowLogoMask = logoMaskEnabled && logoMaskMode !== "off"
   const safeLogoMaskOpacity = clamp(logoMaskOpacity, 0, 1)
   const safeLogoMaskBlur = Math.max(logoMaskBlur, 0)
+  const safeBottomUiShieldOpacity = clamp(bottomUiShieldOpacity, 0, 1)
+  const safeTopUiShieldOpacity = clamp(topUiShieldOpacity, 0, 1)
   const logoMaskStyle =
     logoMaskMode === "solid"
       ? {
@@ -534,21 +565,49 @@ export const PreparedYouTubeResultPlayer = forwardRef<
           />
         ) : null}
 
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 top-0 z-20 h-20"
-          style={{
-            background: "linear-gradient(to bottom, rgba(0,0,0,0.35), transparent)",
-          }}
-        />
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-24"
-          style={{
-            background:
-              "linear-gradient(to top, rgba(0,0,0,0.55), rgba(0,0,0,0.22), transparent)",
-          }}
-        />
+        {posterShieldEnabled && posterUrl ? (
+          <img
+            aria-hidden="true"
+            alt=""
+            src={posterUrl}
+            className={cn(
+              "pointer-events-none absolute inset-0 z-20 h-full w-full object-cover object-center transition-opacity duration-500",
+              showPosterShield ? "opacity-100" : "opacity-0",
+            )}
+            onError={() => {
+              if (posterQuality !== YOUTUBE_HQ_POSTER) {
+                setPosterQuality(YOUTUBE_HQ_POSTER)
+              }
+            }}
+          />
+        ) : null}
+
+        {topUiShieldEnabled ? (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 top-0 z-30"
+            style={{
+              height: `${Math.max(topUiShieldHeight, 0)}px`,
+              background: `linear-gradient(to bottom, rgba(0,0,0,${safeTopUiShieldOpacity}), rgba(0,0,0,${
+                safeTopUiShieldOpacity * 0.32
+              }) 54%, rgba(0,0,0,0) 100%)`,
+            }}
+          />
+        ) : null}
+        {bottomUiShieldEnabled ? (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 bottom-0 z-30"
+            style={{
+              height: `${Math.max(bottomUiShieldHeight, 0)}px`,
+              background: `linear-gradient(to top, rgba(0,0,0,${safeBottomUiShieldOpacity}) 0%, rgba(0,0,0,${
+                safeBottomUiShieldOpacity * 0.62
+              }) 38%, rgba(0,0,0,${
+                safeBottomUiShieldOpacity * 0.22
+              }) 68%, rgba(0,0,0,0) 100%)`,
+            }}
+          />
+        ) : null}
 
         <div
           className="absolute inset-0 z-40 cursor-default bg-transparent [touch-action:none]"
@@ -559,7 +618,7 @@ export const PreparedYouTubeResultPlayer = forwardRef<
         />
 
         {visible && showPreparing && !showFallback ? (
-          <div className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center bg-black/24 px-6 text-center backdrop-blur-[1px]">
+          <div className="pointer-events-none absolute inset-x-0 bottom-[max(28px,env(safe-area-inset-bottom))] z-50 flex justify-center px-6 text-center">
             <p className="rounded-full border border-gold/25 bg-black/45 px-5 py-3 font-serif text-sm uppercase tracking-[0.22em] text-[#f5eedc]/90">
               Preparando mensaje...
             </p>

@@ -75,13 +75,18 @@ Los deep links no garantizan autoplay con audio. Las escenas con audio pueden re
 - Cada video incluye audio integrado.
 - Intenta autoplay con sonido inmediatamente después del click `REVELAR MENSAJE DE VEYRA`.
 - Si el navegador bloquea autoplay por no tener gesto válido, muestra el fallback: `REPRODUCIR MENSAJE DE VEYRA`.
-- Usa el prepared YouTube result player en modo no-zoom por defecto, con controles ocultos, overlays/masks suaves y overlay transparente para bloquear interacción.
+- Usa el prepared YouTube result player en modo no-zoom por defecto, con controles ocultos, shields suaves y overlay transparente para bloquear interacción.
 - Usa un prepared YouTube result player persistente montado desde el orquestador.
 - Cuando EXP 4 detecta el patrón dominante, el mismo player persistente se prepara con el Short correcto mediante preconnect/dns-prefetch, YouTube IFrame API y `cueVideoById`, sin autoplay ni audio.
 - Al presionar `REVELAR MENSAJE DE VEYRA`, no se crea otro iframe: se revela ese mismo player preparado y se llama `unMute()`, `setVolume(100)` y `playVideo()`.
-- Usa ajustes visuales separados de la VSL: `fitMode="native"`, escala `1`, offsets `0`, máscaras de borde `0` y logo mask suave activada por defecto.
+- Usa ajustes visuales separados de la VSL: `fitMode="native"`, escala `1`, offsets `0`, máscaras de borde `0` y logo mask central apagada por defecto.
 - El ocultamiento visual se hace con gradientes/overlays/masks suaves encima del video, no con zoom agresivo ni crop para sacar elementos del cuadro.
-- Se usa una soft logo mask configurable para cubrir/disimular la marca/UI `Shorts` dentro del iframe sin tocar CSS interno de YouTube; no es un bloque sólido y se puede apagar con `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_MODE=off`.
+- La UI inferior/logo `Shorts` se disimula con un bottom UI shield configurable: gradiente inferior, no bloque sólido ni parche central.
+- Se agregó top UI shield opcional para suavizar título/avatar superior sin tapar el centro del video.
+- Se agregó poster shield opcional con thumbnail de YouTube para evitar flashes iniciales de UI/logo antes de confirmar reproducción.
+- El iframe de YouTube usa `pointer-events: none`.
+- Hay un blocker transparente encima del video para evitar que taps/clicks activen la UI interna de YouTube; fallback y bridge/CTA quedan en capas superiores.
+- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_MODE` sigue existiendo para diagnóstico, pero el default ahora es `off`.
 - En móvil ocupa toda la pantalla disponible del dispositivo dentro de `100dvh`.
 - En desktop respeta el shell móvil centrado del funnel (`max-width` aprox. 460px) y no se abre a todo el ancho de la ventana.
 - Usa audio ambiental de resultado: `/audio/loop-result.mp3`.
@@ -109,7 +114,7 @@ Variables de ajuste EXP 5:
 - `NEXT_PUBLIC_RESULT_YOUTUBE_MASK_BOTTOM` default `0`
 - `NEXT_PUBLIC_RESULT_YOUTUBE_MASK_LEFT` default `0`
 - `NEXT_PUBLIC_RESULT_YOUTUBE_MASK_RIGHT` default `0`
-- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_MODE` default `soft`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_MODE` default `off`
 - `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_ENABLED` default activo
 - `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_X` default `50`
 - `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_Y` default `49`
@@ -118,6 +123,13 @@ Variables de ajuste EXP 5:
 - `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_RADIUS` default `999`
 - `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_BLUR` default `14`
 - `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_OPACITY` default `0.22`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_BOTTOM_UI_SHIELD_ENABLED` default `true`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_BOTTOM_UI_SHIELD_HEIGHT` default `150`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_BOTTOM_UI_SHIELD_OPACITY` default `0.82`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_TOP_UI_SHIELD_ENABLED` default `true`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_TOP_UI_SHIELD_HEIGHT` default `96`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_TOP_UI_SHIELD_OPACITY` default `0.45`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_POSTER_SHIELD_ENABLED` default `true`
 - `NEXT_PUBLIC_RESULT_VIDEO_FALLBACK_DURATION_SECONDS` default `65`
 
 Mapeo:

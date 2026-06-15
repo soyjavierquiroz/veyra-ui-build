@@ -33,6 +33,13 @@ export type FunnelConfig = {
   resultYoutubeLogoMaskRadius: number
   resultYoutubeLogoMaskBlur: number
   resultYoutubeLogoMaskOpacity: number
+  resultYoutubeBottomUiShieldEnabled: boolean
+  resultYoutubeBottomUiShieldHeight: number
+  resultYoutubeBottomUiShieldOpacity: number
+  resultYoutubeTopUiShieldEnabled: boolean
+  resultYoutubeTopUiShieldHeight: number
+  resultYoutubeTopUiShieldOpacity: number
+  resultYoutubePosterShieldEnabled: boolean
   resultVideoFallbackDurationSeconds: number
   whatsappNumber: string
   whatsappBaseUrl: string
@@ -73,7 +80,8 @@ function readResultLogoMaskMode(): ResultLogoMaskMode {
   )
 
   if (value === "off" || value === "solid") return value
-  return "soft"
+  if (value === "soft") return value
+  return "off"
 }
 
 const mode = readMode()
@@ -184,6 +192,34 @@ export const funnelConfig: FunnelConfig = {
   resultYoutubeLogoMaskOpacity: readNumber(
     process.env.NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_OPACITY,
     0.22,
+  ),
+  resultYoutubeBottomUiShieldEnabled: readBoolean(
+    process.env.NEXT_PUBLIC_RESULT_YOUTUBE_BOTTOM_UI_SHIELD_ENABLED,
+    true,
+  ),
+  resultYoutubeBottomUiShieldHeight: readNumber(
+    process.env.NEXT_PUBLIC_RESULT_YOUTUBE_BOTTOM_UI_SHIELD_HEIGHT,
+    150,
+  ),
+  resultYoutubeBottomUiShieldOpacity: readNumber(
+    process.env.NEXT_PUBLIC_RESULT_YOUTUBE_BOTTOM_UI_SHIELD_OPACITY,
+    0.82,
+  ),
+  resultYoutubeTopUiShieldEnabled: readBoolean(
+    process.env.NEXT_PUBLIC_RESULT_YOUTUBE_TOP_UI_SHIELD_ENABLED,
+    true,
+  ),
+  resultYoutubeTopUiShieldHeight: readNumber(
+    process.env.NEXT_PUBLIC_RESULT_YOUTUBE_TOP_UI_SHIELD_HEIGHT,
+    96,
+  ),
+  resultYoutubeTopUiShieldOpacity: readNumber(
+    process.env.NEXT_PUBLIC_RESULT_YOUTUBE_TOP_UI_SHIELD_OPACITY,
+    0.45,
+  ),
+  resultYoutubePosterShieldEnabled: readBoolean(
+    process.env.NEXT_PUBLIC_RESULT_YOUTUBE_POSTER_SHIELD_ENABLED,
+    true,
   ),
   resultVideoFallbackDurationSeconds: readNumber(
     process.env.NEXT_PUBLIC_RESULT_VIDEO_FALLBACK_DURATION_SECONDS,
