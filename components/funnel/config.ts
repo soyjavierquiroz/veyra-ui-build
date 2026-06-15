@@ -23,6 +23,12 @@ export type FunnelConfig = {
   resultYoutubeMaskBottom: number
   resultYoutubeMaskLeft: number
   resultYoutubeMaskRight: number
+  resultYoutubeLogoMaskEnabled: boolean
+  resultYoutubeLogoMaskX: number
+  resultYoutubeLogoMaskY: number
+  resultYoutubeLogoMaskWidth: number
+  resultYoutubeLogoMaskHeight: number
+  resultYoutubeLogoMaskRadius: number
   resultVideoFallbackDurationSeconds: number
   whatsappNumber: string
   whatsappBaseUrl: string
@@ -109,7 +115,7 @@ export const funnelConfig: FunnelConfig = {
     process.env.NEXT_PUBLIC_RESULT_YOUTUBE_CLEAN_MODE !== "false",
   resultYoutubeIframeScale: readNumber(
     process.env.NEXT_PUBLIC_RESULT_YOUTUBE_IFRAME_SCALE,
-    1,
+    1.04,
   ),
   resultYoutubeIframeOffsetX: readNumber(
     process.env.NEXT_PUBLIC_RESULT_YOUTUBE_IFRAME_OFFSET_X,
@@ -125,7 +131,7 @@ export const funnelConfig: FunnelConfig = {
   ),
   resultYoutubeMaskBottom: readNumber(
     process.env.NEXT_PUBLIC_RESULT_YOUTUBE_MASK_BOTTOM,
-    0,
+    48,
   ),
   resultYoutubeMaskLeft: readNumber(
     process.env.NEXT_PUBLIC_RESULT_YOUTUBE_MASK_LEFT,
@@ -134,6 +140,28 @@ export const funnelConfig: FunnelConfig = {
   resultYoutubeMaskRight: readNumber(
     process.env.NEXT_PUBLIC_RESULT_YOUTUBE_MASK_RIGHT,
     0,
+  ),
+  resultYoutubeLogoMaskEnabled:
+    process.env.NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_ENABLED !== "false",
+  resultYoutubeLogoMaskX: readNumber(
+    process.env.NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_X,
+    50,
+  ),
+  resultYoutubeLogoMaskY: readNumber(
+    process.env.NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_Y,
+    50,
+  ),
+  resultYoutubeLogoMaskWidth: readNumber(
+    process.env.NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_WIDTH,
+    180,
+  ),
+  resultYoutubeLogoMaskHeight: readNumber(
+    process.env.NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_HEIGHT,
+    78,
+  ),
+  resultYoutubeLogoMaskRadius: readNumber(
+    process.env.NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_RADIUS,
+    18,
   ),
   resultVideoFallbackDurationSeconds: readNumber(
     process.env.NEXT_PUBLIC_RESULT_VIDEO_FALLBACK_DURATION_SECONDS,

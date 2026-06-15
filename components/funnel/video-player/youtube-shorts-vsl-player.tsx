@@ -68,9 +68,6 @@ const useBrowserLayoutEffect =
   typeof window === "undefined" ? useEffect : useLayoutEffect
 
 let youtubeApiPromise: Promise<any> | null = null
-let prewarmPlayer: YouTubePlayer | null = null
-let prewarmHost: HTMLDivElement | null = null
-let prewarmedVideoId: string | null = null
 
 export function preloadYouTubeIframeApi(): Promise<any> {
   if (typeof window === "undefined") {
@@ -116,7 +113,7 @@ export function preloadYouTubeIframeApi(): Promise<any> {
   return youtubeApiPromise
 }
 
-function ensureYouTubePreconnects() {
+export function ensureYouTubePreconnects() {
   if (typeof document === "undefined") return
 
   const urls = [
@@ -144,87 +141,16 @@ function ensureYouTubePreconnects() {
   }
 }
 
-function ensurePrewarmHost() {
-  if (typeof document === "undefined") return null
-  if (prewarmHost?.isConnected) return prewarmHost
-
-  const host = document.createElement("div")
-  host.setAttribute("aria-hidden", "true")
-  host.style.position = "absolute"
-  host.style.left = "-9999px"
-  host.style.top = "-9999px"
-  host.style.width = "1px"
-  host.style.height = "1px"
-  host.style.opacity = "0"
-  host.style.pointerEvents = "none"
-  host.style.overflow = "hidden"
-  document.body.appendChild(host)
-  prewarmHost = host
-  return host
-}
-
 export function prewarmYouTubeShort(videoUrl: string): void {
   if (typeof window === "undefined") return
 
   const videoId = extractYouTubeVideoId(videoUrl)
-  if (!videoId || prewarmedVideoId === videoId) return
+  if (!videoId) return
 
   ensureYouTubePreconnects()
-
-  void preloadYouTubeIframeApi()
-    .then((YT) => {
-      const host = ensurePrewarmHost()
-      if (!host) return
-
-      if (prewarmPlayer) {
-        try {
-          prewarmPlayer.mute?.()
-          prewarmPlayer.cueVideoById?.(videoId)
-          prewarmedVideoId = videoId
-          return
-        } catch {
-          try {
-            prewarmPlayer.destroy?.()
-          } catch {
-            // Best-effort cleanup for the hidden prewarm player.
-          }
-          prewarmPlayer = null
-          host.replaceChildren()
-        }
-      }
-
-      prewarmPlayer = new YT.Player(host, {
-        videoId,
-        width: "1",
-        height: "1",
-        playerVars: {
-          autoplay: 0,
-          controls: 0,
-          disablekb: 1,
-          enablejsapi: 1,
-          fs: 0,
-          iv_load_policy: 3,
-          modestbranding: 1,
-          origin: window.location.origin,
-          playsinline: 1,
-          rel: 0,
-        },
-        events: {
-          onReady: (event: { target: YouTubePlayer }) => {
-            try {
-              event.target.mute?.()
-              event.target.cueVideoById?.(videoId)
-              prewarmedVideoId = videoId
-            } catch {
-              // Prewarm is opportunistic and must never block the funnel.
-            }
-          },
-        },
-      })
-    })
-    .catch(() => {
-      // Prewarm is opportunistic and must never block the funnel.
-    })
+  void preloadYouTubeIframeApi().catch(() => {
+    // Prewarm is opportunistic and must never block the funnel.
+  })
 }
 
 function clamp(value: number, min: number, max: number) {

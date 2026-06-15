@@ -76,9 +76,11 @@ Los deep links no garantizan autoplay con audio. Las escenas con audio pueden re
 - Intenta autoplay con sonido inmediatamente después del click `REVELAR MENSAJE DE VEYRA`.
 - Si el navegador bloquea autoplay por no tener gesto válido, muestra el fallback: `REPRODUCIR MENSAJE DE VEYRA`.
 - Usa el player YouTube clean mode con controles ocultos, crop/scale, máscaras visuales, gradientes y overlay transparente para bloquear interacción.
-- Usa ajustes visuales separados de la VSL: `verticalMode`, `fitMode="cover"`, escala `1`, offsets `0` y máscaras `0` por defecto para evitar encuadres laterales negros o desplazados.
-- Cuando EXP 4 detecta el patrón dominante, precalienta el Short correcto: agrega preconnect/dns-prefetch, carga la YouTube IFrame API y cuea el video oculto sin autoplay ni audio.
-- El prewarm no reemplaza el gesto de usuario; el play con sonido se intenta recién al presionar `REVELAR MENSAJE DE VEYRA`.
+- Usa un prepared YouTube result player persistente montado desde el orquestador.
+- Cuando EXP 4 detecta el patrón dominante, el mismo player persistente se prepara con el Short correcto mediante preconnect/dns-prefetch, YouTube IFrame API y `cueVideoById`, sin autoplay ni audio.
+- Al presionar `REVELAR MENSAJE DE VEYRA`, no se crea otro iframe: se revela ese mismo player preparado y se llama `unMute()`, `setVolume(100)` y `playVideo()`.
+- Usa ajustes visuales separados de la VSL: wrapper 9:16 dentro del shell, escala `1.04`, offsets `0`, máscara inferior `48px` y logo mask activada por defecto.
+- Se agregó una máscara visual configurable para cubrir la marca/UI `Shorts` dentro del iframe sin tocar CSS interno de YouTube.
 - En móvil ocupa toda la pantalla disponible del dispositivo dentro de `100dvh`.
 - En desktop respeta el shell móvil centrado del funnel (`max-width` aprox. 460px) y no se abre a todo el ancho de la ventana.
 - Usa audio ambiental de resultado: `/audio/loop-result.mp3`.
@@ -99,13 +101,19 @@ Los deep links no garantizan autoplay con audio. Las escenas con audio pueden re
 
 Variables de ajuste EXP 5:
 
-- `NEXT_PUBLIC_RESULT_YOUTUBE_IFRAME_SCALE` default `1`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_IFRAME_SCALE` default `1.04`
 - `NEXT_PUBLIC_RESULT_YOUTUBE_IFRAME_OFFSET_X` default `0`
 - `NEXT_PUBLIC_RESULT_YOUTUBE_IFRAME_OFFSET_Y` default `0`
 - `NEXT_PUBLIC_RESULT_YOUTUBE_MASK_TOP` default `0`
-- `NEXT_PUBLIC_RESULT_YOUTUBE_MASK_BOTTOM` default `0`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_MASK_BOTTOM` default `48`
 - `NEXT_PUBLIC_RESULT_YOUTUBE_MASK_LEFT` default `0`
 - `NEXT_PUBLIC_RESULT_YOUTUBE_MASK_RIGHT` default `0`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_ENABLED` default activo
+- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_X` default `50`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_Y` default `50`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_WIDTH` default `180`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_HEIGHT` default `78`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_RADIUS` default `18`
 - `NEXT_PUBLIC_RESULT_VIDEO_FALLBACK_DURATION_SECONDS` default `65`
 
 Mapeo:

@@ -262,7 +262,7 @@ Fuentes oficiales consultadas:
 
 ## Uso extendido en EXP 5
 
-El mismo patrón de YouTube clean mode se extendió a EXP 5 para los 6 videos de respuesta de Veyra. EXP 5 ya no usa los MP4 locales `resp*-veyra-final.mp4` como fuente principal; ahora monta el player de YouTube Shorts dentro del shell mobile-first y selecciona el Short según el patrón dominante.
+El mismo patrón de YouTube clean mode se extendió a EXP 5 para los 6 videos de respuesta de Veyra. EXP 5 ya no usa los MP4 locales `resp*-veyra-final.mp4` como fuente principal; ahora usa un prepared player de YouTube Shorts persistente dentro del shell mobile-first y selecciona el Short según el patrón dominante.
 
 Mapeo activo:
 
@@ -277,7 +277,7 @@ EXP 5 intenta autoplay con sonido justo después del click `REVELAR MENSAJE DE V
 
 ## Ajustes visuales y prewarm en EXP 5
 
-EXP 5 usa ajustes visuales separados de la VSL para evitar que el crop/máscaras pensados para el video de Janny deformen los Shorts de respuesta. Los defaults de resultado son no agresivos: `verticalMode=true`, `fitMode="cover"`, `iframeScale=1`, offsets `0`, máscaras `0` y sin barra simulada.
+EXP 5 usa ajustes visuales separados de la VSL para evitar que el crop/máscaras pensados para el video de Janny deformen los Shorts de respuesta. Los defaults de resultado son específicos para Shorts: wrapper `9:16`, `iframeScale=1.04`, offsets `0`, máscara inferior `48px`, logo mask activo y sin barra simulada.
 
 Variables de ajuste específicas de EXP 5:
 
@@ -288,8 +288,31 @@ Variables de ajuste específicas de EXP 5:
 - `NEXT_PUBLIC_RESULT_YOUTUBE_MASK_BOTTOM`
 - `NEXT_PUBLIC_RESULT_YOUTUBE_MASK_LEFT`
 - `NEXT_PUBLIC_RESULT_YOUTUBE_MASK_RIGHT`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_ENABLED`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_X`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_Y`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_WIDTH`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_HEIGHT`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_RADIUS`
 - `NEXT_PUBLIC_RESULT_VIDEO_FALLBACK_DURATION_SECONDS`
 
 El player soporta offsets controlados y aplica el iframe con `position:absolute`, `inset:0`, `width/height/minWidth/minHeight:100%`, centrado por transform. En modo vertical, el wrapper usa proporción visual `9:16` para que el Short se sienta full-screen dentro del shell móvil y no quede desplazado lateralmente.
 
-Cuando EXP 4 detecta el patrón dominante, el orquestador precalienta solo el Short correspondiente. Ese prewarm agrega `preconnect`/`dns-prefetch` hacia dominios de YouTube/Google, carga la YouTube IFrame API de forma idempotente y cuea el video en un player oculto de `1px`. No llama `playVideo()`, no desmutea y no reproduce audio. El click `REVELAR MENSAJE DE VEYRA` sigue siendo el gesto que intenta iniciar autoplay con sonido en EXP 5.
+Cuando EXP 4 detecta el patrón dominante, el orquestador prepara solo el Short correspondiente en el mismo player persistente que luego se revela. La preparación agrega `preconnect`/`dns-prefetch`, carga la YouTube IFrame API de forma idempotente y cuea el video sin llamar `playVideo()`, sin desmutear y sin reproducir audio. El click `REVELAR MENSAJE DE VEYRA` sigue siendo el gesto que intenta iniciar autoplay con sonido en EXP 5.
+
+## Prepared player y logo mask en EXP 5
+
+La estrategia de precarga de EXP 5 se cambió de un prewarm oculto suelto a un prepared player persistente montado por `FunnelOrchestrator`. Cuando EXP 4 detecta el patrón dominante, el player real de resultado ya montado hace `cueVideoById(videoId)` sin reproducir audio. Al click `REVELAR MENSAJE DE VEYRA`, ese mismo player se revela y ejecuta `unMute()`, `setVolume(100)` y `playVideo()`, evitando crear un iframe nuevo al entrar a EXP 5.
+
+EXP 5 ya no monta `YouTubeShortsVslPlayer`; ahora funciona como capa de overlays, bridge y CTA sobre `PreparedYouTubeResultPlayer`. Esto evita doble iframe, doble audio y pérdida de preparación entre EXP 4 y EXP 5. El helper `prewarmYouTubeShort` queda limitado a preconnect/dns-prefetch/carga de API.
+
+Para ocultar visualmente la UI/marca `Shorts`, el result player agrega una máscara radial encima del iframe y por debajo del blocker/fallback. La máscara es configurable con:
+
+- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_ENABLED`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_X`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_Y`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_WIDTH`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_HEIGHT`
+- `NEXT_PUBLIC_RESULT_YOUTUBE_LOGO_MASK_RADIUS`
+
+Los defaults actuales de resultado son `iframeScale=1.04`, `maskBottom=48`, logo mask activo en `50% / 50%`, `180x78px`, radio `18px`. El iframe queda clippeado dentro del shell móvil centrado (`max-width` aprox. `460px`) y no usa `fixed`, `w-screen`, `h-screen` ni `100vw`.

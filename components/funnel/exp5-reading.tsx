@@ -1,58 +1,45 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
 import { ArrowRight } from "lucide-react"
 import type { PatternKey } from "./types"
 import { PATTERNS } from "./types"
-import { funnelConfig, resultYoutubeShortsByPattern } from "./config"
 import { Particles } from "./particles"
-import {
-  prewarmYouTubeShort,
-  YouTubeShortsVslPlayer,
-} from "./video-player/youtube-shorts-vsl-player"
 
 type ResultVideoConfig = {
-  videoUrl: string
   shortText: string
   bridge: string
 }
 
 const RESULT_VIDEOS: Record<PatternKey, ResultVideoConfig> = {
   A: {
-    videoUrl: resultYoutubeShortsByPattern.A,
     shortText:
       "No buscabas solo una respuesta.\nBuscabas una señal de que todavía existes para él.",
     bridge: "Veyra reveló el miedo.\nJanny puede ayudarte a no abandonarte tú.",
   },
   B: {
-    videoUrl: resultYoutubeShortsByPattern.B,
     shortText:
       "No querías solo que respondiera.\nQuerías sentir que todavía importas.",
     bridge:
       "Veyra reveló la búsqueda.\nJanny puede ayudarte a recuperar tu centro.",
   },
   C: {
-    videoUrl: resultYoutubeShortsByPattern.C,
     shortText:
       "Tu mente pide una explicación.\nPero tu emoción puede estar buscando volver a abrir la puerta.",
     bridge:
       "Veyra reveló la pregunta abierta.\nJanny puede ayudarte a ordenar lo que duele adentro.",
   },
   D: {
-    videoUrl: resultYoutubeShortsByPattern.D,
     shortText: "Una parte de ti cree que cuidarte también puede lastimar.",
     bridge:
       "Veyra reveló la culpa.\nJanny puede ayudarte a elegirte sin castigarte.",
   },
   E: {
-    videoUrl: resultYoutubeShortsByPattern.E,
     shortText:
       "No extrañas solo a esa persona.\nExtrañas cómo te sentías cuando parecía posible.",
     bridge:
       "Veyra reveló la nostalgia.\nJanny puede ayudarte a mirar la historia completa.",
   },
   F: {
-    videoUrl: resultYoutubeShortsByPattern.F,
     shortText:
       "Tu impulso no buscaba una conversación.\nBuscaba apagar la angustia que aparece cuando él no responde.",
     bridge:
@@ -62,86 +49,28 @@ const RESULT_VIDEOS: Record<PatternKey, ResultVideoConfig> = {
 
 export function Exp5Reading({
   pattern,
-  startToken,
-  onEnter,
+  showBridge,
   onComplete,
 }: {
   pattern: PatternKey
-  startToken: number
-  onEnter?: () => void
+  showBridge: boolean
   onComplete: () => void
 }) {
-  const fallbackTimerRef = useRef<number | null>(null)
-  const [showBridge, setShowBridge] = useState(false)
-
   const config = RESULT_VIDEOS[pattern] ?? RESULT_VIDEOS.A
   const info = PATTERNS[pattern] ?? PATTERNS.A
-
-  const clearFallbackTimer = useCallback(() => {
-    if (fallbackTimerRef.current === null) return
-
-    window.clearTimeout(fallbackTimerRef.current)
-    fallbackTimerRef.current = null
-  }, [])
-
-  useEffect(() => {
-    onEnter?.()
-    prewarmYouTubeShort(config.videoUrl)
-    clearFallbackTimer()
-    setShowBridge(false)
-
-    fallbackTimerRef.current = window.setTimeout(() => {
-      fallbackTimerRef.current = null
-      setShowBridge(true)
-    }, funnelConfig.resultVideoFallbackDurationSeconds * 1000)
-
-    return clearFallbackTimer
-  }, [
-    clearFallbackTimer,
-    config.videoUrl,
-    funnelConfig.resultVideoFallbackDurationSeconds,
-    onEnter,
-    startToken,
-  ])
 
   const handleComplete = () => {
     onComplete()
   }
 
-  const handleVideoEnded = useCallback(() => {
-    clearFallbackTimer()
-    setShowBridge(true)
-  }, [clearFallbackTimer])
-
   return (
-    <section className="relative flex min-h-screen w-full min-w-[320px] justify-center overflow-hidden bg-mystic text-white">
-      <div className="relative min-h-[100dvh] w-full max-w-[460px] overflow-hidden bg-black shadow-[0_0_80px_oklch(0.13_0.03_295_/_0.8)] md:border-x md:border-gold/10">
-        <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_50%_28%,oklch(0.36_0.15_304/.34),transparent_34%),radial-gradient(circle_at_50%_78%,oklch(0.72_0.12_86/.12),transparent_34%),linear-gradient(180deg,oklch(0.06_0.03_292),oklch(0.12_0.07_300)_48%,oklch(0.05_0.02_292))]" />
+    <section
+      className={`relative z-10 flex min-h-screen w-full min-w-[320px] justify-center overflow-hidden bg-transparent text-white ${
+        showBridge ? "" : "pointer-events-none"
+      }`}
+    >
+      <div className="relative min-h-[100dvh] w-full max-w-[460px] overflow-hidden bg-transparent shadow-[0_0_80px_oklch(0.13_0.03_295_/_0.8)] md:border-x md:border-gold/10">
         <div className="pointer-events-none absolute left-1/2 top-1/2 z-0 size-[360px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-gold/10 blur-[1px] access-portal" />
-
-        <YouTubeShortsVslPlayer
-          key={`${pattern}-${startToken}-${config.videoUrl}`}
-          videoUrl={config.videoUrl}
-          autoPlay
-          startWithSound
-          blockUserInteraction
-          cleanMode={funnelConfig.resultYoutubeCleanMode}
-          verticalMode
-          fitMode="cover"
-          iframeScale={funnelConfig.resultYoutubeIframeScale}
-          iframeOffsetX={funnelConfig.resultYoutubeIframeOffsetX}
-          iframeOffsetY={funnelConfig.resultYoutubeIframeOffsetY}
-          maskTop={funnelConfig.resultYoutubeMaskTop}
-          maskBottom={funnelConfig.resultYoutubeMaskBottom}
-          maskLeft={funnelConfig.resultYoutubeMaskLeft}
-          maskRight={funnelConfig.resultYoutubeMaskRight}
-          fallbackLabel="REPRODUCIR MENSAJE DE VEYRA"
-          showSimulatedProgress={false}
-          onEnded={handleVideoEnded}
-          className={`absolute inset-0 z-0 h-full w-full transition-opacity duration-700 ${
-            showBridge ? "opacity-40" : "opacity-100"
-          }`}
-        />
 
         <div className="pointer-events-none absolute inset-0 z-10 bg-black/10" />
         <div className="pointer-events-none absolute inset-0 z-10 bg-[radial-gradient(75%_70%_at_50%_43%,transparent_36%,oklch(0.05_0.02_295/.62)_100%)]" />
@@ -152,11 +81,7 @@ export function Exp5Reading({
           <Particles count={22} />
         </div>
 
-        <div
-          className={`relative z-20 flex min-h-[100dvh] w-full flex-col justify-between px-5 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(2.4rem,env(safe-area-inset-top))] sm:px-6 ${
-            showBridge ? "" : "pointer-events-none"
-          }`}
-        >
+        <div className="relative z-20 flex min-h-[100dvh] w-full flex-col justify-between px-5 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(2.4rem,env(safe-area-inset-top))] sm:px-6">
           <div aria-hidden="true" />
           <div className="min-h-[34vh]" />
 

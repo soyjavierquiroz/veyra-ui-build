@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import type { PatternKey, Stage } from "./types"
-import { resultYoutubeShortsByPattern } from "./config"
+import { funnelConfig, resultYoutubeShortsByPattern } from "./config"
 import { trackFunnelEvent } from "./lib/analytics"
 import { getInitialSceneFromUrl, getPatternFromUrl } from "./lib/deep-link"
 import { Exp1Video } from "./exp1-video"
@@ -17,7 +17,10 @@ import { Exp8Login } from "./exp8-login"
 import { Exp9Feed } from "./exp9-feed"
 import { Exp10Offer } from "./exp10-offer"
 import { Exp11WhatsappOp, type OpEntry } from "./exp11-whatsapp-op"
-import { prewarmYouTubeShort } from "./video-player/youtube-shorts-vsl-player"
+import {
+  PreparedYouTubeResultPlayer,
+  type PreparedYouTubeResultPlayerHandle,
+} from "./video-player/prepared-youtube-result-player"
 
 const QUIZ_LOOP_VOLUME = 0.4
 const RESULT_LOOP_VOLUME = 0.15
@@ -42,7 +45,10 @@ const QUIZ_PRIMARY_AUDIO_BY_ANSWERED_QUESTION_INDEX: Partial<
 export function FunnelOrchestrator() {
   const [stage, setStage] = useState<Stage>("video")
   const [pattern, setPattern] = useState<PatternKey>("A")
-  const [revealVideoStartToken, setRevealVideoStartToken] = useState(0)
+  const [preparedResultVideoUrl, setPreparedResultVideoUrl] = useState<
+    string | null
+  >(null)
+  const [showResultBridge, setShowResultBridge] = useState(false)
   const [opEntry, setOpEntry] = useState<OpEntry>("buy")
   const introAudioRef = useRef<HTMLAudioElement>(null)
   const introAudioStarted = useRef(false)
@@ -54,6 +60,9 @@ export function FunnelOrchestrator() {
   const quizAudioPreloadPromiseRef = useRef<Promise<void> | null>(null)
   const quizPrimarySourceRef = useRef<AudioBufferSourceNode | null>(null)
   const quizPrimaryGainRef = useRef<GainNode | null>(null)
+  const preparedResultPlayerRef =
+    useRef<PreparedYouTubeResultPlayerHandle | null>(null)
+  const resultFallbackTimerRef = useRef<number | null>(null)
 
   useEffect(() => {
     const initialStage = getInitialSceneFromUrl()
@@ -62,8 +71,10 @@ export function FunnelOrchestrator() {
     // Query deep links are for internal scene review without a visible QA panel.
     if (initialStage === "reading") {
       const initialPattern = getPatternFromUrl() ?? "A"
+      const initialResultUrl = resultYoutubeShortsByPattern[initialPattern]
       setPattern(initialPattern)
-      prewarmYouTubeShort(resultYoutubeShortsByPattern[initialPattern])
+      setPreparedResultVideoUrl(initialResultUrl)
+      preparedResultPlayerRef.current?.prepare(initialResultUrl)
     }
     setStage(initialStage)
   }, [])
@@ -376,6 +387,26 @@ export function FunnelOrchestrator() {
     stopQuizPrimaryAudio()
   }, [stopQuizLoop, stopQuizPrimaryAudio])
 
+  const clearResultFallbackTimer = useCallback(() => {
+    if (resultFallbackTimerRef.current === null) return
+
+    window.clearTimeout(resultFallbackTimerRef.current)
+    resultFallbackTimerRef.current = null
+  }, [])
+
+  const startResultFallbackTimer = useCallback(() => {
+    clearResultFallbackTimer()
+    resultFallbackTimerRef.current = window.setTimeout(() => {
+      resultFallbackTimerRef.current = null
+      setShowResultBridge(true)
+    }, funnelConfig.resultVideoFallbackDurationSeconds * 1000)
+  }, [clearResultFallbackTimer])
+
+  const handleResultVideoEnded = useCallback(() => {
+    clearResultFallbackTimer()
+    setShowResultBridge(true)
+  }, [clearResultFallbackTimer])
+
   useEffect(() => {
     if (stage === "quiz") return
 
@@ -389,23 +420,39 @@ export function FunnelOrchestrator() {
   }, [stage, stopResultLoop])
 
   useEffect(() => {
+    if (stage === "reading") {
+      startResultFallbackTimer()
+      return
+    }
+
+    clearResultFallbackTimer()
+    setShowResultBridge(false)
+  }, [clearResultFallbackTimer, stage, startResultFallbackTimer])
+
+  useEffect(() => {
     void preloadQuizPrimaryAudio()
   }, [preloadQuizPrimaryAudio])
 
   useEffect(() => {
     return () => {
+      clearResultFallbackTimer()
+      preparedResultPlayerRef.current?.stop()
       stopQuizAudio()
       stopResultLoop()
     }
-  }, [stopQuizAudio, stopResultLoop])
+  }, [clearResultFallbackTimer, stopQuizAudio, stopResultLoop])
 
   const handleRevealVeyraMessage = useCallback(
     (p: PatternKey) => {
+      const resultVideoUrl = resultYoutubeShortsByPattern[p]
       setPattern(p)
+      setPreparedResultVideoUrl(resultVideoUrl)
+      setShowResultBridge(false)
       stopQuizAudio()
       startResultLoop()
+      preparedResultPlayerRef.current?.prepare(resultVideoUrl)
+      preparedResultPlayerRef.current?.playWithSound()
       trackFunnelEvent("pattern_revealed", { pattern: p })
-      setRevealVideoStartToken((token) => token + 1)
       go("reading")
     },
     [go, startResultLoop, stopQuizAudio],
@@ -429,6 +476,27 @@ export function FunnelOrchestrator() {
       <audio
         ref={quizPrimaryFallbackAudioRef}
         preload="auto"
+      />
+      <PreparedYouTubeResultPlayer
+        ref={preparedResultPlayerRef}
+        videoUrl={preparedResultVideoUrl}
+        active={Boolean(preparedResultVideoUrl) && stage !== "vsl"}
+        visible={stage === "reading"}
+        fallbackLabel="REPRODUCIR MENSAJE DE VEYRA"
+        iframeScale={funnelConfig.resultYoutubeIframeScale}
+        iframeOffsetX={funnelConfig.resultYoutubeIframeOffsetX}
+        iframeOffsetY={funnelConfig.resultYoutubeIframeOffsetY}
+        maskTop={funnelConfig.resultYoutubeMaskTop}
+        maskBottom={funnelConfig.resultYoutubeMaskBottom}
+        maskLeft={funnelConfig.resultYoutubeMaskLeft}
+        maskRight={funnelConfig.resultYoutubeMaskRight}
+        logoMaskEnabled={funnelConfig.resultYoutubeLogoMaskEnabled}
+        logoMaskX={funnelConfig.resultYoutubeLogoMaskX}
+        logoMaskY={funnelConfig.resultYoutubeLogoMaskY}
+        logoMaskWidth={funnelConfig.resultYoutubeLogoMaskWidth}
+        logoMaskHeight={funnelConfig.resultYoutubeLogoMaskHeight}
+        logoMaskRadius={funnelConfig.resultYoutubeLogoMaskRadius}
+        onEnded={handleResultVideoEnded}
       />
       {stage === "video" && (
         <Exp1Video
@@ -467,9 +535,11 @@ export function FunnelOrchestrator() {
             stopQuizAudio()
           }}
           onPatternReady={(p) => {
+            const resultVideoUrl = resultYoutubeShortsByPattern[p]
             setPattern(p)
+            setPreparedResultVideoUrl(resultVideoUrl)
             stopQuizAudio()
-            prewarmYouTubeShort(resultYoutubeShortsByPattern[p])
+            preparedResultPlayerRef.current?.prepare(resultVideoUrl)
           }}
           onComplete={handleRevealVeyraMessage}
         />
@@ -477,11 +547,14 @@ export function FunnelOrchestrator() {
       {stage === "reading" && (
         <Exp5Reading
           pattern={pattern}
-          startToken={revealVideoStartToken}
-          onEnter={stopQuizAudio}
+          showBridge={showResultBridge}
           onComplete={() => {
             stopQuizAudio()
             stopResultLoop()
+            clearResultFallbackTimer()
+            preparedResultPlayerRef.current?.reset()
+            setPreparedResultVideoUrl(null)
+            setShowResultBridge(false)
             go("vsl")
           }}
         />
