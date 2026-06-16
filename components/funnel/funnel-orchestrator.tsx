@@ -4,7 +4,12 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import type { PatternKey, Stage } from "./types"
 import { PATTERNS } from "./types"
 import { versionAsset } from "./asset-version"
-import { getOrCreateFunnelSid, goToOffer } from "./funnel-handoff"
+import {
+  getOrCreateFunnelSid,
+  goToOffer,
+  persistFunnelPattern,
+  resolveFunnelPattern,
+} from "./funnel-handoff"
 import { funnelConfig, resultMp4VideosByPattern } from "./config"
 import { trackFunnelEvent } from "./lib/analytics"
 import { getInitialSceneFromUrl, getPatternFromUrl } from "./lib/deep-link"
@@ -56,6 +61,10 @@ const QUIZ_PRIMARY_AUDIO_BY_ANSWERED_QUESTION_INDEX: Partial<
 
 function getResultMp4Src(pattern: PatternKey) {
   return versionAsset(resultMp4VideosByPattern[pattern])
+}
+
+function getPatternLabel(pattern: PatternKey) {
+  return PATTERNS[pattern]?.label ?? ""
 }
 
 function fadeAudioElement(
@@ -128,11 +137,20 @@ export function FunnelOrchestrator() {
 
   useEffect(() => {
     const initialStage = getInitialSceneFromUrl()
+    const initialPattern = getPatternFromUrl()
+
+    getOrCreateFunnelSid()
+
+    if (initialPattern) {
+      setPattern(initialPattern)
+      setHasResolvedPattern(true)
+      persistFunnelPattern(getPatternLabel(initialPattern))
+    }
+
     if (!initialStage) return
 
     // Query deep links are for internal scene review without a visible QA panel.
     if (initialStage === "reading") {
-      const initialPattern = getPatternFromUrl()
       const readingPattern = initialPattern ?? "A"
       const initialResultSrc = getResultMp4Src(readingPattern)
       setPattern(readingPattern)
@@ -144,10 +162,6 @@ export function FunnelOrchestrator() {
       setShowResultBridge(false)
     }
     setStage(initialStage)
-  }, [])
-
-  useEffect(() => {
-    getOrCreateFunnelSid()
   }, [])
 
   const go = useCallback(
@@ -710,6 +724,7 @@ export function FunnelOrchestrator() {
       setShowResultBridge(false)
       showResultRevealVeil()
       resultPlayerRef.current?.preload()
+      persistFunnelPattern(getPatternLabel(p))
       trackFunnelEvent("pattern_revealed", { pattern: p })
       go("reading")
     },
@@ -717,9 +732,9 @@ export function FunnelOrchestrator() {
   )
 
   const getHandoffPattern = useCallback(() => {
-    if (!hasResolvedPattern) return ""
+    if (!hasResolvedPattern) return resolveFunnelPattern()
 
-    return PATTERNS[pattern]?.label ?? ""
+    return getPatternLabel(pattern)
   }, [hasResolvedPattern, pattern])
 
   const handleVslComplete = useCallback(() => {
@@ -853,6 +868,7 @@ export function FunnelOrchestrator() {
             setResultPlayerReadyToReveal(false)
             setResultRevealRequested(false)
             setResultVideoPlaying(false)
+            persistFunnelPattern(getPatternLabel(p))
             resultPlayerRef.current?.preload()
           }}
           onComplete={handlePatternReadyForReading}

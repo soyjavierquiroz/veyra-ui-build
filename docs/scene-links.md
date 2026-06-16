@@ -170,6 +170,8 @@ Deep links:
 - En orgánico navega a `/o/no-le-escribas`.
 - En ads navega a `/x9m/o/no-le-escribas`.
 - Antes del handoff guarda `rtp_funnel_context_v1` en `localStorage`.
+- El patrón se normaliza y persiste en `rtp_funnel_pattern_v1`, y también dentro de `rtp_funnel_context_v1`.
+- Si la VSL se abre por deep link, el handoff resuelve el patrón desde `pattern` en URL o storage antes de navegar.
 - `exp10-offer` no es destino del flujo principal.
 - No pasa por portal, WhatsApp hook, login, feed ni operación WhatsApp antes de mostrar la Oferta.
 - La VSL activa usa Bunny/HLS mediante `VslVideoPlayer`.
@@ -230,6 +232,7 @@ Reglas:
   - orgánico: `/o/no-le-escribas`
   - ads: `/x9m/o/no-le-escribas`
 - Antes del handoff se guarda `rtp_funnel_context_v1`.
+- Antes del handoff se guarda `rtp_funnel_pattern_v1`.
 - `exp10-offer` queda legacy/manual si existe.
 - No se dispara Lead/CompleteRegistration/InitiateCheckout/Purchase desde el funnel.
 - Los assets públicos se sirven bajo el basePath del build:
