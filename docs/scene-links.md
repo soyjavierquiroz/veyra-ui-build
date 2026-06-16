@@ -11,13 +11,13 @@ Landing
 → EXP 4 quiz
 → EXP 5 lectura/respuesta MP4
 → VSL
-→ Oferta
+→ Oferta real en dominio principal
 
 - La VSL es la última experiencia antes de la Oferta.
 - EXP 6/7/8/9/11 quedan fuera del flujo principal.
 - YouTube sigue fuera del runtime activo.
 - EXP 5 usa MP4 local versionado con `versionAsset()`.
-- La Oferta activa es `exp10-offer`.
+- La Oferta activa está en el repo principal; `exp10-offer` queda legacy/manual.
 
 ## Deep links principales
 
@@ -49,7 +49,7 @@ Los deep links no garantizan autoplay con audio. Las escenas con audio pueden re
 
 ## Asset versioning / cache busting
 
-- Los assets públicos de audio/video se cargan con `?v=<NEXT_PUBLIC_ASSET_VERSION>`.
+- Los assets públicos de audio/video/images del funnel se cargan con el `basePath` del build y `?v=<NEXT_PUBLIC_ASSET_VERSION>`.
 - Esto evita caché vieja de Cloudflare/navegador cuando se reemplazan MP3/MP4 con el mismo nombre.
 - Versión actual: `ed12a5d`.
 - Si se cambian assets, actualizar `NEXT_PUBLIC_ASSET_VERSION` o el fallback en `components/funnel/asset-version.ts`.
@@ -166,7 +166,11 @@ Deep links:
 
 - Deep link: https://mnle.reconociendotupoder.com/?scene=vsl-interlude
 - Flujo principal: `EXP 5` → `ABRIR EL CAMINO HACIA JANNY` → VSL full-screen mobile-first.
-- Al terminar la VSL, el flujo va directo a Oferta en `exp10-offer`.
+- Al terminar la VSL, el flujo hace handoff a la oferta real en el dominio principal.
+- En orgánico navega a `/o/no-le-escribas`.
+- En ads navega a `/x9m/o/no-le-escribas`.
+- Antes del handoff guarda `rtp_funnel_context_v1` en `localStorage`.
+- `exp10-offer` no es destino del flujo principal.
 - No pasa por portal, WhatsApp hook, login, feed ni operación WhatsApp antes de mostrar la Oferta.
 - La VSL activa usa Bunny/HLS mediante `VslVideoPlayer`.
 - La ruta YouTube de VSL fue retirada del runtime activo para evitar iframe/autoplay inestable en móviles.
@@ -193,7 +197,7 @@ Deep links:
 ## EXP 10 Oferta
 
 - Deep link: https://mnle.reconociendotupoder.com/?scene=exp10-offer
-- Es la escena posterior directa a la VSL en el flujo principal.
+- Es una escena legacy/manual y ya no es la escena posterior directa a la VSL en el flujo principal.
 - Los CTAs de compra/duda abren la ruta `/whatsapp/` con el modo correspondiente.
 - La operación WhatsApp no es una experiencia obligatoria antes de ver la Oferta.
 
@@ -202,3 +206,39 @@ Deep links:
 - `exp6-portal`, `exp7-whatsapp-hook`, `exp8-login`, `exp9-feed` y `exp11-whatsapp-op` siguen disponibles solo por deep link de auditoria o por la ruta standalone `/whatsapp/` cuando aplica.
 - Ninguna de estas escenas se usa entre EXP 5 y VSL.
 - Ninguna de estas escenas se usa entre VSL y Oferta.
+
+## Same-domain publishing MNLE
+
+Rutas planeadas:
+
+Orgánico:
+https://reconociendotupoder.com/fi/mnle
+
+Ads:
+https://reconociendotupoder.com/x9m/fi/mnle
+
+Legacy temporal:
+https://mnle.reconociendotupoder.com
+
+Reglas:
+
+- `/fi/mnle` no activa Pixel/CAPI/TikTok.
+- `/x9m/fi/mnle` puede activar tracking ads sólo por estar bajo `/x9m`.
+- fbclid/UTMs no activan tracking fuera de `/x9m`.
+- VSL ya no debe ir a `exp10-offer` interno como flujo principal.
+- VSL debe hacer handoff a la oferta real:
+  - orgánico: `/o/no-le-escribas`
+  - ads: `/x9m/o/no-le-escribas`
+- Antes del handoff se guarda `rtp_funnel_context_v1`.
+- `exp10-offer` queda legacy/manual si existe.
+- No se dispara Lead/CompleteRegistration/InitiateCheckout/Purchase desde el funnel.
+- Los assets públicos se sirven bajo el basePath del build:
+  - `/fi/mnle/audio`, `/fi/mnle/videos`, `/fi/mnle/images`
+  - `/x9m/fi/mnle/audio`, `/x9m/fi/mnle/videos`, `/x9m/fi/mnle/images`
+
+Recordatorio:
+
+Todo deploy futuro del repo oferta debe excluir:
+
+- `/fi/`
+- `/x9m/fi/`

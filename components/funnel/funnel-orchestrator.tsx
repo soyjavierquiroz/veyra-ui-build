@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import type { PatternKey, Stage } from "./types"
+import { PATTERNS } from "./types"
 import { versionAsset } from "./asset-version"
+import { getOrCreateFunnelSid, goToOffer } from "./funnel-handoff"
 import { funnelConfig, resultMp4VideosByPattern } from "./config"
 import { trackFunnelEvent } from "./lib/analytics"
 import { getInitialSceneFromUrl, getPatternFromUrl } from "./lib/deep-link"
@@ -95,6 +97,7 @@ function fadeAudioElement(
 export function FunnelOrchestrator() {
   const [stage, setStage] = useState<Stage>("video")
   const [pattern, setPattern] = useState<PatternKey>("A")
+  const [hasResolvedPattern, setHasResolvedPattern] = useState(false)
   const [preparedResultVideoSrc, setPreparedResultVideoSrc] = useState<
     string | null
   >(null)
@@ -129,9 +132,11 @@ export function FunnelOrchestrator() {
 
     // Query deep links are for internal scene review without a visible QA panel.
     if (initialStage === "reading") {
-      const initialPattern = getPatternFromUrl() ?? "A"
-      const initialResultSrc = getResultMp4Src(initialPattern)
-      setPattern(initialPattern)
+      const initialPattern = getPatternFromUrl()
+      const readingPattern = initialPattern ?? "A"
+      const initialResultSrc = getResultMp4Src(readingPattern)
+      setPattern(readingPattern)
+      setHasResolvedPattern(Boolean(initialPattern))
       setPreparedResultVideoSrc(initialResultSrc)
       setResultPlayerReadyToReveal(false)
       setResultRevealRequested(false)
@@ -139,6 +144,10 @@ export function FunnelOrchestrator() {
       setShowResultBridge(false)
     }
     setStage(initialStage)
+  }, [])
+
+  useEffect(() => {
+    getOrCreateFunnelSid()
   }, [])
 
   const go = useCallback(
@@ -693,6 +702,7 @@ export function FunnelOrchestrator() {
     (p: PatternKey) => {
       const resultVideoSrc = getResultMp4Src(p)
       setPattern(p)
+      setHasResolvedPattern(true)
       setPreparedResultVideoSrc(resultVideoSrc)
       setResultPlayerReadyToReveal(false)
       setResultRevealRequested(false)
@@ -705,6 +715,19 @@ export function FunnelOrchestrator() {
     },
     [go, showResultRevealVeil],
   )
+
+  const getHandoffPattern = useCallback(() => {
+    if (!hasResolvedPattern) return ""
+
+    return PATTERNS[pattern]?.label ?? ""
+  }, [hasResolvedPattern, pattern])
+
+  const handleVslComplete = useCallback(() => {
+    goToOffer({
+      pattern: getHandoffPattern(),
+      vslCompleted: true,
+    })
+  }, [getHandoffPattern])
 
   const handleRevealPreparedResult = useCallback(async () => {
     const player = resultPlayerRef.current
@@ -825,6 +848,7 @@ export function FunnelOrchestrator() {
           onPatternReady={(p) => {
             const resultVideoSrc = getResultMp4Src(p)
             setPattern(p)
+            setHasResolvedPattern(true)
             setPreparedResultVideoSrc(resultVideoSrc)
             setResultPlayerReadyToReveal(false)
             setResultRevealRequested(false)
@@ -887,7 +911,7 @@ export function FunnelOrchestrator() {
         </div>
       )}
       {stage === "portal" && <Exp6Portal onComplete={() => go("vsl")} />}
-      {stage === "vsl" && <VslInterlude onComplete={() => go("offer")} />}
+      {stage === "vsl" && <VslInterlude onComplete={handleVslComplete} />}
       {stage === "whatsapp-hook" && (
         <Exp7WhatsappHook onComplete={() => go("login")} />
       )}
