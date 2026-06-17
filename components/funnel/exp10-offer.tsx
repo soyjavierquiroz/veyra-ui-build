@@ -7,8 +7,11 @@ import {
   ShieldCheck,
   MessageCircleQuestion,
 } from "lucide-react"
+import { rootPublicAsset } from "./asset-version"
 import { funnelConfig } from "./config"
 import { Particles } from "./particles"
+
+const JANNY_PORTRAIT_SRC = rootPublicAsset("janny-portrait.png")
 
 const INCLUDES = [
   "Recorrido guiado de 7 días.",
@@ -65,7 +68,7 @@ export function Exp10Offer({
         <div className="mb-8 flex flex-col items-center gap-4 rounded-2xl border border-gold/30 bg-card/60 p-6 text-center backdrop-blur">
           <div className="relative size-24 overflow-hidden rounded-full border border-gold/40 glow-gold">
             <Image
-              src="/janny-portrait.png"
+              src={JANNY_PORTRAIT_SRC}
               alt="Janny Helguero"
               fill
               className="object-cover"

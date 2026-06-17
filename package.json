@@ -6,6 +6,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:fi": "rm -rf .next out out-fi-mnle && NEXT_PUBLIC_FUNNEL_BASE_PATH=/fi/mnle NEXT_PUBLIC_ADS_PREFIX=/x9m next build && cp -a out out-fi-mnle",
+    "build:x9m-fi": "rm -rf .next out out-x9m-fi-mnle && NEXT_PUBLIC_FUNNEL_BASE_PATH=/x9m/fi/mnle NEXT_PUBLIC_ADS_PREFIX=/x9m next build && cp -a out out-x9m-fi-mnle",
+    "build:main-domain": "pnpm build:fi && pnpm build:x9m-fi",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",

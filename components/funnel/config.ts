@@ -1,4 +1,5 @@
 import type { PatternKey } from "./types"
+import { publicAssetPath } from "./asset-version"
 
 export type FunnelMode = "demo" | "production"
 export type ResultVideoObjectFit = "cover" | "contain"
@@ -52,12 +53,15 @@ export const TEMPORARY_BUNNY_VSL_URL =
   "https://vz-febf8c0d-fb8.b-cdn.net/1924db19-affb-41ea-a457-4195d85671c6/playlist.m3u8"
 
 export const resultMp4Videos = {
-  abandono: "/videos/resp1-veyra-final.mp4",
-  validacion: "/videos/resp2-veyra-final.mp4",
-  cierre: "/videos/resp3-veyra-final.mp4",
-  culpa: "/videos/resp4-veyra-final.mp4",
-  nostalgia: "/videos/resp5-veyra-final.mp4",
-  "ansiedad-silencio": "/videos/resp6-veyra-final.mp4",
+  abandono: publicAssetPath("videos", "resp1-veyra-final.mp4"),
+  validacion: publicAssetPath("videos", "resp2-veyra-final.mp4"),
+  cierre: publicAssetPath("videos", "resp3-veyra-final.mp4"),
+  culpa: publicAssetPath("videos", "resp4-veyra-final.mp4"),
+  nostalgia: publicAssetPath("videos", "resp5-veyra-final.mp4"),
+  "ansiedad-silencio": publicAssetPath(
+    "videos",
+    "resp6-veyra-final.mp4",
+  ),
 } as const
 
 export const resultMp4VideosByPattern: Record<PatternKey, string> = {

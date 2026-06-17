@@ -20,11 +20,13 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion"
 import { funnelConfig } from "@/components/funnel/config"
+import { rootPublicAsset } from "@/components/funnel/asset-version"
 import { trackFunnelEvent } from "@/components/funnel/lib/analytics"
 import { Particles } from "@/components/funnel/particles"
 import { VeyraOrb } from "@/components/funnel/veyra-orb"
 
-const PRIMARY_HREF = "/whatsapp"
+const PRIMARY_HREF = ["/", "whatsapp"].join("")
+const JANNY_PORTRAIT_SRC = rootPublicAsset("janny-portrait.png")
 
 function Section({
   children,
@@ -298,7 +300,7 @@ export function SalesPage() {
       <Section>
         <div className="flex flex-col items-center gap-4 rounded-3xl border border-gold/30 bg-card/50 p-6 text-center backdrop-blur">
           <div className="relative size-28 overflow-hidden rounded-full border border-gold/40 glow-gold">
-            <Image src="/janny-portrait.png" alt="Janny Helguero" fill className="object-cover" />
+            <Image src={JANNY_PORTRAIT_SRC} alt="Janny Helguero" fill className="object-cover" />
           </div>
           <div>
             <p className="font-serif text-2xl text-gold">Janny Helguero</p>

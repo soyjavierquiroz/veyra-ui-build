@@ -34,7 +34,9 @@ function isFunnelPublicAsset(src: string): boolean {
   return (
     src.startsWith("/audio/") ||
     src.startsWith("/videos/") ||
-    src.startsWith("/images/")
+    src.startsWith("/images/") ||
+    src === "/janny-portrait.png" ||
+    src === "/veyra-perfil.webp"
   )
 }
 
@@ -48,12 +50,10 @@ export function versionAsset(src: string): string {
   if (!src.startsWith("/")) return src
 
   if (!isFunnelPublicAsset(src)) {
-    return src
+    return withFunnelBasePath(src)
   }
 
-  const pathWithBase = FUNNEL_BASE_PATH
-    ? `${FUNNEL_BASE_PATH}${src}`
-    : src
+  const pathWithBase = withFunnelBasePath(src)
 
   if (alreadyHasVersion(pathWithBase)) {
     return pathWithBase
@@ -61,4 +61,29 @@ export function versionAsset(src: string): string {
 
   const separator = pathWithBase.includes("?") ? "&" : "?"
   return `${pathWithBase}${separator}v=${encodeURIComponent(ASSET_VERSION)}`
+}
+
+export function withFunnelBasePath(path: string): string {
+  if (!path) return path
+  if (isExternalOrSpecial(path)) return path
+  if (!path.startsWith("/")) return path
+  if (!FUNNEL_BASE_PATH) return path
+  if (path === FUNNEL_BASE_PATH || path.startsWith(`${FUNNEL_BASE_PATH}/`)) {
+    return path
+  }
+
+  return `${FUNNEL_BASE_PATH}${path}`
+}
+
+export function publicAssetPath(folder: string, filename: string): string {
+  return versionAsset(["", folder, filename].join("/"))
+}
+
+export function rootPublicAsset(filename: string): string {
+  return versionAsset(["", filename].join("/"))
+}
+
+export function funnelRoute(path: string): string {
+  const cleanedPath = path.trim().replace(/^\/+/, "")
+  return withFunnelBasePath(["", cleanedPath].join("/"))
 }

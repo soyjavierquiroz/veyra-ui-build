@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import type { PatternKey, Stage } from "./types"
 import { PATTERNS } from "./types"
-import { versionAsset } from "./asset-version"
+import { funnelRoute, publicAssetPath } from "./asset-version"
 import {
   getOrCreateFunnelSid,
   goToOffer,
@@ -35,18 +35,18 @@ const RESULT_LOOP_VOLUME = 0.18
 const RESULT_LOOP_FADE_IN_MS = 800
 const QUIZ_LOOP_FADE_OUT_MS = 800
 const QUIZ_PRIMARY_FADE_OUT_MS = 600
-const INTRO_AUDIO_SRC = versionAsset("/audio/intro-rings.mp3")
-const QUIZ_LOOP_AUDIO_SRC = versionAsset("/audio/loop-quiz.mp3")
-const RESULT_LOOP_AUDIO_SRC = versionAsset("/audio/loop-result.mp3")
-const QUIZ_P1_AUDIO_SRC = versionAsset("/audio/quiz-p1-final.mp3")
+const INTRO_AUDIO_SRC = publicAssetPath("audio", "intro-rings.mp3")
+const QUIZ_LOOP_AUDIO_SRC = publicAssetPath("audio", "loop-quiz.mp3")
+const RESULT_LOOP_AUDIO_SRC = publicAssetPath("audio", "loop-result.mp3")
+const QUIZ_P1_AUDIO_SRC = publicAssetPath("audio", "quiz-p1-final.mp3")
 
 const QUIZ_PRIMARY_AUDIO_SOURCES = [
   QUIZ_P1_AUDIO_SRC,
-  versionAsset("/audio/quiz-p2-final.mp3"),
-  versionAsset("/audio/quiz-p3-final.mp3"),
-  versionAsset("/audio/quiz-p4-final.mp3"),
-  versionAsset("/audio/quiz-p5-final.mp3"),
-  versionAsset("/audio/quiz-p6-final.mp3"),
+  publicAssetPath("audio", "quiz-p2-final.mp3"),
+  publicAssetPath("audio", "quiz-p3-final.mp3"),
+  publicAssetPath("audio", "quiz-p4-final.mp3"),
+  publicAssetPath("audio", "quiz-p5-final.mp3"),
+  publicAssetPath("audio", "quiz-p6-final.mp3"),
 ] as const
 
 const QUIZ_PRIMARY_AUDIO_BY_ANSWERED_QUESTION_INDEX: Partial<
@@ -60,7 +60,7 @@ const QUIZ_PRIMARY_AUDIO_BY_ANSWERED_QUESTION_INDEX: Partial<
 }
 
 function getResultMp4Src(pattern: PatternKey) {
-  return versionAsset(resultMp4VideosByPattern[pattern])
+  return resultMp4VideosByPattern[pattern]
 }
 
 function getPatternLabel(pattern: PatternKey) {
@@ -175,7 +175,7 @@ export function FunnelOrchestrator() {
 
   const openWhatsappFlow = useCallback((mode: "buy" | "doubt") => {
     const query = mode === "doubt" ? "?modo=duda" : "?modo=compra"
-    window.location.href = `/whatsapp/${query}`
+    window.location.href = `${funnelRoute("whatsapp/")}${query}`
   }, [])
 
   const startExperience = useCallback(() => {

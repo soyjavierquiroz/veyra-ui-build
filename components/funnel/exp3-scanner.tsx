@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import { Fingerprint, Sparkles } from "lucide-react"
-import { versionAsset } from "./asset-version"
+import { publicAssetPath } from "./asset-version"
 import { Particles } from "./particles"
 
 type ScannerPhase =
@@ -29,9 +29,18 @@ type ScannerStep =
       text: string
     }
 
-const SCANNER_AUDIO_SRC = versionAsset("/audio/scanner-veyra-reveal-final.mp3")
-const VEYRA_VIDEO_SRC = versionAsset("/videos/veyra-scanner-reveal.mp4")
-const VEYRA_POSTER_SRC = versionAsset("/images/veyra-scanner-reveal-poster.webp")
+const SCANNER_AUDIO_SRC = publicAssetPath(
+  "audio",
+  "scanner-veyra-reveal-final.mp3",
+)
+const VEYRA_VIDEO_SRC = publicAssetPath(
+  "videos",
+  "veyra-scanner-reveal.mp4",
+)
+const VEYRA_POSTER_SRC = publicAssetPath(
+  "images",
+  "veyra-scanner-reveal-poster.webp",
+)
 const SCANNER_COMPLETE_SECONDS = 20.2
 const VEYRA_VIDEO_START_SECONDS = 21.8
 const VEYRA_REVEAL_FULL_SECONDS = 23.8

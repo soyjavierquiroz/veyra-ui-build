@@ -3,10 +3,11 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import Image from "next/image"
 import { Mic, Phone, PhoneOff, Volume2 } from "lucide-react"
-import { versionAsset } from "./asset-version"
+import { publicAssetPath, rootPublicAsset } from "./asset-version"
 import { Particles } from "./particles"
 
-const CALL_AUDIO_SRC = versionAsset("/audio/veyra-llamada-final.mp3")
+const CALL_AUDIO_SRC = publicAssetPath("audio", "veyra-llamada-final.mp3")
+const VEYRA_PROFILE_SRC = rootPublicAsset("veyra-perfil.webp")
 const CALL_VISUAL_END_SECONDS = 72
 const CALL_PROGRESS_EASING_POWER = 2.2
 const CALL_PROGRESS_SIZE = 204
@@ -133,7 +134,7 @@ export function Exp2Call({ onComplete, stopIntroAudio }: Exp2CallProps) {
       <div className="relative flex min-h-screen w-full max-w-[460px] flex-col items-center justify-between overflow-hidden bg-background px-6 py-12 shadow-[0_0_80px_oklch(0.13_0.03_295_/_0.8)] md:border-x md:border-gold/10">
         <div className="absolute inset-0 z-0">
           <Image
-            src="/veyra-perfil.webp"
+            src={VEYRA_PROFILE_SRC}
             alt=""
             fill
             priority
@@ -208,7 +209,7 @@ export function Exp2Call({ onComplete, stopIntroAudio }: Exp2CallProps) {
               style={{ width: 168, height: 168 }}
             >
               <Image
-                src="/veyra-perfil.webp"
+                src={VEYRA_PROFILE_SRC}
                 alt="Veyra"
                 fill
                 priority
