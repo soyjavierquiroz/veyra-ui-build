@@ -19,6 +19,7 @@ export type VslVideoPlayerProps = {
   blockUserInteraction?: boolean
   fullScreen?: boolean
   className?: string
+  onStarted?: () => void
   onEnded?: () => void
   onPlaybackBlocked?: () => void
 }
@@ -66,6 +67,7 @@ export function VslVideoPlayer({
   blockUserInteraction = true,
   fullScreen = false,
   className,
+  onStarted,
   onEnded,
   onPlaybackBlocked,
 }: VslVideoPlayerProps) {
@@ -75,6 +77,7 @@ export function VslVideoPlayer({
   const progressStartedAtRef = useRef<number | null>(null)
   const accumulatedProgressMsRef = useRef(0)
   const attemptedAutoplayRef = useRef(false)
+  const startedRef = useRef(false)
   const [playbackState, setPlaybackState] = useState<
     "idle" | "playing" | "blocked" | "ended"
   >("idle")
@@ -179,6 +182,10 @@ export function VslVideoPlayer({
     const handlePlay = () => {
       setPlaybackState("playing")
       startProgressLoop()
+      if (!startedRef.current) {
+        startedRef.current = true
+        onStarted?.()
+      }
     }
     const handlePause = () => {
       if (!video.ended) {
@@ -201,7 +208,7 @@ export function VslVideoPlayer({
       video.removeEventListener("pause", handlePause)
       video.removeEventListener("ended", handleEnded)
     }
-  }, [onEnded, startProgressLoop, stopProgressLoop])
+  }, [onEnded, onStarted, startProgressLoop, stopProgressLoop])
 
   useEffect(
     () => () => {

@@ -7,7 +7,13 @@ const VSL_CONFIG = {
   simulatedDurationSeconds: 900,
 }
 
-export function VslInterlude({ onComplete }: { onComplete: () => void }) {
+export function VslInterlude({
+  onStarted,
+  onComplete,
+}: {
+  onStarted?: () => void
+  onComplete: () => void
+}) {
   return (
     <section className="funnel-stage text-white">
       <div className="funnel-mobile-shell shadow-[0_0_80px_oklch(0.13_0.03_295_/_0.8)] md:border-x md:border-gold/10">
@@ -18,6 +24,7 @@ export function VslInterlude({ onComplete }: { onComplete: () => void }) {
           autoPlay
           blockUserInteraction
           fullScreen
+          onStarted={onStarted}
           onEnded={onComplete}
           className="absolute inset-0 h-full w-full"
         />

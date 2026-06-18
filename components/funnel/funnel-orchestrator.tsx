@@ -7,12 +7,17 @@ import { funnelRoute, publicAssetPath } from "./asset-version"
 import {
   getOrCreateFunnelSid,
   goToOffer,
+  persistFunnelContext,
   persistFunnelPattern,
   resolveFunnelPattern,
 } from "./funnel-handoff"
 import { funnelConfig, resultMp4VideosByPattern } from "./config"
 import { trackFunnelEvent } from "./lib/analytics"
 import { getInitialSceneFromUrl, getPatternFromUrl } from "./lib/deep-link"
+import {
+  initFunnelMetaPixel,
+  trackFunnelCustomEvent,
+} from "./lib/meta-pixel"
 import { Exp1Video } from "./exp1-video"
 import { Exp2Call } from "./exp2-call"
 import { Exp3Scanner } from "./exp3-scanner"
@@ -125,6 +130,10 @@ export function FunnelOrchestrator() {
   const quizPrimaryStopTimeoutRef = useRef<number | null>(null)
   const resultRevealVeilFadeTimeoutRef = useRef<number | null>(null)
   const resultRevealVeilUnmountTimeoutRef = useRef<number | null>(null)
+  const funnelStartTrackedRef = useRef(false)
+  const resultViewedTrackedRef = useRef(false)
+  const vslStartedTrackedRef = useRef(false)
+  const vslCompletedTrackedRef = useRef(false)
   const quizAudioContextRef = useRef<AudioContext | null>(null)
   const quizAudioBuffersRef = useRef<Map<string, AudioBuffer>>(new Map())
   const quizAudioPreloadPromiseRef = useRef<Promise<void> | null>(null)
@@ -138,13 +147,24 @@ export function FunnelOrchestrator() {
   useEffect(() => {
     const initialStage = getInitialSceneFromUrl()
     const initialPattern = getPatternFromUrl()
+    const sid = getOrCreateFunnelSid()
 
-    getOrCreateFunnelSid()
+    initFunnelMetaPixel()
+    persistFunnelContext({ sid, pattern: "" })
+
+    if (!funnelStartTrackedRef.current) {
+      funnelStartTrackedRef.current = true
+      trackFunnelCustomEvent("FunnelStart", { sid })
+    }
 
     if (initialPattern) {
       setPattern(initialPattern)
       setHasResolvedPattern(true)
       persistFunnelPattern(getPatternLabel(initialPattern))
+      persistFunnelContext({
+        sid,
+        pattern: getPatternLabel(initialPattern),
+      })
     }
 
     if (!initialStage) return
@@ -725,7 +745,15 @@ export function FunnelOrchestrator() {
       showResultRevealVeil()
       resultPlayerRef.current?.preload()
       persistFunnelPattern(getPatternLabel(p))
+      persistFunnelContext({ pattern: getPatternLabel(p) })
       trackFunnelEvent("pattern_revealed", { pattern: p })
+      if (!resultViewedTrackedRef.current) {
+        resultViewedTrackedRef.current = true
+        trackFunnelCustomEvent("ResultViewed", {
+          sid: getOrCreateFunnelSid(),
+          pattern: getPatternLabel(p),
+        })
+      }
       go("reading")
     },
     [go, showResultRevealVeil],
@@ -738,9 +766,46 @@ export function FunnelOrchestrator() {
   }, [hasResolvedPattern, pattern])
 
   const handleVslComplete = useCallback(() => {
-    goToOffer({
-      pattern: getHandoffPattern(),
+    const sid = getOrCreateFunnelSid()
+    const handoffPattern = getHandoffPattern()
+
+    persistFunnelContext({
+      sid,
+      pattern: handoffPattern,
+      vslStarted: true,
       vslCompleted: true,
+    })
+
+    if (!vslCompletedTrackedRef.current) {
+      vslCompletedTrackedRef.current = true
+      trackFunnelCustomEvent("VSLCompleted", {
+        sid,
+        pattern: handoffPattern,
+      })
+    }
+
+    goToOffer({
+      sid,
+      pattern: handoffPattern,
+      vslCompleted: true,
+    })
+  }, [getHandoffPattern])
+
+  const handleVslStarted = useCallback(() => {
+    if (vslStartedTrackedRef.current) return
+
+    vslStartedTrackedRef.current = true
+    const sid = getOrCreateFunnelSid()
+    const handoffPattern = getHandoffPattern()
+
+    persistFunnelContext({
+      sid,
+      pattern: handoffPattern,
+      vslStarted: true,
+    })
+    trackFunnelCustomEvent("VSLStarted", {
+      sid,
+      pattern: handoffPattern,
     })
   }, [getHandoffPattern])
 
@@ -869,6 +934,7 @@ export function FunnelOrchestrator() {
             setResultRevealRequested(false)
             setResultVideoPlaying(false)
             persistFunnelPattern(getPatternLabel(p))
+            persistFunnelContext({ pattern: getPatternLabel(p) })
             resultPlayerRef.current?.preload()
           }}
           onComplete={handlePatternReadyForReading}
@@ -927,7 +993,12 @@ export function FunnelOrchestrator() {
         </div>
       )}
       {stage === "portal" && <Exp6Portal onComplete={() => go("vsl")} />}
-      {stage === "vsl" && <VslInterlude onComplete={handleVslComplete} />}
+      {stage === "vsl" && (
+        <VslInterlude
+          onStarted={handleVslStarted}
+          onComplete={handleVslComplete}
+        />
+      )}
       {stage === "whatsapp-hook" && (
         <Exp7WhatsappHook onComplete={() => go("login")} />
       )}

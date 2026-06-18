@@ -22,7 +22,21 @@ export const OFFER_ORIGIN =
 export type FunnelHandoff = {
   sid?: string
   pattern?: string
+  vslStarted?: boolean
   vslCompleted?: boolean
+}
+
+type StoredFunnelContext = {
+  from_funnel?: string
+  funnel_slug?: string
+  sid?: string
+  pattern?: string
+  vsl_started?: boolean
+  vsl_completed?: boolean
+  entry_path?: string
+  handoff_path?: string
+  tracking_mode?: "ads" | "organic"
+  completed_at?: string
 }
 
 const SID_KEY = "rtp_funnel_sid_v1"
@@ -206,22 +220,41 @@ export function persistFunnelContext(context: FunnelHandoff = {}): void {
 
   const sid = context.sid || getOrCreateFunnelSid()
   const isAds = isAdsPath(window.location.pathname)
-  const pattern = resolveFunnelPattern(context.pattern)
+  const pattern =
+    context.pattern === ""
+      ? ""
+      : context.pattern !== undefined
+        ? normalizeFunnelPattern(context.pattern)
+        : resolveFunnelPattern()
 
   const handoffPath = isAds
     ? `${ADS_PREFIX}/o/no-le-escribas`
     : "/o/no-le-escribas"
+
+  let existingContext: StoredFunnelContext = {}
+
+  try {
+    const rawContext = window.localStorage.getItem(CONTEXT_KEY)
+    existingContext = rawContext
+      ? (JSON.parse(rawContext) as StoredFunnelContext)
+      : {}
+  } catch {
+    existingContext = {}
+  }
 
   const payload = {
     from_funnel: "mnle",
     funnel_slug: "mnle",
     sid,
     pattern,
-    vsl_completed: Boolean(context.vslCompleted),
+    vsl_started: Boolean(context.vslStarted ?? existingContext.vsl_started),
+    vsl_completed: Boolean(context.vslCompleted ?? existingContext.vsl_completed),
     entry_path: window.location.pathname,
     handoff_path: handoffPath,
     tracking_mode: isAds ? "ads" : "organic",
-    completed_at: new Date().toISOString(),
+    completed_at: context.vslCompleted
+      ? new Date().toISOString()
+      : existingContext.completed_at || "",
   }
 
   try {
