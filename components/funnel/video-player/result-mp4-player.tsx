@@ -161,59 +161,61 @@ export const ResultMp4Player = forwardRef<
 
   return (
     <div
-      className={`pointer-events-none absolute inset-0 overflow-hidden bg-black transition-opacity duration-500 ${
+      className={`pointer-events-none absolute inset-0 flex justify-center overflow-hidden bg-black transition-opacity duration-500 ${
         visible ? "opacity-100" : "opacity-0"
       } ${className}`}
       aria-hidden={!visible}
     >
-      <video
-        ref={videoRef}
-        src={src}
-        preload="auto"
-        playsInline
-        controls={false}
-        muted={false}
-        loop={false}
-        disablePictureInPicture
-        controlsList="nodownload noplaybackrate noremoteplayback"
-        className={`absolute inset-0 h-full w-full ${
-          objectFit === "contain" ? "object-contain" : "object-cover"
-        }`}
-        onLoadedMetadata={() => {
-          // Metadata is useful for duration, but reveal waits for loadeddata/canplay.
-        }}
-        onLoadedData={markReady}
-        onCanPlay={markReady}
-        onCanPlayThrough={markReady}
-        onPlaying={() => {
-          onPlayingRef.current?.()
-        }}
-        onEnded={markEnded}
-        onError={() => {
-          onPlaybackFailedRef.current?.()
-        }}
-        onStalled={() => {
-          if (process.env.NODE_ENV !== "production") {
-            console.warn("[funnel] result MP4 stalled")
-          }
-        }}
-        onWaiting={() => {
-          if (process.env.NODE_ENV !== "production") {
-            console.warn("[funnel] result MP4 waiting")
-          }
-        }}
-        onTimeUpdate={(event) => {
-          const video = event.currentTarget
+      <div className="funnel-mobile-shell shadow-[0_0_80px_oklch(0.13_0.03_295_/_0.8)] md:border-x md:border-gold/10">
+        <video
+          ref={videoRef}
+          src={src}
+          preload="auto"
+          playsInline
+          controls={false}
+          muted={false}
+          loop={false}
+          disablePictureInPicture
+          controlsList="nodownload noplaybackrate noremoteplayback"
+          className={`absolute inset-0 h-full w-full max-w-full ${
+            objectFit === "contain" ? "object-contain" : "object-cover"
+          }`}
+          onLoadedMetadata={() => {
+            // Metadata is useful for duration, but reveal waits for loadeddata/canplay.
+          }}
+          onLoadedData={markReady}
+          onCanPlay={markReady}
+          onCanPlayThrough={markReady}
+          onPlaying={() => {
+            onPlayingRef.current?.()
+          }}
+          onEnded={markEnded}
+          onError={() => {
+            onPlaybackFailedRef.current?.()
+          }}
+          onStalled={() => {
+            if (process.env.NODE_ENV !== "production") {
+              console.warn("[funnel] result MP4 stalled")
+            }
+          }}
+          onWaiting={() => {
+            if (process.env.NODE_ENV !== "production") {
+              console.warn("[funnel] result MP4 waiting")
+            }
+          }}
+          onTimeUpdate={(event) => {
+            const video = event.currentTarget
 
-          if (
-            Number.isFinite(video.duration) &&
-            video.duration > 0 &&
-            video.currentTime >= video.duration - 0.25
-          ) {
-            markEnded()
-          }
-        }}
-      />
+            if (
+              Number.isFinite(video.duration) &&
+              video.duration > 0 &&
+              video.currentTime >= video.duration - 0.25
+            ) {
+              markEnded()
+            }
+          }}
+        />
+      </div>
     </div>
   )
 })

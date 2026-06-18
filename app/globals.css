@@ -192,6 +192,44 @@
   .text-glow {
     text-shadow: 0 0 18px oklch(0.7 0.16 300 / 0.6);
   }
+  .funnel-stage {
+    min-height: 100dvh;
+    width: 100%;
+    overflow: hidden;
+    background: #050008;
+    display: flex;
+    justify-content: center;
+    align-items: stretch;
+  }
+  .funnel-mobile-shell {
+    position: relative;
+    width: min(100vw, 460px);
+    min-height: 100dvh;
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+    background: #050008;
+  }
+  .funnel-progress {
+    position: absolute;
+    left: 24px;
+    right: 24px;
+    bottom: calc(18px + env(safe-area-inset-bottom));
+    z-index: 50;
+    height: 5px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgb(255 255 255 / 0.22);
+    box-shadow:
+      0 0 0 1px rgb(255 255 255 / 0.08),
+      0 0 22px oklch(0.05 0.02 292 / 0.55);
+  }
+  .funnel-progress__bar {
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--primary), var(--gold), #fff1b8);
+    box-shadow: 0 0 18px oklch(0.82 0.12 85 / 0.48);
+  }
 }
 
 @keyframes mystic-pulse {

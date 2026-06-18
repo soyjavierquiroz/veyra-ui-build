@@ -32,28 +32,26 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max)
 }
 
-function getPsychologicalProgress(elapsedSeconds: number, durationSeconds: number) {
-  const safeElapsed = Number.isFinite(elapsedSeconds)
-    ? Math.max(elapsedSeconds, 0)
-    : 0
-  const safeDuration = durationSeconds > 0 ? durationSeconds : DEFAULT_SIMULATED_DURATION
-  const normalized = clamp(safeElapsed / safeDuration, 0, 1)
+function getDummyProgress(elapsedMs: number) {
+  const seconds = Math.max(elapsedMs, 0) / 1000
 
-  if (safeElapsed <= 20) {
-    return clamp((safeElapsed / 20) * 30, 0, PROGRESS_CAP)
+  if (seconds <= 8) {
+    return clamp((seconds / 8) * 50, 0, PROGRESS_CAP)
   }
 
-  if (normalized <= 0.5) {
-    const middleDuration = Math.max(safeDuration * 0.5 - 20, 1)
-    return clamp(30 + ((safeElapsed - 20) / middleDuration) * 40, 0, PROGRESS_CAP)
+  if (seconds <= 28) {
+    return clamp(50 + ((seconds - 8) / 20) * 25, 0, PROGRESS_CAP)
   }
 
-  const finalDuration = Math.max(safeDuration * 0.5, 1)
-  return clamp(
-    70 + ((safeElapsed - safeDuration * 0.5) / finalDuration) * 28,
-    0,
-    PROGRESS_CAP,
-  )
+  if (seconds <= 75) {
+    return clamp(75 + ((seconds - 28) / 47) * 17, 0, PROGRESS_CAP)
+  }
+
+  if (seconds <= 140) {
+    return clamp(92 + ((seconds - 75) / 65) * 6, 0, PROGRESS_CAP)
+  }
+
+  return PROGRESS_CAP
 }
 
 function isLikelyHlsUrl(src: string) {
@@ -80,7 +78,7 @@ export function VslVideoPlayer({
   const [playbackState, setPlaybackState] = useState<
     "idle" | "playing" | "blocked" | "ended"
   >("idle")
-  const [progress, setProgress] = useState(0)
+  const [progress, setProgress] = useState(1)
   const hasSource = src.trim().length > 0
 
   const stopProgressLoop = useCallback(() => {
@@ -103,11 +101,9 @@ export function VslVideoPlayer({
     const tick = () => {
       const startedAt = progressStartedAtRef.current
       const liveMs = startedAt ? performance.now() - startedAt : 0
-      const elapsedSeconds = (accumulatedProgressMsRef.current + liveMs) / 1000
+      const elapsedMs = accumulatedProgressMsRef.current + liveMs
 
-      setProgress(
-        getPsychologicalProgress(elapsedSeconds, simulatedDurationSeconds),
-      )
+      setProgress(getDummyProgress(elapsedMs))
       progressRafRef.current = requestAnimationFrame(tick)
     }
 
@@ -119,6 +115,7 @@ export function VslVideoPlayer({
     if (!video || !hasSource) return
 
     try {
+      startProgressLoop()
       video.muted = false
       video.controls = false
       await video.play()
@@ -126,9 +123,8 @@ export function VslVideoPlayer({
     } catch {
       setPlaybackState("blocked")
       onPlaybackBlocked?.()
-      stopProgressLoop()
     }
-  }, [hasSource, onPlaybackBlocked, stopProgressLoop])
+  }, [hasSource, onPlaybackBlocked, startProgressLoop])
 
   useBrowserLayoutEffect(() => {
     const video = videoRef.current
@@ -191,7 +187,7 @@ export function VslVideoPlayer({
     }
     const handleEnded = () => {
       stopProgressLoop()
-      setProgress(PROGRESS_CAP)
+      setProgress(100)
       setPlaybackState("ended")
       onEnded?.()
     }
@@ -230,7 +226,7 @@ export function VslVideoPlayer({
   return (
     <div
       className={cn(
-        "relative w-full overflow-hidden bg-black",
+        "relative w-full max-w-full overflow-hidden bg-black",
         fullScreen
           ? "h-full"
           : "aspect-[9/16] rounded-2xl border border-gold/30 shadow-2xl shadow-primary/25",
@@ -276,14 +272,14 @@ export function VslVideoPlayer({
 
       <div
         className={cn(
-          "pointer-events-none absolute z-40 h-1.5 overflow-hidden bg-white/15",
+          "funnel-progress pointer-events-none",
           fullScreen
-            ? "bottom-[max(20px,env(safe-area-inset-bottom))] left-6 right-6 rounded-full"
+            ? ""
             : "bottom-0 left-0 right-0",
         )}
       >
         <div
-          className="h-full rounded-r-full bg-gradient-to-r from-primary to-gold transition-[width] duration-300 ease-linear"
+          className="funnel-progress__bar transition-[width] duration-300 ease-out"
           style={{ width: `${progress}%` }}
         />
       </div>

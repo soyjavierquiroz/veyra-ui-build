@@ -9,8 +9,8 @@ const VSL_CONFIG = {
 
 export function VslInterlude({ onComplete }: { onComplete: () => void }) {
   return (
-    <section className="flex min-h-[100dvh] w-full justify-center overflow-hidden bg-black text-white">
-      <div className="relative h-[100dvh] min-h-[100dvh] w-full max-w-[460px] overflow-hidden bg-black">
+    <section className="funnel-stage text-white">
+      <div className="funnel-mobile-shell shadow-[0_0_80px_oklch(0.13_0.03_295_/_0.8)] md:border-x md:border-gold/10">
         <VslVideoPlayer
           src={funnelConfig.vslVideoUrl}
           title="Mensaje privado de Janny"
