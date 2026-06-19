@@ -38,23 +38,31 @@ function getPandaLikeProgress(elapsedSeconds: number, isEnded: boolean) {
 
   const seconds = Math.max(elapsedSeconds, 0)
 
-  if (seconds <= 4) {
-    return clamp((seconds / 4) * 50, 0, PROGRESS_CAP)
+  if (seconds <= 10) {
+    return clamp((seconds / 10) * 10, 0, PROGRESS_CAP)
   }
 
-  if (seconds <= 18) {
-    return clamp(50 + ((seconds - 4) / 14) * 20, 0, PROGRESS_CAP)
+  if (seconds <= 30) {
+    return clamp(10 + ((seconds - 10) / 20) * 10, 0, PROGRESS_CAP)
   }
 
-  if (seconds <= 50) {
-    return clamp(70 + ((seconds - 18) / 32) * 15, 0, PROGRESS_CAP)
+  if (seconds <= 60) {
+    return clamp(20 + ((seconds - 30) / 30) * 30, 0, PROGRESS_CAP)
   }
 
-  if (seconds <= 110) {
-    return clamp(85 + ((seconds - 50) / 60) * 9, 0, PROGRESS_CAP)
+  if (seconds <= 120) {
+    return clamp(50 + ((seconds - 60) / 60) * 20, 0, PROGRESS_CAP)
   }
 
-  const slowTail = 94 + Math.min(4, Math.log1p((seconds - 110) / 20) * 1.2)
+  if (seconds <= 240) {
+    return clamp(70 + ((seconds - 120) / 120) * 15, 0, PROGRESS_CAP)
+  }
+
+  if (seconds <= 420) {
+    return clamp(85 + ((seconds - 240) / 180) * 9, 0, PROGRESS_CAP)
+  }
+
+  const slowTail = 94 + Math.min(4, Math.log1p((seconds - 420) / 60) * 1.1)
   return clamp(slowTail, 0, PROGRESS_CAP)
 }
 
