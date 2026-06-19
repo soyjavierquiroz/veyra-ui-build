@@ -1,8 +1,19 @@
 "use client"
 
+import { publicAssetPath } from "./asset-version"
+
+const PORTAL_IMAGE_SRC = publicAssetPath("images", "portal.webp")
+
 export function FunnelLanding({ onStart }: { onStart: () => void }) {
   return (
     <div className="entry-scene absolute inset-0 z-20 flex h-full w-full items-stretch justify-center overflow-hidden px-4 py-4 text-center">
+      <img
+        src={PORTAL_IMAGE_SRC}
+        alt=""
+        aria-hidden="true"
+        className="entry-portal-photo absolute inset-0 h-full w-full object-cover"
+      />
+      <div className="entry-photo-grade absolute inset-0" />
       <div className="entry-ambient absolute inset-0" />
       <div className="entry-depth absolute inset-0" />
       <div className="entry-sparks absolute inset-0" />
@@ -17,19 +28,7 @@ export function FunnelLanding({ onStart }: { onStart: () => void }) {
           </h1>
         </div>
 
-        <div className="entry-portal-wrap relative my-1 flex w-full flex-1 items-center justify-center">
-          <div className="entry-backlight absolute" />
-          <div className="entry-portal-shadow absolute" />
-          <div className="entry-portal-aura absolute" />
-          <div className="entry-portal absolute">
-            <div className="entry-portal-rays" />
-            <div className="entry-portal-light" />
-            <div className="entry-portal-threshold" />
-            <div className="entry-portal-mist" />
-          </div>
-          <div className="entry-portal-steps absolute" />
-          <div className="entry-portal-floor absolute" />
-        </div>
+        <div className="entry-image-stage w-full flex-1" aria-hidden="true" />
 
         <div className="flex w-full shrink-0 flex-col items-center">
           <p className="entry-subcopy max-w-[19rem] font-serif text-[1.12rem] leading-[1.18] text-foreground/90 min-[390px]:text-[1.22rem]">
