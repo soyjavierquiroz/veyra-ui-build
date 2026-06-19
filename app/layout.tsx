@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono, Cormorant_Garamond } from 'next/font/google'
+import { ClarityInit } from '@/components/funnel/clarity-init'
 import './globals.css'
 
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] })
@@ -38,6 +39,7 @@ export default function RootLayout({
       className={`dark ${geistSans.variable} ${geistMono.variable} ${cormorant.variable}`}
     >
       <body className="font-sans antialiased bg-background overflow-x-hidden">
+        <ClarityInit />
         {children}
       </body>
     </html>
