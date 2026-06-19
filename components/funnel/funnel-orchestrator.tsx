@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
+import { CheckCircle2, Sparkles } from "lucide-react"
 import type { PatternKey, Stage } from "./types"
 import { PATTERNS } from "./types"
 import { funnelRoute, publicAssetPath } from "./asset-version"
@@ -982,14 +983,54 @@ export function FunnelOrchestrator() {
         />
       )}
       {showRevealResultButton && (
-        <div className="pointer-events-none absolute inset-0 z-[70] flex items-center justify-center px-6">
-          <button
-            type="button"
-            onClick={handleRevealPreparedResult}
-            className="pointer-events-auto flex max-w-[380px] items-center justify-center rounded-full border border-gold/70 bg-[linear-gradient(135deg,oklch(0.33_0.16_302/.96),oklch(0.18_0.08_295/.96))] px-5 py-4 text-center text-sm font-medium uppercase leading-tight tracking-[0.14em] text-gold glow-violet transition-transform active:scale-95"
-          >
-            REVELAR MENSAJE DE VEYRA
-          </button>
+        <div className="pointer-events-none absolute inset-0 z-[70] flex justify-center overflow-hidden px-4">
+          <div className="relative flex min-h-[100dvh] w-full max-w-[460px] items-end justify-center px-1 pb-[max(1.2rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))] min-[390px]:px-3 min-[700px]:items-center min-[700px]:pb-0">
+            <div className="pointer-events-none absolute inset-x-8 top-[12%] h-32 rounded-full bg-[radial-gradient(circle,oklch(0.82_0.12_86/.22),transparent_68%)] blur-2xl" />
+            <div className="pointer-events-auto animate-float-up w-full max-w-[390px] rounded-[8px] border border-gold/35 bg-[linear-gradient(180deg,oklch(0.18_0.07_300/.84),oklch(0.07_0.03_292/.92))] px-4 py-5 text-center shadow-[0_0_34px_oklch(0.82_0.12_86/.18),0_22px_70px_rgba(0,0,0,.58)] backdrop-blur-md min-[390px]:px-5 min-[390px]:py-6">
+              <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-full border border-gold/45 bg-gold/10 text-gold shadow-[0_0_26px_oklch(0.82_0.12_86/.25)]">
+                <CheckCircle2 className="size-6" aria-hidden="true" />
+              </div>
+
+              <p className="text-[0.64rem] font-semibold uppercase leading-none tracking-[0.28em] text-gold/90">
+                LECTURA COMPLETADA
+              </p>
+
+              <div className="mx-auto my-4 flex w-full max-w-[250px] items-center gap-2">
+                <span className="h-px flex-1 bg-gold/25" />
+                <Sparkles className="size-3.5 text-gold/75" aria-hidden="true" />
+                <span className="h-px flex-1 bg-gold/25" />
+              </div>
+
+              <h1 className="font-serif text-[1.72rem] leading-[1.04] text-gold text-balance drop-shadow-[0_0_18px_oklch(0.05_0.02_292/.9)] min-[390px]:text-[1.95rem]">
+                Veyra ya identificó el patrón que se activó en ti.
+              </h1>
+
+              <p className="mx-auto mt-3 max-w-[330px] text-[0.94rem] leading-relaxed text-[#f5eedc]/88 text-balance min-[390px]:text-base">
+                Ahora vas a descubrir por qué sentiste el impulso de volver al
+                chat… y qué hay detrás de ese movimiento emocional.
+              </p>
+
+              <div className="mt-4 overflow-hidden rounded-full border border-gold/20 bg-black/30 p-1 shadow-[inset_0_0_14px_rgba(0,0,0,.45)]">
+                <div className="h-1.5 rounded-full bg-[linear-gradient(90deg,oklch(0.66_0.19_304/.9),oklch(0.82_0.12_86/.95))] shadow-[0_0_18px_oklch(0.82_0.12_86/.35)]" />
+              </div>
+
+              <p className="mt-2 text-[0.62rem] font-medium uppercase tracking-[0.24em] text-[#f5eedc]/62">
+                Patrón detectado
+              </p>
+
+              <button
+                type="button"
+                onClick={handleRevealPreparedResult}
+                className="mt-4 flex min-h-12 w-full items-center justify-center rounded-full border border-gold/70 bg-[linear-gradient(135deg,oklch(0.86_0.12_86/.98),oklch(0.66_0.15_72/.98))] px-4 py-3 text-center text-[0.8rem] font-bold uppercase leading-tight tracking-[0.16em] text-[oklch(0.12_0.04_292)] shadow-[0_0_24px_oklch(0.82_0.12_86/.34),inset_0_1px_0_rgba(255,255,255,.28)] transition-transform active:scale-95 min-[390px]:text-sm"
+              >
+                DESCUBRIR MI PATRÓN
+              </button>
+
+              <p className="mt-3 font-serif text-[1.02rem] leading-snug text-[#f5eedc]/82 text-balance">
+                Tu revelación ya está lista.
+              </p>
+            </div>
+          </div>
         </div>
       )}
       {stage === "portal" && <Exp6Portal onComplete={() => go("vsl")} />}
