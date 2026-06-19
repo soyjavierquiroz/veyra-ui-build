@@ -16,6 +16,12 @@ This repository is linked to a [v0](https://v0.app) project. You can continue de
 NEXT_PUBLIC_MNLE_VSL_HLS_URL=https://vz-f838ded4-b55.b-cdn.net/76137514-25cc-432e-9b78-0cac7d39882b/playlist.m3u8
 ```
 
+## MNLE Tracking Env
+
+```env
+NEXT_PUBLIC_CLARITY_PROJECT_ID=x4tqk0ij4s
+```
+
 First, run the development server:
 
 ```bash

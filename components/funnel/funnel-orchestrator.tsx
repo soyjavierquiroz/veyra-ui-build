@@ -14,6 +14,7 @@ import {
 } from "./funnel-handoff"
 import { funnelConfig, resultMp4VideosByPattern } from "./config"
 import { trackFunnelEvent } from "./lib/analytics"
+import { initMicrosoftClarity } from "./lib/clarity"
 import { getInitialSceneFromUrl, getPatternFromUrl } from "./lib/deep-link"
 import {
   initFunnelMetaPixel,
@@ -150,6 +151,9 @@ export function FunnelOrchestrator() {
     const initialPattern = getPatternFromUrl()
     const sid = getOrCreateFunnelSid()
 
+    initMicrosoftClarity(
+      process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID || "x4tqk0ij4s",
+    )
     initFunnelMetaPixel()
     persistFunnelContext({ sid, pattern: "" })
 
