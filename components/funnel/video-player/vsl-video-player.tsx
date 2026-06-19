@@ -18,6 +18,8 @@ declare global {
     __mnleVslProgressDebug?: {
       progress: number
       elapsedSeconds: number
+      durationSeconds: number | null
+      firstThirdTime: number
       component: string
     }
   }
@@ -66,11 +68,19 @@ export function VslVideoPlayer({
   const hlsRef = useRef<Hls | null>(null)
   const playbackStateRef = useRef<PlaybackState>("idle")
   const attemptedAutoplayRef = useRef(false)
+  const completionTimeoutRef = useRef<number | null>(null)
   const startedRef = useRef(false)
   const [playbackState, setPlaybackState] = useState<PlaybackState>("idle")
   const [loadError, setLoadError] = useState(false)
   const [debugProgress, setDebugProgress] = useState(false)
-  const { progress, elapsedSeconds, complete } = useDummyVslProgress()
+  const {
+    progress,
+    elapsedSeconds,
+    durationSeconds,
+    firstThirdTime,
+    complete,
+    setKnownDuration,
+  } = useDummyVslProgress()
   const hasSource = src.trim().length > 0
 
   const updatePlaybackState = useCallback((state: PlaybackState) => {
@@ -83,6 +93,14 @@ export function VslVideoPlayer({
       new URLSearchParams(window.location.search).get("debug_progress") === "1",
     )
   }, [])
+
+  const syncDuration = useCallback(() => {
+    const duration = videoRef.current?.duration
+
+    if (Number.isFinite(duration) && duration && duration > 0) {
+      setKnownDuration(duration)
+    }
+  }, [setKnownDuration])
 
   const requestPlayback = useCallback(async () => {
     const video = videoRef.current
@@ -177,6 +195,7 @@ export function VslVideoPlayer({
     if (!video) return
 
     const handlePlay = () => {
+      syncDuration()
       updatePlaybackState("playing")
       if (!startedRef.current) {
         startedRef.current = true
@@ -189,9 +208,14 @@ export function VslVideoPlayer({
       }
     }
     const handleEnded = () => {
+      if (completionTimeoutRef.current !== null) return
+
       complete()
       updatePlaybackState("ended")
-      onEnded?.()
+      completionTimeoutRef.current = window.setTimeout(() => {
+        completionTimeoutRef.current = null
+        onEnded?.()
+      }, 350)
     }
     const handleError = () => {
       setLoadError(true)
@@ -202,14 +226,23 @@ export function VslVideoPlayer({
     video.addEventListener("pause", handlePause)
     video.addEventListener("ended", handleEnded)
     video.addEventListener("error", handleError)
+    video.addEventListener("loadedmetadata", syncDuration)
+    video.addEventListener("durationchange", syncDuration)
 
     return () => {
+      if (completionTimeoutRef.current !== null) {
+        window.clearTimeout(completionTimeoutRef.current)
+        completionTimeoutRef.current = null
+      }
       video.removeEventListener("play", handlePlay)
       video.removeEventListener("pause", handlePause)
       video.removeEventListener("ended", handleEnded)
       video.removeEventListener("error", handleError)
+      video.removeEventListener("loadedmetadata", syncDuration)
+      video.removeEventListener("durationchange", syncDuration)
     }
   }, [
+    syncDuration,
     onEnded,
     onStarted,
     complete,
@@ -222,6 +255,8 @@ export function VslVideoPlayer({
     window.__mnleVslProgressDebug = {
       progress,
       elapsedSeconds,
+      durationSeconds,
+      firstThirdTime,
       component: "VslVideoPlayer",
     }
 
@@ -230,7 +265,7 @@ export function VslVideoPlayer({
         delete window.__mnleVslProgressDebug
       }
     }
-  }, [debugProgress, elapsedSeconds, progress])
+  }, [debugProgress, durationSeconds, elapsedSeconds, firstThirdTime, progress])
 
   if (!hasSource) {
     return (
@@ -270,6 +305,8 @@ export function VslVideoPlayer({
         controlsList="nodownload noplaybackrate noremoteplayback"
         disablePictureInPicture
         aria-label={title}
+        onLoadedMetadata={syncDuration}
+        onDurationChange={syncDuration}
       />
 
       {blockUserInteraction ? (
@@ -304,6 +341,8 @@ export function VslVideoPlayer({
         <div className="pointer-events-none absolute left-4 top-[calc(14px+env(safe-area-inset-top))] z-[70] rounded-md bg-black/65 px-2 py-1 text-[11px] leading-snug text-white/80">
           <div>progress: {Math.round(progress)}%</div>
           <div>elapsed: {Math.round(elapsedSeconds)}s</div>
+          <div>duration: {durationSeconds ? Math.round(durationSeconds) : "?"}s</div>
+          <div>target 1/3: {Math.round(firstThirdTime)}s</div>
           <div>component: VslVideoPlayer</div>
         </div>
       ) : null}
