@@ -283,7 +283,7 @@ export function VslVideoPlayer({
   return (
     <div
       className={cn(
-        "relative w-full max-w-full overflow-hidden bg-black",
+        "relative isolate w-full max-w-full overflow-hidden bg-[#050008]",
         fullScreen
           ? "h-full"
           : "aspect-[9/16] rounded-2xl border border-gold/30 shadow-2xl shadow-primary/25",
@@ -292,12 +292,20 @@ export function VslVideoPlayer({
       onContextMenu={(event) => event.preventDefault()}
       data-vsl-player="bunny"
     >
-      <div className="pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(180deg,rgba(0,0,0,0.18),transparent_28%,rgba(0,0,0,0.46))]" />
+      <div
+        className="pointer-events-none absolute inset-0 z-0 overflow-hidden bg-[#050008]"
+        aria-hidden="true"
+      >
+        <div className="absolute inset-[-14%] bg-[radial-gradient(circle_at_50%_22%,rgba(202,142,255,0.26),transparent_44%),radial-gradient(circle_at_50%_78%,rgba(242,195,107,0.16),transparent_52%),linear-gradient(180deg,rgba(30,4,43,0.86),rgba(5,0,8,0.96))] blur-2xl" />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,0,8,0.72),transparent_24%,transparent_76%,rgba(5,0,8,0.72))]" />
+      </div>
+
+      <div className="pointer-events-none absolute inset-0 z-20 bg-[linear-gradient(180deg,rgba(0,0,0,0.14),transparent_30%,rgba(0,0,0,0.38))]" />
 
       <video
         ref={videoRef}
         className={cn(
-          "h-full w-full object-cover object-center",
+          "relative z-10 h-full w-full object-contain object-center",
           blockUserInteraction && "pointer-events-none",
         )}
         playsInline
@@ -311,13 +319,13 @@ export function VslVideoPlayer({
 
       {blockUserInteraction ? (
         <div
-          className="absolute inset-0 z-20 cursor-default bg-transparent"
+          className="absolute inset-0 z-30 cursor-default bg-transparent"
           aria-hidden="true"
         />
       ) : null}
 
       {playbackState === "blocked" ? (
-        <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/70 px-6 backdrop-blur-sm">
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/70 px-6 backdrop-blur-sm">
           <button
             type="button"
             onClick={requestPlayback}
@@ -330,22 +338,12 @@ export function VslVideoPlayer({
       ) : null}
 
       {loadError ? (
-        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/78 px-6 text-center text-sm font-medium leading-relaxed text-white backdrop-blur-sm">
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/78 px-6 text-center text-sm font-medium leading-relaxed text-white backdrop-blur-sm">
           No pudimos cargar el mensaje. Revisa tu conexión y vuelve a intentarlo.
         </div>
       ) : null}
 
       <DummyProgressBar progress={progress} debugLabel="VslVideoPlayer" />
-
-      {debugProgress ? (
-        <div className="pointer-events-none absolute left-4 top-[calc(14px+env(safe-area-inset-top))] z-[70] rounded-md bg-black/65 px-2 py-1 text-[11px] leading-snug text-white/80">
-          <div>progress: {Math.round(progress)}%</div>
-          <div>elapsed: {Math.round(elapsedSeconds)}s</div>
-          <div>duration: {durationSeconds ? Math.round(durationSeconds) : "?"}s</div>
-          <div>target 1/3: {Math.round(firstThirdTime)}s</div>
-          <div>component: VslVideoPlayer</div>
-        </div>
-      ) : null}
     </div>
   )
 }
