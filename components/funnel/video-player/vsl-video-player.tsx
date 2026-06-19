@@ -24,10 +24,7 @@ export type VslVideoPlayerProps = {
   onPlaybackBlocked?: () => void
 }
 
-const DEFAULT_SIMULATED_DURATION = 900
 const PROGRESS_CAP = 98
-const PAUSED_PROGRESS_RATE = 0.28
-const PANDA_PROGRESS_FULL_WINDOW_SECONDS = 110
 const useBrowserLayoutEffect =
   typeof window === "undefined" ? useEffect : useLayoutEffect
 type PlaybackState = "idle" | "playing" | "paused" | "blocked" | "error" | "ended"
@@ -36,21 +33,10 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max)
 }
 
-function getPandaLikeProgress(
-  elapsedSeconds: number,
-  isEnded: boolean,
-  durationSeconds?: number | null,
-) {
+function getPandaLikeProgress(elapsedSeconds: number, isEnded: boolean) {
   if (isEnded) return 100
 
-  const durationScale =
-    durationSeconds &&
-    Number.isFinite(durationSeconds) &&
-    durationSeconds > 0 &&
-    durationSeconds < PANDA_PROGRESS_FULL_WINDOW_SECONDS
-      ? PANDA_PROGRESS_FULL_WINDOW_SECONDS / durationSeconds
-      : 1
-  const seconds = Math.max(elapsedSeconds * durationScale, 0)
+  const seconds = Math.max(elapsedSeconds, 0)
 
   if (seconds <= 4) {
     return clamp((seconds / 4) * 50, 0, PROGRESS_CAP)
@@ -86,7 +72,6 @@ function canPlayHlsNatively(video: HTMLVideoElement) {
 export function VslVideoPlayer({
   src,
   title = "Mensaje privado de Janny",
-  simulatedDurationSeconds = DEFAULT_SIMULATED_DURATION,
   autoPlay = true,
   blockUserInteraction = true,
   fullScreen = false,
@@ -98,10 +83,9 @@ export function VslVideoPlayer({
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const hlsRef = useRef<Hls | null>(null)
   const progressRafRef = useRef<number | null>(null)
-  const progressLastTickAtRef = useRef<number | null>(null)
-  const simulatedElapsedSecondsRef = useRef(0)
+  const progressStartedAtRef = useRef<number | null>(null)
   const currentProgressRef = useRef(1)
-  const videoDurationRef = useRef<number | null>(null)
+  const endedRef = useRef(false)
   const playbackStateRef = useRef<PlaybackState>("idle")
   const attemptedAutoplayRef = useRef(false)
   const startedRef = useRef(false)
@@ -120,42 +104,38 @@ export function VslVideoPlayer({
       cancelAnimationFrame(progressRafRef.current)
       progressRafRef.current = null
     }
-
-    progressLastTickAtRef.current = null
   }, [])
 
   const startProgressLoop = useCallback(() => {
     if (progressRafRef.current !== null) return
 
-    progressLastTickAtRef.current = performance.now()
+    if (progressStartedAtRef.current === null) {
+      progressStartedAtRef.current = performance.now()
+    }
 
     const tick = (now: number) => {
-      const lastTickAt = progressLastTickAtRef.current ?? now
-      const elapsedSinceLastTick = Math.max((now - lastTickAt) / 1000, 0)
-      progressLastTickAtRef.current = now
+      const startedAt = progressStartedAtRef.current ?? now
+      const elapsedSeconds = (now - startedAt) / 1000
 
-      const state = playbackStateRef.current
-      const progressRate = state === "playing" ? 1 : PAUSED_PROGRESS_RATE
-      simulatedElapsedSecondsRef.current += elapsedSinceLastTick * progressRate
+      setProgress((current) => {
+        const nextProgress = getPandaLikeProgress(
+          elapsedSeconds,
+          endedRef.current,
+        )
+        const stableProgress = Math.max(current, nextProgress)
+        currentProgressRef.current = stableProgress
+        return stableProgress
+      })
 
-      const nextProgress = getPandaLikeProgress(
-        simulatedElapsedSecondsRef.current,
-        state === "ended",
-        videoDurationRef.current ?? simulatedDurationSeconds,
-      )
-
-      if (nextProgress > currentProgressRef.current) {
-        currentProgressRef.current = nextProgress
-        setProgress(nextProgress)
-      }
-
-      if (state !== "ended") {
+      if (!endedRef.current) {
         progressRafRef.current = requestAnimationFrame(tick)
+      } else {
+        progressRafRef.current = null
       }
     }
 
     progressRafRef.current = requestAnimationFrame(tick)
-  }, [simulatedDurationSeconds])
+  }, [])
 
   const requestPlayback = useCallback(async () => {
     const video = videoRef.current
@@ -191,9 +171,9 @@ export function VslVideoPlayer({
     stopProgressLoop()
     hlsRef.current?.destroy()
     hlsRef.current = null
-    simulatedElapsedSecondsRef.current = 0
+    progressStartedAtRef.current = performance.now()
     currentProgressRef.current = 1
-    videoDurationRef.current = null
+    endedRef.current = false
     attemptedAutoplayRef.current = false
     startedRef.current = false
     setProgress(1)
@@ -276,17 +256,12 @@ export function VslVideoPlayer({
       }
     }
     const handleEnded = () => {
+      endedRef.current = true
       stopProgressLoop()
       currentProgressRef.current = 100
       setProgress(100)
       updatePlaybackState("ended")
       onEnded?.()
-    }
-    const handleLoadedMetadata = () => {
-      videoDurationRef.current =
-        Number.isFinite(video.duration) && video.duration > 0
-          ? video.duration
-          : null
     }
     const handleError = () => {
       setLoadError(true)
@@ -296,14 +271,12 @@ export function VslVideoPlayer({
     video.addEventListener("play", handlePlay)
     video.addEventListener("pause", handlePause)
     video.addEventListener("ended", handleEnded)
-    video.addEventListener("loadedmetadata", handleLoadedMetadata)
     video.addEventListener("error", handleError)
 
     return () => {
       video.removeEventListener("play", handlePlay)
       video.removeEventListener("pause", handlePause)
       video.removeEventListener("ended", handleEnded)
-      video.removeEventListener("loadedmetadata", handleLoadedMetadata)
       video.removeEventListener("error", handleError)
     }
   }, [
