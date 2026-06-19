@@ -26,37 +26,61 @@ export type VslVideoPlayerProps = {
 
 const DEFAULT_SIMULATED_DURATION = 900
 const PROGRESS_CAP = 98
+const PAUSED_PROGRESS_RATE = 0.28
+const PANDA_PROGRESS_FULL_WINDOW_SECONDS = 110
 const useBrowserLayoutEffect =
   typeof window === "undefined" ? useEffect : useLayoutEffect
+type PlaybackState = "idle" | "playing" | "paused" | "blocked" | "error" | "ended"
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max)
 }
 
-function getDummyProgress(elapsedMs: number) {
-  const seconds = Math.max(elapsedMs, 0) / 1000
+function getPandaLikeProgress(
+  elapsedSeconds: number,
+  isEnded: boolean,
+  durationSeconds?: number | null,
+) {
+  if (isEnded) return 100
 
-  if (seconds <= 8) {
-    return clamp((seconds / 8) * 50, 0, PROGRESS_CAP)
+  const durationScale =
+    durationSeconds &&
+    Number.isFinite(durationSeconds) &&
+    durationSeconds > 0 &&
+    durationSeconds < PANDA_PROGRESS_FULL_WINDOW_SECONDS
+      ? PANDA_PROGRESS_FULL_WINDOW_SECONDS / durationSeconds
+      : 1
+  const seconds = Math.max(elapsedSeconds * durationScale, 0)
+
+  if (seconds <= 4) {
+    return clamp((seconds / 4) * 50, 0, PROGRESS_CAP)
   }
 
-  if (seconds <= 28) {
-    return clamp(50 + ((seconds - 8) / 20) * 25, 0, PROGRESS_CAP)
+  if (seconds <= 18) {
+    return clamp(50 + ((seconds - 4) / 14) * 20, 0, PROGRESS_CAP)
   }
 
-  if (seconds <= 75) {
-    return clamp(75 + ((seconds - 28) / 47) * 17, 0, PROGRESS_CAP)
+  if (seconds <= 50) {
+    return clamp(70 + ((seconds - 18) / 32) * 15, 0, PROGRESS_CAP)
   }
 
-  if (seconds <= 140) {
-    return clamp(92 + ((seconds - 75) / 65) * 6, 0, PROGRESS_CAP)
+  if (seconds <= 110) {
+    return clamp(85 + ((seconds - 50) / 60) * 9, 0, PROGRESS_CAP)
   }
 
-  return PROGRESS_CAP
+  const slowTail = 94 + Math.min(4, Math.log1p((seconds - 110) / 20) * 1.2)
+  return clamp(slowTail, 0, PROGRESS_CAP)
 }
 
 function isLikelyHlsUrl(src: string) {
   return src.toLowerCase().includes(".m3u8")
+}
+
+function canPlayHlsNatively(video: HTMLVideoElement) {
+  return Boolean(
+    video.canPlayType("application/vnd.apple.mpegurl") ||
+      video.canPlayType("application/x-mpegURL"),
+  )
 }
 
 export function VslVideoPlayer({
@@ -74,15 +98,22 @@ export function VslVideoPlayer({
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const hlsRef = useRef<Hls | null>(null)
   const progressRafRef = useRef<number | null>(null)
-  const progressStartedAtRef = useRef<number | null>(null)
-  const accumulatedProgressMsRef = useRef(0)
+  const progressLastTickAtRef = useRef<number | null>(null)
+  const simulatedElapsedSecondsRef = useRef(0)
+  const currentProgressRef = useRef(1)
+  const videoDurationRef = useRef<number | null>(null)
+  const playbackStateRef = useRef<PlaybackState>("idle")
   const attemptedAutoplayRef = useRef(false)
   const startedRef = useRef(false)
-  const [playbackState, setPlaybackState] = useState<
-    "idle" | "playing" | "blocked" | "ended"
-  >("idle")
+  const [playbackState, setPlaybackState] = useState<PlaybackState>("idle")
+  const [loadError, setLoadError] = useState(false)
   const [progress, setProgress] = useState(1)
   const hasSource = src.trim().length > 0
+
+  const updatePlaybackState = useCallback((state: PlaybackState) => {
+    playbackStateRef.current = state
+    setPlaybackState(state)
+  }, [])
 
   const stopProgressLoop = useCallback(() => {
     if (progressRafRef.current !== null) {
@@ -90,48 +121,84 @@ export function VslVideoPlayer({
       progressRafRef.current = null
     }
 
-    if (progressStartedAtRef.current !== null) {
-      accumulatedProgressMsRef.current +=
-        performance.now() - progressStartedAtRef.current
-      progressStartedAtRef.current = null
-    }
+    progressLastTickAtRef.current = null
   }, [])
 
   const startProgressLoop = useCallback(() => {
-    stopProgressLoop()
-    progressStartedAtRef.current = performance.now()
+    if (progressRafRef.current !== null) return
 
-    const tick = () => {
-      const startedAt = progressStartedAtRef.current
-      const liveMs = startedAt ? performance.now() - startedAt : 0
-      const elapsedMs = accumulatedProgressMsRef.current + liveMs
+    progressLastTickAtRef.current = performance.now()
 
-      setProgress(getDummyProgress(elapsedMs))
-      progressRafRef.current = requestAnimationFrame(tick)
+    const tick = (now: number) => {
+      const lastTickAt = progressLastTickAtRef.current ?? now
+      const elapsedSinceLastTick = Math.max((now - lastTickAt) / 1000, 0)
+      progressLastTickAtRef.current = now
+
+      const state = playbackStateRef.current
+      const progressRate = state === "playing" ? 1 : PAUSED_PROGRESS_RATE
+      simulatedElapsedSecondsRef.current += elapsedSinceLastTick * progressRate
+
+      const nextProgress = getPandaLikeProgress(
+        simulatedElapsedSecondsRef.current,
+        state === "ended",
+        videoDurationRef.current ?? simulatedDurationSeconds,
+      )
+
+      if (nextProgress > currentProgressRef.current) {
+        currentProgressRef.current = nextProgress
+        setProgress(nextProgress)
+      }
+
+      if (state !== "ended") {
+        progressRafRef.current = requestAnimationFrame(tick)
+      }
     }
 
     progressRafRef.current = requestAnimationFrame(tick)
-  }, [simulatedDurationSeconds, stopProgressLoop])
+  }, [simulatedDurationSeconds])
 
   const requestPlayback = useCallback(async () => {
     const video = videoRef.current
-    if (!video || !hasSource) return
+    if (!video || !hasSource || loadError) return
 
     try {
       startProgressLoop()
       video.muted = false
       video.controls = false
       await video.play()
-      setPlaybackState("playing")
+      updatePlaybackState("playing")
+      if (!startedRef.current) {
+        startedRef.current = true
+        onStarted?.()
+      }
     } catch {
-      setPlaybackState("blocked")
+      updatePlaybackState("blocked")
       onPlaybackBlocked?.()
     }
-  }, [hasSource, onPlaybackBlocked, startProgressLoop])
+  }, [
+    hasSource,
+    loadError,
+    onPlaybackBlocked,
+    onStarted,
+    startProgressLoop,
+    updatePlaybackState,
+  ])
 
   useBrowserLayoutEffect(() => {
     const video = videoRef.current
     if (!video || !hasSource) return
+
+    stopProgressLoop()
+    hlsRef.current?.destroy()
+    hlsRef.current = null
+    simulatedElapsedSecondsRef.current = 0
+    currentProgressRef.current = 1
+    videoDurationRef.current = null
+    attemptedAutoplayRef.current = false
+    startedRef.current = false
+    setProgress(1)
+    setLoadError(false)
+    updatePlaybackState("idle")
 
     video.controls = false
     video.muted = false
@@ -139,7 +206,9 @@ export function VslVideoPlayer({
     video.playsInline = true
     video.preload = "auto"
 
-    if (isLikelyHlsUrl(src) && Hls.isSupported()) {
+    if (isLikelyHlsUrl(src) && canPlayHlsNatively(video)) {
+      video.src = src
+    } else if (isLikelyHlsUrl(src) && Hls.isSupported()) {
       const hls = new Hls({
         startLevel: 2,
         capLevelToPlayerSize: true,
@@ -150,12 +219,18 @@ export function VslVideoPlayer({
       hls.attachMedia(video)
       hls.on(Hls.Events.ERROR, (_event, data) => {
         if (data.fatal) {
-          stopProgressLoop()
+          setLoadError(true)
+          updatePlaybackState("error")
         }
       })
+    } else if (isLikelyHlsUrl(src)) {
+      setLoadError(true)
+      updatePlaybackState("error")
     } else {
       video.src = src
     }
+
+    startProgressLoop()
 
     return () => {
       stopProgressLoop()
@@ -166,7 +241,14 @@ export function VslVideoPlayer({
       video.load()
       attemptedAutoplayRef.current = false
     }
-  }, [autoPlay, hasSource, src, stopProgressLoop])
+  }, [
+    autoPlay,
+    hasSource,
+    src,
+    startProgressLoop,
+    stopProgressLoop,
+    updatePlaybackState,
+  ])
 
   useBrowserLayoutEffect(() => {
     if (!autoPlay || !hasSource || attemptedAutoplayRef.current) return
@@ -180,7 +262,7 @@ export function VslVideoPlayer({
     if (!video) return
 
     const handlePlay = () => {
-      setPlaybackState("playing")
+      updatePlaybackState("playing")
       startProgressLoop()
       if (!startedRef.current) {
         startedRef.current = true
@@ -189,26 +271,48 @@ export function VslVideoPlayer({
     }
     const handlePause = () => {
       if (!video.ended) {
-        stopProgressLoop()
+        updatePlaybackState("paused")
+        startProgressLoop()
       }
     }
     const handleEnded = () => {
       stopProgressLoop()
+      currentProgressRef.current = 100
       setProgress(100)
-      setPlaybackState("ended")
+      updatePlaybackState("ended")
       onEnded?.()
+    }
+    const handleLoadedMetadata = () => {
+      videoDurationRef.current =
+        Number.isFinite(video.duration) && video.duration > 0
+          ? video.duration
+          : null
+    }
+    const handleError = () => {
+      setLoadError(true)
+      updatePlaybackState("error")
     }
 
     video.addEventListener("play", handlePlay)
     video.addEventListener("pause", handlePause)
     video.addEventListener("ended", handleEnded)
+    video.addEventListener("loadedmetadata", handleLoadedMetadata)
+    video.addEventListener("error", handleError)
 
     return () => {
       video.removeEventListener("play", handlePlay)
       video.removeEventListener("pause", handlePause)
       video.removeEventListener("ended", handleEnded)
+      video.removeEventListener("loadedmetadata", handleLoadedMetadata)
+      video.removeEventListener("error", handleError)
     }
-  }, [onEnded, onStarted, startProgressLoop, stopProgressLoop])
+  }, [
+    onEnded,
+    onStarted,
+    startProgressLoop,
+    stopProgressLoop,
+    updatePlaybackState,
+  ])
 
   useEffect(
     () => () => {
@@ -274,6 +378,12 @@ export function VslVideoPlayer({
             <Play className="size-4 fill-current" />
             REPRODUCIR MENSAJE DE JANNY
           </button>
+        </div>
+      ) : null}
+
+      {loadError ? (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/78 px-6 text-center text-sm font-medium leading-relaxed text-white backdrop-blur-sm">
+          No pudimos cargar el mensaje. Revisa tu conexión y vuelve a intentarlo.
         </div>
       ) : null}
 

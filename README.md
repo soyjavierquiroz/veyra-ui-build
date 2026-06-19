@@ -10,6 +10,12 @@ This repository is linked to a [v0](https://v0.app) project. You can continue de
 
 ## Getting Started
 
+## MNLE VSL Env
+
+```env
+NEXT_PUBLIC_MNLE_VSL_HLS_URL=https://vz-f838ded4-b55.b-cdn.net/76137514-25cc-432e-9b78-0cac7d39882b/playlist.m3u8
+```
+
 First, run the development server:
 
 ```bash

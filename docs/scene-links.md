@@ -177,15 +177,16 @@ Deep links:
 - La VSL activa usa Bunny/HLS mediante `VslVideoPlayer`.
 - La ruta YouTube de VSL fue retirada del runtime activo para evitar iframe/autoplay inestable en móviles.
 - Configuración:
-  `NEXT_PUBLIC_VSL_VIDEO_URL=https://vz-.../playlist.m3u8`
+  `NEXT_PUBLIC_MNLE_VSL_HLS_URL=https://vz-f838ded4-b55.b-cdn.net/76137514-25cc-432e-9b78-0cac7d39882b/playlist.m3u8`
 - El provider Bunny usa un player Panda-style adaptado desde:
   `/home/sensorial.pameflorescrea.com/source_boilerplate/src/components/themes/expert/components/video-player`
 - El README fuente indica Bunny.net como stream HLS `.m3u8` sobre `<video>` nativo con `hls.js`, modo VSL, autoplay, UI limpia y barra de progreso psicológico.
 - En Veyra el player vive en `components/funnel/video-player/vsl-video-player.tsx`.
-- La URL se lee desde `NEXT_PUBLIC_VSL_VIDEO_URL` vía `funnelConfig.vslVideoUrl`.
-- Si `NEXT_PUBLIC_VSL_VIDEO_URL` no existe o está vacía, usa la URL temporal Bunny:
-  `https://vz-febf8c0d-fb8.b-cdn.net/1924db19-affb-41ea-a457-4195d85671c6/playlist.m3u8`
-- Para cambiar el video luego, definir `NEXT_PUBLIC_VSL_VIDEO_URL` o actualizar `TEMPORARY_BUNNY_VSL_URL` en `components/funnel/config.ts`.
+- La URL se lee desde `NEXT_PUBLIC_MNLE_VSL_HLS_URL` vía `funnelConfig.vslVideoUrl`.
+- Si `NEXT_PUBLIC_MNLE_VSL_HLS_URL` no existe o está vacía, conserva compatibilidad con `NEXT_PUBLIC_VSL_VIDEO_URL`.
+- Si no hay env, usa la URL Bunny/HLS de MNLE:
+  `https://vz-f838ded4-b55.b-cdn.net/76137514-25cc-432e-9b78-0cac7d39882b/playlist.m3u8`
+- Para cambiar el video luego, definir `NEXT_PUBLIC_MNLE_VSL_HLS_URL` o actualizar `MNLE_VSL_HLS_URL` en `components/funnel/config.ts`.
 - El player intenta autoplay con audio al montar después del click real en `ABRIR EL CAMINO HACIA JANNY`.
 - Si el navegador bloquea la reproducción/autoplay, muestra el fallback: `REPRODUCIR MENSAJE DE JANNY`.
 - No muestra pantalla previa, header `EXP 7`, card, placeholder ni botón `Continuar` antes del video.

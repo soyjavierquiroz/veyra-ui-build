@@ -49,8 +49,8 @@ function readNumber(value: string | undefined, fallback: number): number {
 
 const mode = readMode()
 
-export const TEMPORARY_BUNNY_VSL_URL =
-  "https://vz-febf8c0d-fb8.b-cdn.net/1924db19-affb-41ea-a457-4195d85671c6/playlist.m3u8"
+export const MNLE_VSL_HLS_URL =
+  "https://vz-f838ded4-b55.b-cdn.net/76137514-25cc-432e-9b78-0cac7d39882b/playlist.m3u8"
 
 export const resultMp4Videos = {
   abandono: publicAssetPath("videos", "resp1-veyra-final.mp4"),
@@ -77,8 +77,9 @@ export const funnelConfig: FunnelConfig = {
   mode,
   exp1VideoUrl: cleanPublicEnv(process.env.NEXT_PUBLIC_EXP1_VIDEO_URL) ?? "",
   vslVideoUrl:
+    cleanPublicEnv(process.env.NEXT_PUBLIC_MNLE_VSL_HLS_URL) ??
     cleanPublicEnv(process.env.NEXT_PUBLIC_VSL_VIDEO_URL) ??
-    TEMPORARY_BUNNY_VSL_URL,
+    MNLE_VSL_HLS_URL,
   resultVideoObjectFit:
     cleanPublicEnv(process.env.NEXT_PUBLIC_RESULT_VIDEO_OBJECT_FIT) ===
     "contain"
