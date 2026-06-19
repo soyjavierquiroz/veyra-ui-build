@@ -10,6 +10,18 @@ import {
 } from "react"
 import { Play } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { DummyProgressBar } from "./dummy-progress-bar"
+import { useDummyVslProgress } from "./use-dummy-vsl-progress"
+
+declare global {
+  interface Window {
+    __mnleVslProgressDebug?: {
+      progress: number
+      elapsedSeconds: number
+      component: string
+    }
+  }
+}
 
 export type VslVideoPlayerProps = {
   src: string
@@ -24,47 +36,9 @@ export type VslVideoPlayerProps = {
   onPlaybackBlocked?: () => void
 }
 
-const PROGRESS_CAP = 98
 const useBrowserLayoutEffect =
   typeof window === "undefined" ? useEffect : useLayoutEffect
 type PlaybackState = "idle" | "playing" | "paused" | "blocked" | "error" | "ended"
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), max)
-}
-
-function getPandaLikeProgress(elapsedSeconds: number, isEnded: boolean) {
-  if (isEnded) return 100
-
-  const seconds = Math.max(elapsedSeconds, 0)
-
-  if (seconds <= 10) {
-    return clamp((seconds / 10) * 10, 0, PROGRESS_CAP)
-  }
-
-  if (seconds <= 30) {
-    return clamp(10 + ((seconds - 10) / 20) * 10, 0, PROGRESS_CAP)
-  }
-
-  if (seconds <= 60) {
-    return clamp(20 + ((seconds - 30) / 30) * 30, 0, PROGRESS_CAP)
-  }
-
-  if (seconds <= 120) {
-    return clamp(50 + ((seconds - 60) / 60) * 20, 0, PROGRESS_CAP)
-  }
-
-  if (seconds <= 240) {
-    return clamp(70 + ((seconds - 120) / 120) * 15, 0, PROGRESS_CAP)
-  }
-
-  if (seconds <= 420) {
-    return clamp(85 + ((seconds - 240) / 180) * 9, 0, PROGRESS_CAP)
-  }
-
-  const slowTail = 94 + Math.min(4, Math.log1p((seconds - 420) / 60) * 1.1)
-  return clamp(slowTail, 0, PROGRESS_CAP)
-}
 
 function isLikelyHlsUrl(src: string) {
   return src.toLowerCase().includes(".m3u8")
@@ -90,16 +64,13 @@ export function VslVideoPlayer({
 }: VslVideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const hlsRef = useRef<Hls | null>(null)
-  const progressRafRef = useRef<number | null>(null)
-  const progressStartedAtRef = useRef<number | null>(null)
-  const currentProgressRef = useRef(1)
-  const endedRef = useRef(false)
   const playbackStateRef = useRef<PlaybackState>("idle")
   const attemptedAutoplayRef = useRef(false)
   const startedRef = useRef(false)
   const [playbackState, setPlaybackState] = useState<PlaybackState>("idle")
   const [loadError, setLoadError] = useState(false)
-  const [progress, setProgress] = useState(1)
+  const [debugProgress, setDebugProgress] = useState(false)
+  const { progress, elapsedSeconds, complete } = useDummyVslProgress()
   const hasSource = src.trim().length > 0
 
   const updatePlaybackState = useCallback((state: PlaybackState) => {
@@ -107,42 +78,10 @@ export function VslVideoPlayer({
     setPlaybackState(state)
   }, [])
 
-  const stopProgressLoop = useCallback(() => {
-    if (progressRafRef.current !== null) {
-      cancelAnimationFrame(progressRafRef.current)
-      progressRafRef.current = null
-    }
-  }, [])
-
-  const startProgressLoop = useCallback(() => {
-    if (progressRafRef.current !== null) return
-
-    if (progressStartedAtRef.current === null) {
-      progressStartedAtRef.current = performance.now()
-    }
-
-    const tick = (now: number) => {
-      const startedAt = progressStartedAtRef.current ?? now
-      const elapsedSeconds = (now - startedAt) / 1000
-
-      setProgress((current) => {
-        const nextProgress = getPandaLikeProgress(
-          elapsedSeconds,
-          endedRef.current,
-        )
-        const stableProgress = Math.max(current, nextProgress)
-        currentProgressRef.current = stableProgress
-        return stableProgress
-      })
-
-      if (!endedRef.current) {
-        progressRafRef.current = requestAnimationFrame(tick)
-      } else {
-        progressRafRef.current = null
-      }
-    }
-
-    progressRafRef.current = requestAnimationFrame(tick)
+  useEffect(() => {
+    setDebugProgress(
+      new URLSearchParams(window.location.search).get("debug_progress") === "1",
+    )
   }, [])
 
   const requestPlayback = useCallback(async () => {
@@ -150,7 +89,6 @@ export function VslVideoPlayer({
     if (!video || !hasSource || loadError) return
 
     try {
-      startProgressLoop()
       video.muted = false
       video.controls = false
       await video.play()
@@ -168,7 +106,6 @@ export function VslVideoPlayer({
     loadError,
     onPlaybackBlocked,
     onStarted,
-    startProgressLoop,
     updatePlaybackState,
   ])
 
@@ -176,15 +113,10 @@ export function VslVideoPlayer({
     const video = videoRef.current
     if (!video || !hasSource) return
 
-    stopProgressLoop()
     hlsRef.current?.destroy()
     hlsRef.current = null
-    progressStartedAtRef.current = performance.now()
-    currentProgressRef.current = 1
-    endedRef.current = false
     attemptedAutoplayRef.current = false
     startedRef.current = false
-    setProgress(1)
     setLoadError(false)
     updatePlaybackState("idle")
 
@@ -218,10 +150,7 @@ export function VslVideoPlayer({
       video.src = src
     }
 
-    startProgressLoop()
-
     return () => {
-      stopProgressLoop()
       hlsRef.current?.destroy()
       hlsRef.current = null
       video.pause()
@@ -233,8 +162,6 @@ export function VslVideoPlayer({
     autoPlay,
     hasSource,
     src,
-    startProgressLoop,
-    stopProgressLoop,
     updatePlaybackState,
   ])
 
@@ -251,7 +178,6 @@ export function VslVideoPlayer({
 
     const handlePlay = () => {
       updatePlaybackState("playing")
-      startProgressLoop()
       if (!startedRef.current) {
         startedRef.current = true
         onStarted?.()
@@ -260,14 +186,10 @@ export function VslVideoPlayer({
     const handlePause = () => {
       if (!video.ended) {
         updatePlaybackState("paused")
-        startProgressLoop()
       }
     }
     const handleEnded = () => {
-      endedRef.current = true
-      stopProgressLoop()
-      currentProgressRef.current = 100
-      setProgress(100)
+      complete()
       updatePlaybackState("ended")
       onEnded?.()
     }
@@ -290,17 +212,25 @@ export function VslVideoPlayer({
   }, [
     onEnded,
     onStarted,
-    startProgressLoop,
-    stopProgressLoop,
+    complete,
     updatePlaybackState,
   ])
 
-  useEffect(
-    () => () => {
-      stopProgressLoop()
-    },
-    [stopProgressLoop],
-  )
+  useEffect(() => {
+    if (!debugProgress || typeof window === "undefined") return
+
+    window.__mnleVslProgressDebug = {
+      progress,
+      elapsedSeconds,
+      component: "VslVideoPlayer",
+    }
+
+    return () => {
+      if (window.__mnleVslProgressDebug?.component === "VslVideoPlayer") {
+        delete window.__mnleVslProgressDebug
+      }
+    }
+  }, [debugProgress, elapsedSeconds, progress])
 
   if (!hasSource) {
     return (
@@ -368,19 +298,15 @@ export function VslVideoPlayer({
         </div>
       ) : null}
 
-      <div
-        className={cn(
-          "funnel-progress pointer-events-none",
-          fullScreen
-            ? ""
-            : "bottom-0 left-0 right-0",
-        )}
-      >
-        <div
-          className="funnel-progress__bar transition-[width] duration-300 ease-out"
-          style={{ width: `${progress}%` }}
-        />
-      </div>
+      <DummyProgressBar progress={progress} debugLabel="VslVideoPlayer" />
+
+      {debugProgress ? (
+        <div className="pointer-events-none absolute left-4 top-[calc(14px+env(safe-area-inset-top))] z-[70] rounded-md bg-black/65 px-2 py-1 text-[11px] leading-snug text-white/80">
+          <div>progress: {Math.round(progress)}%</div>
+          <div>elapsed: {Math.round(elapsedSeconds)}s</div>
+          <div>component: VslVideoPlayer</div>
+        </div>
+      ) : null}
     </div>
   )
 }
