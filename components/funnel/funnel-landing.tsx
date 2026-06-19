@@ -6,6 +6,7 @@ export function FunnelLanding({ onStart }: { onStart: () => void }) {
       <div className="entry-ambient absolute inset-0" />
       <div className="entry-depth absolute inset-0" />
       <div className="entry-sparks absolute inset-0" />
+      <div className="entry-veil absolute inset-0" />
 
       <div className="entry-content animate-float-up relative z-10 flex h-full w-full max-w-[390px] flex-col items-center justify-between gap-3 py-[max(0.75rem,env(safe-area-inset-top))]">
         <div className="flex w-full shrink-0 flex-col items-center pt-1">
@@ -17,12 +18,16 @@ export function FunnelLanding({ onStart }: { onStart: () => void }) {
         </div>
 
         <div className="entry-portal-wrap relative my-1 flex w-full flex-1 items-center justify-center">
+          <div className="entry-backlight absolute" />
           <div className="entry-portal-shadow absolute" />
           <div className="entry-portal-aura absolute" />
           <div className="entry-portal absolute">
+            <div className="entry-portal-rays" />
             <div className="entry-portal-light" />
             <div className="entry-portal-threshold" />
+            <div className="entry-portal-mist" />
           </div>
+          <div className="entry-portal-steps absolute" />
           <div className="entry-portal-floor absolute" />
         </div>
 
