@@ -6,14 +6,14 @@ import { Mic, Phone, PhoneOff, Volume2 } from "lucide-react"
 import { publicAssetPath, rootPublicAsset } from "./asset-version"
 import { Particles } from "./particles"
 
-const CALL_AUDIO_SRC = publicAssetPath("audio", "veyra-llamada-final.mp3")
+const CALL_AUDIO_SRC = publicAssetPath("audio", "veyra-llamada-corta-final.mp3")
 const VEYRA_PROFILE_SRC = rootPublicAsset("veyra-perfil.webp")
 const CALL_PROGRESS_EASING_POWER = 2.2
 const CALL_PROGRESS_SIZE = 204
 const CALL_PROGRESS_STROKE = 7
 const CALL_PROGRESS_RADIUS = (CALL_PROGRESS_SIZE - CALL_PROGRESS_STROKE) / 2
 const CALL_PROGRESS_CIRCUMFERENCE = 2 * Math.PI * CALL_PROGRESS_RADIUS
-const FALLBACK_CALL_DURATION_SECONDS = 75
+const FALLBACK_CALL_DURATION_SECONDS = 32
 const CALL_CLOSING_DELAY_MS = 1000
 
 type CallState = "incoming" | "active" | "closing"
