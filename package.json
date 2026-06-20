@@ -11,6 +11,7 @@
     "build:main-domain": "pnpm build:fi && pnpm build:x9m-fi",
     "start": "next start",
     "lint": "eslint .",
+    "test": "node --test tests/*.test.mjs",
     "typecheck": "tsc --noEmit",
     "qa": "pnpm typecheck && pnpm build"
   },
