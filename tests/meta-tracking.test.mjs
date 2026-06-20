@@ -10,6 +10,14 @@ const orchestratorSource = readFileSync(
   new URL("../components/funnel/funnel-orchestrator.tsx", import.meta.url),
   "utf8",
 )
+const callSource = readFileSync(
+  new URL("../components/funnel/exp2-call.tsx", import.meta.url),
+  "utf8",
+)
+const quizSource = readFileSync(
+  new URL("../components/funnel/exp4-quiz.tsx", import.meta.url),
+  "utf8",
+)
 const handoffSource = readFileSync(
   new URL("../components/funnel/funnel-handoff.ts", import.meta.url),
   "utf8",
@@ -69,4 +77,45 @@ test("funnel bridge events are wired and forbidden conversion events are absent"
       new RegExp(`fbq\\([^\\n]+${forbidden}`),
     )
   }
+})
+
+test("veyra call does not advance to quiz on the old 3.6 second timer", () => {
+  assert.doesNotMatch(callSource, /CALL_VISUAL_END_SECONDS\s*=\s*3\.6/)
+  assert.doesNotMatch(callSource, /3600/)
+  assert.doesNotMatch(
+    callSource,
+    /window\.setTimeout\(\s*(?:completeCall|advanceFromCallToQuiz)[\s\S]+CALL_VISUAL_END_SECONDS/,
+  )
+  assert.match(callSource, /onEnded=\{advanceFromCallToQuiz\}/)
+})
+
+test("veyra call shows manual fallback only when call audio fails", () => {
+  assert.match(callSource, /const \[callAudioError, setCallAudioError\]/)
+  assert.match(callSource, /onError=\{handleAudioError\}/)
+  assert.match(callSource, /audio\.play\(\)\.catch/)
+  assert.match(callSource, /setCallAudioError\(true\)/)
+  assert.match(callSource, /callAudioError \? \(/)
+  assert.match(callSource, /onClick=\{advanceFromCallToQuiz\}/)
+  assert.match(callSource, /Continuar mi lectura/)
+})
+
+test("veyra call can advance only once before entering quiz", () => {
+  assert.match(callSource, /const hasAdvancedFromCallRef = useRef\(false\)/)
+  assert.match(callSource, /if \(hasAdvancedFromCallRef\.current\) return/)
+  assert.match(callSource, /hasAdvancedFromCallRef\.current = true/)
+  assert.match(orchestratorSource, /stage === "call"[\s\S]+go\("quiz"\)/)
+})
+
+test("ResultViewed is after quiz completion, not during the call", () => {
+  const callStageMatch = orchestratorSource.match(
+    /\{stage === "call"[\s\S]+?\{stage === "scanner"/,
+  )
+  assert.ok(callStageMatch)
+  assert.doesNotMatch(callStageMatch[0], /ResultViewed/)
+  assert.doesNotMatch(callStageMatch[0], /handlePatternReadyForReading/)
+  assert.match(callStageMatch[0], /go\("quiz"\)/)
+  assert.match(quizSource, /if \(index < QUESTIONS\.length - 1\)/)
+  assert.match(quizSource, /onComplete\(result\)/)
+  assert.match(orchestratorSource, /onComplete=\{handlePatternReadyForReading\}/)
+  assert.match(orchestratorSource, /trackFunnelCustomEvent\("ResultViewed"/)
 })

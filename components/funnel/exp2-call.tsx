@@ -8,14 +8,15 @@ import { Particles } from "./particles"
 
 const CALL_AUDIO_SRC = publicAssetPath("audio", "veyra-llamada-final.mp3")
 const VEYRA_PROFILE_SRC = rootPublicAsset("veyra-perfil.webp")
-const CALL_VISUAL_END_SECONDS = 3.6
 const CALL_PROGRESS_EASING_POWER = 2.2
 const CALL_PROGRESS_SIZE = 204
 const CALL_PROGRESS_STROKE = 7
 const CALL_PROGRESS_RADIUS = (CALL_PROGRESS_SIZE - CALL_PROGRESS_STROKE) / 2
 const CALL_PROGRESS_CIRCUMFERENCE = 2 * Math.PI * CALL_PROGRESS_RADIUS
+const FALLBACK_CALL_DURATION_SECONDS = 75
+const CALL_CLOSING_DELAY_MS = 1000
 
-type CallState = "incoming" | "active" | "ended"
+type CallState = "incoming" | "active" | "closing"
 
 type Exp2CallProps = {
   onComplete: () => void
@@ -32,8 +33,8 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max)
 }
 
-function getCallProgress(elapsedSeconds: number) {
-  const raw = clamp(elapsedSeconds / CALL_VISUAL_END_SECONDS, 0, 1)
+function getCallProgress(elapsedSeconds: number, durationSeconds: number) {
+  const raw = clamp(elapsedSeconds / durationSeconds, 0, 1)
   return 1 - Math.pow(1 - raw, CALL_PROGRESS_EASING_POWER)
 }
 
@@ -46,35 +47,41 @@ function warnPlaybackFailure(error: unknown) {
 export function Exp2Call({ onComplete, stopIntroAudio }: Exp2CallProps) {
   const callAudioRef = useRef<HTMLAudioElement>(null)
   const acceptedRef = useRef(false)
-  const endedRef = useRef(false)
-  const completeTimerRef = useRef<number | null>(null)
+  const hasAdvancedFromCallRef = useRef(false)
+  const closingTimerRef = useRef<number | null>(null)
   const [state, setState] = useState<CallState>("incoming")
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
-  const [isVisuallyEnded, setIsVisuallyEnded] = useState(false)
+  const [durationSeconds, setDurationSeconds] = useState(
+    FALLBACK_CALL_DURATION_SECONDS,
+  )
+  const [callAudioError, setCallAudioError] = useState(false)
   const [isSpeaking, setIsSpeaking] = useState(false)
-  const callProgress = getCallProgress(elapsedSeconds)
+  const callProgress = getCallProgress(elapsedSeconds, durationSeconds)
   const progressOffset = CALL_PROGRESS_CIRCUMFERENCE * (1 - callProgress)
-  const displayedSeconds = isVisuallyEnded
-    ? CALL_VISUAL_END_SECONDS
-    : Math.floor(elapsedSeconds)
+  const displayedSeconds =
+    state === "closing" ? durationSeconds : Math.floor(elapsedSeconds)
 
-  const completeCall = useCallback(() => {
-    if (endedRef.current) return
+  const advanceFromCallToQuiz = useCallback(() => {
+    if (hasAdvancedFromCallRef.current) return
 
-    endedRef.current = true
-    if (completeTimerRef.current !== null) {
-      window.clearTimeout(completeTimerRef.current)
-      completeTimerRef.current = null
+    hasAdvancedFromCallRef.current = true
+    if (closingTimerRef.current !== null) {
+      window.clearTimeout(closingTimerRef.current)
+      closingTimerRef.current = null
     }
+
     const audio = callAudioRef.current
     if (audio) {
       audio.pause()
-      audio.currentTime = 0
     }
+
     setIsSpeaking(false)
-    setIsVisuallyEnded(true)
-    setState("ended")
-    onComplete()
+    setState("closing")
+
+    closingTimerRef.current = window.setTimeout(() => {
+      closingTimerRef.current = null
+      onComplete()
+    }, CALL_CLOSING_DELAY_MS)
   }, [onComplete])
 
   useEffect(() => {
@@ -85,19 +92,15 @@ export function Exp2Call({ onComplete, stopIntroAudio }: Exp2CallProps) {
       const nextElapsed = audio?.currentTime ?? 0
 
       setElapsedSeconds(nextElapsed)
-
-      if (nextElapsed >= CALL_VISUAL_END_SECONDS) {
-        completeCall()
-      }
     }, 250)
 
     return () => clearInterval(id)
-  }, [completeCall, state])
+  }, [state])
 
   useEffect(() => {
     return () => {
-      if (completeTimerRef.current !== null) {
-        window.clearTimeout(completeTimerRef.current)
+      if (closingTimerRef.current !== null) {
+        window.clearTimeout(closingTimerRef.current)
       }
       callAudioRef.current?.pause()
     }
@@ -109,31 +112,50 @@ export function Exp2Call({ onComplete, stopIntroAudio }: Exp2CallProps) {
 
     stopIntroAudio()
     setElapsedSeconds(0)
-    setIsVisuallyEnded(false)
+    setCallAudioError(false)
     setState("active")
     setIsSpeaking(true)
-    completeTimerRef.current = window.setTimeout(
-      completeCall,
-      CALL_VISUAL_END_SECONDS * 1000,
-    )
 
     const audio = callAudioRef.current
-    if (!audio) return
+    if (!audio) {
+      setIsSpeaking(false)
+      setCallAudioError(true)
+      return
+    }
 
     try {
       audio.currentTime = 0
       void audio.play().catch((error: unknown) => {
         setIsSpeaking(false)
+        setCallAudioError(true)
         warnPlaybackFailure(error)
       })
     } catch (error) {
       setIsSpeaking(false)
+      setCallAudioError(true)
       warnPlaybackFailure(error)
     }
-  }, [completeCall, stopIntroAudio])
+  }, [stopIntroAudio])
 
-  const avatarIsAnimated =
-    (state === "incoming" || isSpeaking) && !isVisuallyEnded
+  const handleLoadedMetadata = useCallback(() => {
+    const duration = callAudioRef.current?.duration
+    if (
+      typeof duration !== "number" ||
+      !Number.isFinite(duration) ||
+      duration <= 0
+    ) {
+      return
+    }
+
+    setDurationSeconds(duration)
+  }, [])
+
+  const handleAudioError = useCallback(() => {
+    setIsSpeaking(false)
+    setCallAudioError(true)
+  }, [])
+
+  const avatarIsAnimated = state === "incoming" || isSpeaking
 
   const disabledControlClass =
     "pointer-events-none flex size-14 items-center justify-center rounded-full bg-secondary/70 text-secondary-foreground/55 opacity-70"
@@ -144,7 +166,9 @@ export function Exp2Call({ onComplete, stopIntroAudio }: Exp2CallProps) {
         ref={callAudioRef}
         src={CALL_AUDIO_SRC}
         preload="auto"
-        onEnded={completeCall}
+        onLoadedMetadata={handleLoadedMetadata}
+        onEnded={advanceFromCallToQuiz}
+        onError={handleAudioError}
       />
 
       <div className="relative flex min-h-screen w-full max-w-[460px] flex-col items-center justify-between overflow-hidden bg-background px-6 py-12 shadow-[0_0_80px_oklch(0.13_0.03_295_/_0.8)] md:border-x md:border-gold/10">
@@ -172,7 +196,7 @@ export function Exp2Call({ onComplete, stopIntroAudio }: Exp2CallProps) {
               style={{
                 background:
                   "conic-gradient(from 0deg, transparent, oklch(0.72 0.22 305 / 0.92), transparent 30%, transparent 60%, oklch(0.58 0.26 292 / 0.86), transparent)",
-                opacity: isVisuallyEnded ? 0.25 : isSpeaking ? 0.95 : 0.85,
+                opacity: state === "closing" ? 0.25 : isSpeaking ? 0.95 : 0.85,
               }}
               aria-hidden="true"
             />
@@ -196,7 +220,7 @@ export function Exp2Call({ onComplete, stopIntroAudio }: Exp2CallProps) {
                   r={CALL_PROGRESS_RADIUS}
                   fill="none"
                   stroke={
-                    isVisuallyEnded
+                    state === "closing"
                       ? "oklch(0.44 0.17 306 / 0.72)"
                       : "oklch(0.70 0.27 303 / 0.96)"
                   }
@@ -208,7 +232,7 @@ export function Exp2Call({ onComplete, stopIntroAudio }: Exp2CallProps) {
                 />
               </svg>
             )}
-            {isSpeaking && !isVisuallyEnded && (
+            {isSpeaking && state !== "closing" && (
               <div
                 className="absolute -inset-9 rounded-full border border-primary/40 animate-mystic-pulse"
                 aria-hidden="true"
@@ -218,7 +242,7 @@ export function Exp2Call({ onComplete, stopIntroAudio }: Exp2CallProps) {
               className={`relative overflow-hidden rounded-full border-2 border-gold/60 glow-violet ${
                 avatarIsAnimated ? "animate-mystic-pulse" : ""
               } ${
-                isVisuallyEnded
+                state === "closing"
                   ? "border-primary/25 opacity-80 grayscale saturate-0 brightness-75"
                   : ""
               }`}
@@ -238,19 +262,19 @@ export function Exp2Call({ onComplete, stopIntroAudio }: Exp2CallProps) {
             <h1 className="break-words font-serif text-5xl tracking-wide text-gold text-glow">
               VEYRA
             </h1>
-            {state === "active" && !isVisuallyEnded && (
+            {state === "active" && (
               <span className="font-mono text-sm uppercase tracking-[0.3em] text-primary">
                 {fmt(displayedSeconds)}
               </span>
             )}
-            {state === "active" && isVisuallyEnded && (
+            {state === "closing" && (
               <span className="font-mono text-sm uppercase tracking-[0.24em] text-primary/80">
                 LLAMADA FINALIZADA
               </span>
             )}
           </div>
 
-          {state === "active" && !isVisuallyEnded && (
+          {state === "active" && !callAudioError && (
             <div className="flex items-end gap-1.5" aria-hidden="true">
               {Array.from({ length: 18 }).map((_, i) => (
                 <span
@@ -264,6 +288,20 @@ export function Exp2Call({ onComplete, stopIntroAudio }: Exp2CallProps) {
               ))}
             </div>
           )}
+
+          {state === "active" && !callAudioError && (
+            <p className="max-w-[18rem] text-center font-serif text-lg leading-snug text-[#f5eedc]/86 text-balance">
+              Veyra está conectando con tu patrón...
+            </p>
+          )}
+
+          {state === "closing" && (
+            <p className="max-w-[18rem] animate-float-up text-center font-serif text-xl leading-snug text-gold text-balance">
+              Ya tengo una primera señal.
+              <br />
+              Responde esto con honestidad.
+            </p>
+          )}
         </div>
 
         <div className="relative z-10 mb-6 w-full max-w-xs">
@@ -276,6 +314,19 @@ export function Exp2Call({ onComplete, stopIntroAudio }: Exp2CallProps) {
                 className="flex size-[72px] items-center justify-center rounded-full bg-emerald-500 text-white shadow-lg glow-violet animate-mystic-pulse transition-transform active:scale-90"
               >
                 <Phone className="size-8" />
+              </button>
+            </div>
+          ) : callAudioError ? (
+            <div className="flex flex-col items-center gap-3 text-center">
+              <p className="text-sm leading-relaxed text-[#f5eedc]/82">
+                El audio de Veyra no pudo reproducirse en este navegador.
+              </p>
+              <button
+                type="button"
+                onClick={advanceFromCallToQuiz}
+                className="flex min-h-12 w-full items-center justify-center rounded-full border border-gold/70 bg-gold px-5 py-3 text-sm font-bold uppercase tracking-[0.14em] text-background transition-transform active:scale-95"
+              >
+                Continuar mi lectura
               </button>
             </div>
           ) : (
