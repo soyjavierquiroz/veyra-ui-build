@@ -10,6 +10,7 @@ type Exp1VideoProps = {
   onStart: () => void
   onComplete: () => void
   startIntroAudio: () => void
+  skipIntroVideo?: boolean
 }
 
 function warnPlaybackFailure(error: unknown) {
@@ -22,6 +23,7 @@ export function Exp1Video({
   onStart,
   onComplete,
   startIntroAudio,
+  skipIntroVideo = false,
 }: Exp1VideoProps) {
   const done = useRef(false)
   const startLocked = useRef(false)
@@ -40,6 +42,12 @@ export function Exp1Video({
     if (startLocked.current) return
     startLocked.current = true
 
+    if (skipIntroVideo) {
+      setStarted(true)
+      onStart()
+      return
+    }
+
     startIntroAudio()
 
     const video = videoRef.current
@@ -56,7 +64,7 @@ export function Exp1Video({
 
     setStarted(true)
     onStart()
-  }, [onStart, startIntroAudio])
+  }, [onStart, skipIntroVideo, startIntroAudio])
 
   const handleEnded = useCallback(() => {
     if (done.current) return

@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { CheckCircle2, Sparkles } from "lucide-react"
+import { CheckCircle2, LoaderCircle, Sparkles } from "lucide-react"
 import type { PatternKey, Stage } from "./types"
 import { PATTERNS } from "./types"
 import { funnelRoute, publicAssetPath } from "./asset-version"
@@ -113,6 +113,7 @@ export function FunnelOrchestrator() {
   const [stage, setStage] = useState<Stage>("video")
   const [pattern, setPattern] = useState<PatternKey>("A")
   const [hasResolvedPattern, setHasResolvedPattern] = useState(false)
+  const [isSceneReview, setIsSceneReview] = useState(false)
   const [preparedResultVideoSrc, setPreparedResultVideoSrc] = useState<
     string | null
   >(null)
@@ -121,6 +122,7 @@ export function FunnelOrchestrator() {
   const [resultRevealRequested, setResultRevealRequested] = useState(false)
   const [resultVideoPlaying, setResultVideoPlaying] = useState(false)
   const [showResultBridge, setShowResultBridge] = useState(false)
+  const [isRevealingResult, setIsRevealingResult] = useState(false)
   const introAudioRef = useRef<HTMLAudioElement>(null)
   const introAudioStarted = useRef(false)
   const quizLoopAudioRef = useRef<HTMLAudioElement | null>(null)
@@ -141,6 +143,7 @@ export function FunnelOrchestrator() {
   const quizPrimarySourceRef = useRef<AudioBufferSourceNode | null>(null)
   const quizPrimaryGainRef = useRef<GainNode | null>(null)
   const resultPlayerRef = useRef<ResultMp4PlayerHandle | null>(null)
+  const resultRevealClickLockedRef = useRef(false)
   const resultFallbackTimerRef = useRef<number | null>(null)
   const [resultRevealVeilMounted, setResultRevealVeilMounted] = useState(false)
   const [resultRevealVeilVisible, setResultRevealVeilVisible] = useState(false)
@@ -169,6 +172,8 @@ export function FunnelOrchestrator() {
     }
 
     if (!initialStage) return
+
+    setIsSceneReview(true)
 
     // Query deep links are for internal scene review without a visible QA panel.
     if (initialStage === "reading") {
@@ -520,6 +525,20 @@ export function FunnelOrchestrator() {
     stopQuizPrimaryAudio()
   }, [stopQuizLoop, stopQuizPrimaryAudio])
 
+  const startFastExperience = useCallback(() => {
+    startExperience()
+    void resumeQuizAudioContext()
+    startQuizLoop()
+    void playQuizPrimaryAudio(QUIZ_P1_AUDIO_SRC)
+    go("quiz")
+  }, [
+    go,
+    playQuizPrimaryAudio,
+    resumeQuizAudioContext,
+    startExperience,
+    startQuizLoop,
+  ])
+
   const fadeOutQuizAudio = useCallback(() => {
     const quizLoopAudio = quizLoopAudioRef.current
 
@@ -674,6 +693,8 @@ export function FunnelOrchestrator() {
     setResultRevealRequested(false)
     setResultVideoPlaying(false)
     setResultPlayerReadyToReveal(false)
+    setIsRevealingResult(false)
+    resultRevealClickLockedRef.current = false
   }, [
     clearResultFallbackTimer,
     hideResultRevealVeil,
@@ -811,18 +832,29 @@ export function FunnelOrchestrator() {
   }, [getHandoffPattern])
 
   const handleRevealPreparedResult = useCallback(async () => {
+    if (resultRevealClickLockedRef.current) return
+    resultRevealClickLockedRef.current = true
+    setIsRevealingResult(true)
+
     const player = resultPlayerRef.current
-    if (!player?.isReady()) return
+    if (!player?.isReady()) {
+      resultRevealClickLockedRef.current = false
+      setIsRevealingResult(false)
+      return
+    }
 
     try {
       await player.playWithSound()
     } catch {
+      resultRevealClickLockedRef.current = false
+      setIsRevealingResult(false)
       return
     }
 
     fadeOutQuizAudio()
     setResultRevealRequested(true)
     setResultVideoPlaying(false)
+    setIsRevealingResult(false)
     setShowResultBridge(false)
     dismissResultRevealVeil()
     startResultFallbackTimer()
@@ -838,6 +870,8 @@ export function FunnelOrchestrator() {
     clearResultFallbackTimer()
     setResultRevealRequested(false)
     setResultVideoPlaying(false)
+    setIsRevealingResult(false)
+    resultRevealClickLockedRef.current = false
     showResultRevealVeil()
     setResultPlayerReadyToReveal(resultPlayerRef.current?.isReady() ?? false)
   }, [clearResultFallbackTimer, showResultRevealVeil])
@@ -892,9 +926,10 @@ export function FunnelOrchestrator() {
       )}
       {stage === "video" && (
         <Exp1Video
-          onStart={startExperience}
+          onStart={isSceneReview ? startExperience : startFastExperience}
           onComplete={() => go("call")}
           startIntroAudio={startIntroAudio}
+          skipIntroVideo={!isSceneReview}
         />
       )}
       {stage === "call" && (
@@ -1021,9 +1056,18 @@ export function FunnelOrchestrator() {
               <button
                 type="button"
                 onClick={handleRevealPreparedResult}
-                className="mt-4 flex min-h-12 w-full items-center justify-center rounded-full border border-gold/70 bg-[linear-gradient(135deg,oklch(0.86_0.12_86/.98),oklch(0.66_0.15_72/.98))] px-4 py-3 text-center text-[0.8rem] font-bold uppercase leading-tight tracking-[0.16em] text-[oklch(0.12_0.04_292)] shadow-[0_0_24px_oklch(0.82_0.12_86/.34),inset_0_1px_0_rgba(255,255,255,.28)] transition-transform active:scale-95 min-[390px]:text-sm"
+                disabled={isRevealingResult}
+                aria-busy={isRevealingResult}
+                className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-gold/70 bg-[linear-gradient(135deg,oklch(0.86_0.12_86/.98),oklch(0.66_0.15_72/.98))] px-4 py-3 text-center text-[0.8rem] font-bold uppercase leading-tight tracking-[0.16em] text-[oklch(0.12_0.04_292)] shadow-[0_0_24px_oklch(0.82_0.12_86/.34),inset_0_1px_0_rgba(255,255,255,.28)] transition-transform active:scale-95 disabled:cursor-wait disabled:opacity-90 min-[390px]:text-sm"
               >
-                DESCUBRIR MI PATRÓN
+                {isRevealingResult ? (
+                  <>
+                    <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                    <span>Veyra está abriendo tu lectura...</span>
+                  </>
+                ) : (
+                  "DESCUBRIR MI PATRÓN"
+                )}
               </button>
 
               <p className="mt-3 font-serif text-[1.02rem] leading-snug text-[#f5eedc]/82 text-balance">

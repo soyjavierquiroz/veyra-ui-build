@@ -1,6 +1,7 @@
 "use client"
 
-import { ArrowRight } from "lucide-react"
+import { useCallback, useRef, useState } from "react"
+import { ArrowRight, LoaderCircle } from "lucide-react"
 import type { PatternKey } from "./types"
 import { PATTERNS } from "./types"
 import { Particles } from "./particles"
@@ -58,10 +59,16 @@ export function Exp5Reading({
 }) {
   const config = RESULT_VIDEOS[pattern] ?? RESULT_VIDEOS.A
   const info = PATTERNS[pattern] ?? PATTERNS.A
+  const completeLockedRef = useRef(false)
+  const [isOpeningVsl, setIsOpeningVsl] = useState(false)
 
-  const handleComplete = () => {
+  const handleComplete = useCallback(() => {
+    if (completeLockedRef.current) return
+
+    completeLockedRef.current = true
+    setIsOpeningVsl(true)
     onComplete()
-  }
+  }, [onComplete])
 
   return (
     <section
@@ -123,10 +130,21 @@ export function Exp5Reading({
           {showBridge && (
             <button
               onClick={handleComplete}
-              className="animate-float-up flex w-full items-center justify-center gap-2 rounded-full border border-gold/70 bg-[linear-gradient(135deg,oklch(0.33_0.16_302/.96),oklch(0.18_0.08_295/.96))] px-5 py-4 text-center font-medium uppercase tracking-wide text-gold glow-violet transition-transform active:scale-95"
+              disabled={isOpeningVsl}
+              aria-busy={isOpeningVsl}
+              className="animate-float-up flex min-h-14 w-full items-center justify-center gap-2 rounded-full border border-gold/70 bg-[linear-gradient(135deg,oklch(0.33_0.16_302/.96),oklch(0.18_0.08_295/.96))] px-5 py-4 text-center font-medium uppercase tracking-wide text-gold glow-violet transition-transform active:scale-95 disabled:cursor-wait disabled:opacity-90"
             >
-              ABRIR EL CAMINO HACIA JANNY
-              <ArrowRight className="size-5" />
+              {isOpeningVsl ? (
+                <>
+                  <LoaderCircle className="size-5 animate-spin" aria-hidden="true" />
+                  <span>Veyra está abriendo tu lectura...</span>
+                </>
+              ) : (
+                <>
+                  <span>ABRIR EL CAMINO HACIA JANNY</span>
+                  <ArrowRight className="size-5" />
+                </>
+              )}
             </button>
           )}
         </div>

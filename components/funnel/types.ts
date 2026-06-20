@@ -31,6 +31,7 @@ export type WhatsappMode = "buy" | "doubt"
 export type FunnelEventName =
   | "funnel_started"
   | "exp_completed"
+  | "scanner_started"
   | "quiz_started"
   | "quiz_answered"
   | "pattern_revealed"

@@ -5,16 +5,14 @@ Los enlaces directos usan query params sobre `/`. No crean rutas nuevas ni muest
 ## Flujo principal actual
 
 Landing
-→ EXP 1 video llamada entrante
-→ EXP 2 llamada Veyra
-→ EXP 3 scanner
 → EXP 4 quiz
 → EXP 5 lectura/respuesta MP4
 → VSL
 → Oferta real en dominio principal
 
+- El CTA inicial entra directo al quiz para reducir fricción antes de ResultViewed.
 - La VSL es la última experiencia antes de la Oferta.
-- EXP 6/7/8/9/11 quedan fuera del flujo principal.
+- EXP 1/2/3/6/7/8/9/11 quedan fuera del flujo principal y siguen disponibles por deep link/revisión.
 - YouTube sigue fuera del runtime activo.
 - EXP 5 usa MP4 local versionado con `versionAsset()`.
 - La Oferta activa está en el repo principal; `exp10-offer` queda legacy/manual.
@@ -75,12 +73,11 @@ Los deep links no garantizan autoplay con audio. Las escenas con audio pueden re
 ## EXP 4 Evaluación de Acceso
 
 - Link directo: https://mnle.reconociendotupoder.com/?scene=exp4-quiz
-- Abre la Evaluación de Acceso con una intro mística automática.
-- Ya no muestra botón `Empezar lectura`.
-- La intro dura aprox. 22.5s y avanza automáticamente a la Pregunta 1.
+- Abre la Evaluación de Acceso directamente en la Pregunta 1.
+- Ya no tiene intro mística ni pantalla intermedia antes del resultado.
 - La primera interacción de la usuaria es elegir una respuesta.
-- El feedback después de responder queda visible antes de avanzar.
-- Después de Pregunta 5, calcula patrón dominante.
+- El feedback después de responder es inmediato, bloquea doble click y avanza con un toque.
+- Después de Pregunta 3, calcula patrón dominante.
 - Al detectar el patrón dominante, pasa automáticamente a EXP 5.
 - EXP 4 ya no muestra botón `REVELAR MENSAJE DE VEYRA`.
 - El botón `REVELAR MENSAJE DE VEYRA` vive solo en EXP 5, encima del player preparado.

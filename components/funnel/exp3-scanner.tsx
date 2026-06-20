@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { Fingerprint, Sparkles } from "lucide-react"
 import { publicAssetPath } from "./asset-version"
+import { trackFunnelEvent } from "./lib/analytics"
 import { Particles } from "./particles"
 
 type ScannerPhase =
@@ -317,6 +318,7 @@ export function Exp3Scanner({ onComplete }: { onComplete: () => void }) {
     setElapsedSeconds(0)
     setVideoEnded(false)
     setPhase("activating")
+    trackFunnelEvent("scanner_started")
     startScannerAudio()
   }
 
@@ -418,10 +420,7 @@ export function Exp3Scanner({ onComplete }: { onComplete: () => void }) {
                 type="button"
                 aria-label="Iniciar scanner emocional"
                 aria-disabled={isActivating}
-                onPointerDown={(event) => {
-                  event.preventDefault()
-                  startScanner()
-                }}
+                disabled={isActivating}
                 onClick={(event) => {
                   event.preventDefault()
                   startScanner()

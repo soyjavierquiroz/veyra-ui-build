@@ -8,7 +8,7 @@ import {
   useRef,
   useState,
 } from "react"
-import { Play } from "lucide-react"
+import { LoaderCircle, Play } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { DummyProgressBar } from "./dummy-progress-bar"
 import { useDummyVslProgress } from "./use-dummy-vsl-progress"
@@ -73,6 +73,7 @@ export function VslVideoPlayer({
   const [playbackState, setPlaybackState] = useState<PlaybackState>("idle")
   const [loadError, setLoadError] = useState(false)
   const [debugProgress, setDebugProgress] = useState(false)
+  const [isRequestingPlayback, setIsRequestingPlayback] = useState(false)
   const {
     progress,
     elapsedSeconds,
@@ -104,8 +105,9 @@ export function VslVideoPlayer({
 
   const requestPlayback = useCallback(async () => {
     const video = videoRef.current
-    if (!video || !hasSource || loadError) return
+    if (!video || !hasSource || loadError || isRequestingPlayback) return
 
+    setIsRequestingPlayback(true)
     try {
       video.muted = false
       video.controls = false
@@ -118,9 +120,12 @@ export function VslVideoPlayer({
     } catch {
       updatePlaybackState("blocked")
       onPlaybackBlocked?.()
+    } finally {
+      setIsRequestingPlayback(false)
     }
   }, [
     hasSource,
+    isRequestingPlayback,
     loadError,
     onPlaybackBlocked,
     onStarted,
@@ -328,11 +333,22 @@ export function VslVideoPlayer({
         <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/70 px-6 backdrop-blur-sm">
           <button
             type="button"
+            disabled={isRequestingPlayback}
+            aria-busy={isRequestingPlayback}
             onClick={requestPlayback}
-            className="flex max-w-full flex-wrap items-center justify-center gap-2 rounded-full bg-gold px-5 py-4 text-center text-sm font-semibold uppercase leading-tight tracking-[0.14em] text-background shadow-xl shadow-gold/20 transition-transform active:scale-95"
+            className="flex max-w-full flex-wrap items-center justify-center gap-2 rounded-full bg-gold px-5 py-4 text-center text-sm font-semibold uppercase leading-tight tracking-[0.14em] text-background shadow-xl shadow-gold/20 transition-transform active:scale-95 disabled:cursor-wait disabled:opacity-90"
           >
-            <Play className="size-4 fill-current" />
-            REPRODUCIR MENSAJE DE JANNY
+            {isRequestingPlayback ? (
+              <>
+                <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                <span>Veyra está abriendo tu lectura...</span>
+              </>
+            ) : (
+              <>
+                <Play className="size-4 fill-current" />
+                <span>REPRODUCIR MENSAJE DE JANNY</span>
+              </>
+            )}
           </button>
         </div>
       ) : null}

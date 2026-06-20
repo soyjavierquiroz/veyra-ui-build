@@ -264,33 +264,24 @@ export function Exp2Call({ onComplete, stopIntroAudio }: Exp2CallProps) {
             </div>
           ) : (
             <div className="flex items-center justify-around">
-              <button
-                type="button"
-                disabled
-                aria-disabled="true"
-                aria-label="Silenciar"
+              <span
+                aria-hidden="true"
                 className={disabledControlClass}
               >
                 <Mic className="size-6" />
-              </button>
-              <button
-                type="button"
-                disabled
-                aria-disabled="true"
-                aria-label="Finalizar llamada"
+              </span>
+              <span
+                aria-hidden="true"
                 className="pointer-events-none flex size-16 items-center justify-center rounded-full bg-destructive/70 text-white/60 opacity-70"
               >
                 <PhoneOff className="size-7" />
-              </button>
-              <button
-                type="button"
-                disabled
-                aria-disabled="true"
-                aria-label="Altavoz"
+              </span>
+              <span
+                aria-hidden="true"
                 className={disabledControlClass}
               >
                 <Volume2 className="size-6" />
-              </button>
+              </span>
             </div>
           )}
         </div>
