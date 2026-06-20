@@ -113,7 +113,6 @@ export function FunnelOrchestrator() {
   const [stage, setStage] = useState<Stage>("video")
   const [pattern, setPattern] = useState<PatternKey>("A")
   const [hasResolvedPattern, setHasResolvedPattern] = useState(false)
-  const [isSceneReview, setIsSceneReview] = useState(false)
   const [preparedResultVideoSrc, setPreparedResultVideoSrc] = useState<
     string | null
   >(null)
@@ -172,8 +171,6 @@ export function FunnelOrchestrator() {
     }
 
     if (!initialStage) return
-
-    setIsSceneReview(true)
 
     // Query deep links are for internal scene review without a visible QA panel.
     if (initialStage === "reading") {
@@ -524,20 +521,6 @@ export function FunnelOrchestrator() {
     stopQuizLoop()
     stopQuizPrimaryAudio()
   }, [stopQuizLoop, stopQuizPrimaryAudio])
-
-  const startFastExperience = useCallback(() => {
-    startExperience()
-    void resumeQuizAudioContext()
-    startQuizLoop()
-    void playQuizPrimaryAudio(QUIZ_P1_AUDIO_SRC)
-    go("quiz")
-  }, [
-    go,
-    playQuizPrimaryAudio,
-    resumeQuizAudioContext,
-    startExperience,
-    startQuizLoop,
-  ])
 
   const fadeOutQuizAudio = useCallback(() => {
     const quizLoopAudio = quizLoopAudioRef.current
@@ -926,15 +909,19 @@ export function FunnelOrchestrator() {
       )}
       {stage === "video" && (
         <Exp1Video
-          onStart={isSceneReview ? startExperience : startFastExperience}
+          onStart={startExperience}
           onComplete={() => go("call")}
           startIntroAudio={startIntroAudio}
-          skipIntroVideo={!isSceneReview}
         />
       )}
       {stage === "call" && (
         <Exp2Call
-          onComplete={() => go("scanner")}
+          onComplete={() => {
+            void resumeQuizAudioContext()
+            startQuizLoop()
+            void playQuizPrimaryAudio(QUIZ_P1_AUDIO_SRC)
+            go("quiz")
+          }}
           stopIntroAudio={stopIntroAudio}
         />
       )}

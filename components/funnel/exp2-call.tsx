@@ -8,7 +8,7 @@ import { Particles } from "./particles"
 
 const CALL_AUDIO_SRC = publicAssetPath("audio", "veyra-llamada-final.mp3")
 const VEYRA_PROFILE_SRC = rootPublicAsset("veyra-perfil.webp")
-const CALL_VISUAL_END_SECONDS = 72
+const CALL_VISUAL_END_SECONDS = 3.6
 const CALL_PROGRESS_EASING_POWER = 2.2
 const CALL_PROGRESS_SIZE = 204
 const CALL_PROGRESS_STROKE = 7
@@ -47,6 +47,7 @@ export function Exp2Call({ onComplete, stopIntroAudio }: Exp2CallProps) {
   const callAudioRef = useRef<HTMLAudioElement>(null)
   const acceptedRef = useRef(false)
   const endedRef = useRef(false)
+  const completeTimerRef = useRef<number | null>(null)
   const [state, setState] = useState<CallState>("incoming")
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const [isVisuallyEnded, setIsVisuallyEnded] = useState(false)
@@ -56,6 +57,25 @@ export function Exp2Call({ onComplete, stopIntroAudio }: Exp2CallProps) {
   const displayedSeconds = isVisuallyEnded
     ? CALL_VISUAL_END_SECONDS
     : Math.floor(elapsedSeconds)
+
+  const completeCall = useCallback(() => {
+    if (endedRef.current) return
+
+    endedRef.current = true
+    if (completeTimerRef.current !== null) {
+      window.clearTimeout(completeTimerRef.current)
+      completeTimerRef.current = null
+    }
+    const audio = callAudioRef.current
+    if (audio) {
+      audio.pause()
+      audio.currentTime = 0
+    }
+    setIsSpeaking(false)
+    setIsVisuallyEnded(true)
+    setState("ended")
+    onComplete()
+  }, [onComplete])
 
   useEffect(() => {
     if (state !== "active") return
@@ -67,29 +87,21 @@ export function Exp2Call({ onComplete, stopIntroAudio }: Exp2CallProps) {
       setElapsedSeconds(nextElapsed)
 
       if (nextElapsed >= CALL_VISUAL_END_SECONDS) {
-        setIsVisuallyEnded(true)
-        setIsSpeaking(false)
+        completeCall()
       }
     }, 250)
 
     return () => clearInterval(id)
-  }, [state])
+  }, [completeCall, state])
 
   useEffect(() => {
     return () => {
+      if (completeTimerRef.current !== null) {
+        window.clearTimeout(completeTimerRef.current)
+      }
       callAudioRef.current?.pause()
     }
   }, [])
-
-  const completeCall = useCallback(() => {
-    if (endedRef.current) return
-
-    endedRef.current = true
-    setIsSpeaking(false)
-    setIsVisuallyEnded(true)
-    setState("ended")
-    onComplete()
-  }, [onComplete])
 
   const acceptCall = useCallback(() => {
     if (acceptedRef.current) return
@@ -100,6 +112,10 @@ export function Exp2Call({ onComplete, stopIntroAudio }: Exp2CallProps) {
     setIsVisuallyEnded(false)
     setState("active")
     setIsSpeaking(true)
+    completeTimerRef.current = window.setTimeout(
+      completeCall,
+      CALL_VISUAL_END_SECONDS * 1000,
+    )
 
     const audio = callAudioRef.current
     if (!audio) return
@@ -114,7 +130,7 @@ export function Exp2Call({ onComplete, stopIntroAudio }: Exp2CallProps) {
       setIsSpeaking(false)
       warnPlaybackFailure(error)
     }
-  }, [stopIntroAudio])
+  }, [completeCall, stopIntroAudio])
 
   const avatarIsAnimated =
     (state === "incoming" || isSpeaking) && !isVisuallyEnded
