@@ -50,24 +50,26 @@ export function FunnelLanding({ onStart }: { onStart: () => void }) {
             antes de enviar ese mensaje.
           </p>
 
-          <button
-            type="button"
-            onClick={handleStart}
-            disabled={isStarting}
-            aria-busy={isStarting}
-            className="entry-cta mt-4 flex min-h-14 w-full max-w-[21rem] items-center justify-center gap-2 rounded-full px-5 py-4 font-sans text-sm font-black text-[#211107] transition duration-200 active:scale-[0.985] disabled:cursor-wait disabled:opacity-90"
-          >
-            {isStarting ? (
-              <>
-                <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
-                <span>{LOADING_COPY}</span>
-              </>
-            ) : (
-              "Empezar mi lectura"
-            )}
-          </button>
+          <div className="entry-cta-shell mt-4 w-full max-w-[21rem]">
+            <button
+              type="button"
+              onClick={handleStart}
+              disabled={isStarting}
+              aria-busy={isStarting}
+              className="entry-cta flex min-h-14 w-full items-center justify-center gap-2 rounded-full px-5 py-4 font-sans text-sm font-black text-[#211107] transition duration-150 active:scale-[0.97] disabled:cursor-wait disabled:opacity-90"
+            >
+              {isStarting ? (
+                <>
+                  <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                  <span>{LOADING_COPY}</span>
+                </>
+              ) : (
+                "Empezar mi lectura"
+              )}
+            </button>
+          </div>
 
-          <p className="mt-3 font-sans text-[0.72rem] font-medium text-gold/82">
+          <p className="mt-4 font-sans text-[0.72rem] font-medium text-gold/82">
             Lectura privada. No necesitas registrarte para empezar.
           </p>
         </div>
