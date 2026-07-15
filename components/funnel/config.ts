@@ -8,6 +8,7 @@ export type FunnelConfig = {
   mode: FunnelMode
   exp1VideoUrl: string
   vslVideoUrl: string
+  directVslVideoUrl: string
   resultVideoObjectFit: ResultVideoObjectFit
   resultIntroVeilDurationMs: number
   resultIntroVeilFadeMs: number
@@ -79,6 +80,9 @@ export const funnelConfig: FunnelConfig = {
   vslVideoUrl:
     cleanPublicEnv(process.env.NEXT_PUBLIC_MNLE_VSL_HLS_URL) ??
     cleanPublicEnv(process.env.NEXT_PUBLIC_VSL_VIDEO_URL) ??
+    MNLE_VSL_HLS_URL,
+  directVslVideoUrl:
+    cleanPublicEnv(process.env.NEXT_PUBLIC_DIRECT_VSL_VIDEO_URL) ??
     MNLE_VSL_HLS_URL,
   resultVideoObjectFit:
     cleanPublicEnv(process.env.NEXT_PUBLIC_RESULT_VIDEO_OBJECT_FIT) ===
