@@ -38,6 +38,8 @@ export type VslVideoPlayerProps = {
   onPlaybackBlocked?: () => void
   startMuted?: boolean
   showSoundOverlay?: boolean
+  videoFit?: "contain" | "cover"
+  videoScale?: number
 }
 
 const useBrowserLayoutEffect =
@@ -67,6 +69,8 @@ export function VslVideoPlayer({
   onPlaybackBlocked,
   startMuted = false,
   showSoundOverlay = false,
+  videoFit = "contain",
+  videoScale = 1,
 }: VslVideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const hlsRef = useRef<Hls | null>(null)
@@ -114,6 +118,10 @@ export function VslVideoPlayer({
 
     setIsRequestingPlayback(true)
     try {
+      if (unmute) {
+        video.currentTime = 0
+        video.volume = 1
+      }
       video.muted = startMuted && !unmute
       video.controls = false
       await video.play()
@@ -323,9 +331,14 @@ export function VslVideoPlayer({
       <video
         ref={videoRef}
         className={cn(
-          "relative z-10 h-full w-full object-contain object-center",
+          "absolute inset-0 z-10 h-full w-full object-center",
           blockUserInteraction && "pointer-events-none",
         )}
+        style={{
+          objectFit: videoFit,
+          transform: `scale(${Math.min(1.25, Math.max(1, videoScale))})`,
+          transformOrigin: "center center",
+        }}
         playsInline
         controls={false}
         controlsList="nodownload noplaybackrate noremoteplayback"

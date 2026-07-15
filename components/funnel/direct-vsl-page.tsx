@@ -128,7 +128,7 @@ export function DirectVslPage() {
           Vas a escribir desde la herida que él activó.
         </p>
 
-        <div className="mt-3 aspect-[3/4] w-[calc(100vw-24px)] max-w-[520px] overflow-hidden rounded-[1.75rem] border border-gold/30 bg-black shadow-[0_22px_70px_rgba(109,55,139,0.35)]">
+        <div className="relative mt-3 h-[min(70vh,calc((100vw-24px)*1.42))] w-[calc(100vw-24px)] max-w-[520px] overflow-hidden rounded-[1.75rem] border border-gold/30 bg-black shadow-[0_22px_70px_rgba(109,55,139,0.35)] md:aspect-[3/4] md:h-auto">
           <VslVideoPlayer
             src={funnelConfig.directVslVideoUrl}
             title="Mensaje de Janny"
@@ -136,6 +136,8 @@ export function DirectVslPage() {
             blockUserInteraction
             startMuted
             showSoundOverlay
+            videoFit="cover"
+            videoScale={1.12}
             fullScreen
             className="rounded-[1.6rem]"
             onStarted={handleStarted}

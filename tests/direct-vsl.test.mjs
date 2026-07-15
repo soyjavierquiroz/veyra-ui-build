@@ -30,15 +30,23 @@ test("direct VSL uses the new conversion header only", () => {
   assert.doesNotMatch(directSource, /Mira esto antes de volver al chat\./)
 })
 
-test("direct video is wide 3:4 and has muted sound overlay", () => {
-  assert.match(directSource, /aspect-\[3\/4\]/)
+test("direct video fills its tall mobile frame and has muted sound overlay", () => {
+  assert.match(directSource, /h-\[min\(70vh,calc\(\(100vw-24px\)\*1\.42\)\)\]/)
+  assert.match(directSource, /md:aspect-\[3\/4\]/)
   assert.match(directSource, /w-\[calc\(100vw-24px\)\]/)
   assert.match(directSource, /max-w-\[520px\]/)
+  assert.match(directSource, /videoFit="cover"/)
+  assert.match(directSource, /videoScale=\{1\.12\}/)
   assert.match(directSource, /startMuted/)
   assert.match(directSource, /showSoundOverlay/)
   assert.match(playerSource, /HAZ CLICK PARA ESCUCHAR/)
+  assert.match(playerSource, /objectFit: videoFit/)
+  assert.match(playerSource, /transform: `scale\(/)
   assert.match(playerSource, /video\.muted = startMuted && !unmute/)
+  assert.match(playerSource, /video\.currentTime = 0/)
+  assert.match(playerSource, /video\.volume = 1/)
   assert.match(playerSource, /await video\.play\(\)/)
+  assert.doesNotMatch(directSource, /object-contain/)
 })
 
 test("CTA is delayed and never duplicated on mobile", () => {
@@ -56,5 +64,10 @@ test("direct CTA retains existing handoff and immersive VSL defaults stay unchan
   assert.match(directSource, /onClick=\{goToOffer\}/)
   assert.match(directSource, /persistFunnelContext/)
   assert.match(playerSource, /startMuted = false/)
-  assert.doesNotMatch(immersiveSource, /startMuted|showSoundOverlay/)
+  assert.match(playerSource, /videoFit = "contain"/)
+  assert.match(playerSource, /videoScale = 1/)
+  assert.doesNotMatch(
+    immersiveSource,
+    /startMuted|showSoundOverlay|videoFit|videoScale/,
+  )
 })
