@@ -48,6 +48,16 @@ function readNumber(value: string | undefined, fallback: number): number {
   return Number.isFinite(numeric) ? numeric : fallback
 }
 
+function readNonNegativeNumber(value: string | undefined, fallback: number): number {
+  const numeric = readNumber(value, fallback)
+  return numeric >= 0 ? numeric : fallback
+}
+
+export const directVslCtaDelaySeconds = readNonNegativeNumber(
+  process.env.NEXT_PUBLIC_DIRECT_VSL_CTA_DELAY_SECONDS,
+  10,
+)
+
 const mode = readMode()
 
 export const MNLE_VSL_HLS_URL =

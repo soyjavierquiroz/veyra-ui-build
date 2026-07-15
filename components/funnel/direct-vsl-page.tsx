@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { ArrowRight } from "lucide-react"
-import { funnelConfig } from "./config"
+import { directVslCtaDelaySeconds, funnelConfig } from "./config"
 import {
   getOrCreateFunnelSid,
   isAdsPath,
@@ -77,12 +77,21 @@ function goToDirectOffer(vslCompleted: boolean): void {
 export function DirectVslPage() {
   const [hasStarted, setHasStarted] = useState(false)
   const [hasCompleted, setHasCompleted] = useState(false)
+  const [showCta, setShowCta] = useState(false)
   const startedRef = useRef(false)
   const completedRef = useRef(false)
 
   useEffect(() => {
     initFunnelMetaPixel()
     persistFunnelContext({ sid: getOrCreateFunnelSid() })
+  }, [])
+
+  useEffect(() => {
+    const timer = window.setTimeout(
+      () => setShowCta(true),
+      directVslCtaDelaySeconds * 1000,
+    )
+    return () => window.clearTimeout(timer)
   }, [])
 
   const handleStarted = useCallback(() => {
@@ -107,24 +116,26 @@ export function DirectVslPage() {
 
   return (
     <main className="min-h-dvh bg-[radial-gradient(circle_at_50%_18%,#251130_0%,#08030d_48%)] px-4 pb-32 pt-4 text-white sm:py-10 md:pb-10">
-      <div className="mx-auto flex w-full max-w-md flex-col items-center text-center">
+      <div className="mx-auto flex w-full max-w-xl flex-col items-center text-center">
         <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.24em] text-gold sm:text-xs">
           Mujer, No Le Escribas
         </p>
-        <h1 className="font-serif text-[1.65rem] leading-[1.08] text-white sm:text-4xl">
-          <span className="block">No le escribas todavía.</span>
-          <span className="block">Mira esto antes de volver al chat.</span>
+        <h1 className="font-serif text-base font-semibold uppercase leading-[1.12] text-white min-[360px]:text-xl sm:text-3xl">
+          <span className="block whitespace-nowrap">Si le escribes ahora,</span>
+          <span className="block whitespace-nowrap">no vas a decir lo que sientes.</span>
         </h1>
-        <p className="mt-2 max-w-sm text-xs leading-relaxed text-white/70 sm:text-sm">
-          Janny te muestra qué hacer cuando el impulso toma el control.
+        <p className="mt-2 max-w-sm text-xs font-medium leading-relaxed text-white/75 sm:text-sm">
+          Vas a escribir desde la herida que él activó.
         </p>
 
-        <div className="mt-4 aspect-[3/4] w-full max-w-[300px] overflow-hidden rounded-[1.6rem] border border-gold/30 bg-black shadow-[0_22px_70px_rgba(109,55,139,0.35)] sm:max-w-[340px]">
+        <div className="mt-3 aspect-[3/4] w-[calc(100vw-24px)] max-w-[520px] overflow-hidden rounded-[1.75rem] border border-gold/30 bg-black shadow-[0_22px_70px_rgba(109,55,139,0.35)]">
           <VslVideoPlayer
             src={funnelConfig.directVslVideoUrl}
             title="Mensaje de Janny"
             autoPlay
             blockUserInteraction
+            startMuted
+            showSoundOverlay
             fullScreen
             className="rounded-[1.6rem]"
             onStarted={handleStarted}
@@ -132,22 +143,27 @@ export function DirectVslPage() {
           />
         </div>
 
-        <button
-          type="button"
-          onClick={goToOffer}
-          className={`mt-4 flex w-full max-w-[340px] items-center justify-center gap-2 rounded-full bg-gold px-6 py-3.5 text-sm font-bold uppercase tracking-wide text-[#16091e] shadow-xl shadow-gold/20 transition-all hover:brightness-110 active:scale-[0.98] ${
-            hasStarted ? "opacity-100" : "opacity-90"
-          }`}
-        >
-          Ver el reto Mujer, No Le Escribas
-          <ArrowRight className="size-4" aria-hidden="true" />
-        </button>
-        <p className="mt-3 text-xs text-white/50">
-          Accede al reto guiado de 7 días para volver a ti.
-        </p>
+        {showCta ? (
+          <>
+            <button
+              type="button"
+              onClick={goToOffer}
+              className={`mt-5 hidden w-full max-w-[420px] items-center justify-center gap-2 rounded-full bg-gold px-6 py-3.5 text-sm font-bold uppercase tracking-wide text-[#16091e] shadow-xl shadow-gold/20 transition-all hover:brightness-110 active:scale-[0.98] md:flex ${
+                hasStarted ? "opacity-100" : "opacity-90"
+              }`}
+            >
+              VER EL RETO AHORA
+              <ArrowRight className="size-4" aria-hidden="true" />
+            </button>
+            <p className="mt-3 hidden text-xs text-white/50 md:block">
+              Accede al reto guiado de 7 días para volver a ti.
+            </p>
+          </>
+        ) : null}
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-[70] border-t border-white/10 bg-[#08030d]/95 px-3 pb-[max(0.65rem,env(safe-area-inset-bottom))] pt-2.5 shadow-[0_-18px_45px_rgba(0,0,0,0.45)] backdrop-blur-xl md:hidden">
+      {showCta ? (
+      <div className="fixed inset-x-0 bottom-0 z-[70] border-t border-white/10 bg-[#08030d]/95 px-3 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-2.5 shadow-[0_-18px_45px_rgba(0,0,0,0.45)] backdrop-blur-xl md:hidden">
         <div className="mx-auto w-full max-w-md">
           <button
             type="button"
@@ -162,6 +178,7 @@ export function DirectVslPage() {
           </p>
         </div>
       </div>
+      ) : null}
     </main>
   )
 }

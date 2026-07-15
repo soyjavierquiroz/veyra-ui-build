@@ -36,6 +36,8 @@ export type VslVideoPlayerProps = {
   onStarted?: () => void
   onEnded?: () => void
   onPlaybackBlocked?: () => void
+  startMuted?: boolean
+  showSoundOverlay?: boolean
 }
 
 const useBrowserLayoutEffect =
@@ -63,6 +65,8 @@ export function VslVideoPlayer({
   onStarted,
   onEnded,
   onPlaybackBlocked,
+  startMuted = false,
+  showSoundOverlay = false,
 }: VslVideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const hlsRef = useRef<Hls | null>(null)
@@ -74,6 +78,7 @@ export function VslVideoPlayer({
   const [loadError, setLoadError] = useState(false)
   const [debugProgress, setDebugProgress] = useState(false)
   const [isRequestingPlayback, setIsRequestingPlayback] = useState(false)
+  const [isMuted, setIsMuted] = useState(startMuted)
   const {
     progress,
     elapsedSeconds,
@@ -103,15 +108,16 @@ export function VslVideoPlayer({
     }
   }, [setKnownDuration])
 
-  const requestPlayback = useCallback(async () => {
+  const requestPlayback = useCallback(async (unmute = false) => {
     const video = videoRef.current
     if (!video || !hasSource || loadError || isRequestingPlayback) return
 
     setIsRequestingPlayback(true)
     try {
-      video.muted = false
+      video.muted = startMuted && !unmute
       video.controls = false
       await video.play()
+      setIsMuted(video.muted)
       updatePlaybackState("playing")
       if (!startedRef.current) {
         startedRef.current = true
@@ -129,6 +135,7 @@ export function VslVideoPlayer({
     loadError,
     onPlaybackBlocked,
     onStarted,
+    startMuted,
     updatePlaybackState,
   ])
 
@@ -144,7 +151,8 @@ export function VslVideoPlayer({
     updatePlaybackState("idle")
 
     video.controls = false
-    video.muted = false
+    video.muted = startMuted
+    setIsMuted(startMuted)
     video.autoplay = autoPlay
     video.playsInline = true
     video.preload = "auto"
@@ -185,6 +193,7 @@ export function VslVideoPlayer({
     autoPlay,
     hasSource,
     src,
+    startMuted,
     updatePlaybackState,
   ])
 
@@ -192,8 +201,12 @@ export function VslVideoPlayer({
     if (!autoPlay || !hasSource || attemptedAutoplayRef.current) return
 
     attemptedAutoplayRef.current = true
-    void requestPlayback()
+    void requestPlayback(false)
   }, [autoPlay, hasSource, requestPlayback])
+
+  const unmutePlayback = useCallback(async () => {
+    await requestPlayback(true)
+  }, [requestPlayback])
 
   useEffect(() => {
     const video = videoRef.current
@@ -329,13 +342,31 @@ export function VslVideoPlayer({
         />
       ) : null}
 
+      {showSoundOverlay && isMuted ? (
+        <button
+          type="button"
+          aria-label="Haz click para escuchar"
+          onClick={() => void unmutePlayback()}
+          className="absolute inset-0 z-40 flex cursor-pointer items-center justify-center bg-black/25 px-5 backdrop-blur-[1px]"
+        >
+          <span className="rounded-full border border-gold/45 bg-[#09030d]/88 px-5 py-3 text-center shadow-2xl shadow-black/50 backdrop-blur-md">
+            <strong className="block text-xs font-extrabold tracking-[0.14em] text-white sm:text-sm">
+              HAZ CLICK PARA ESCUCHAR
+            </strong>
+            <small className="mt-0.5 block text-[10px] text-gold/85">
+              Toca el video
+            </small>
+          </span>
+        </button>
+      ) : null}
+
       {playbackState === "blocked" ? (
         <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/70 px-6 backdrop-blur-sm">
           <button
             type="button"
             disabled={isRequestingPlayback}
             aria-busy={isRequestingPlayback}
-            onClick={requestPlayback}
+            onClick={() => void requestPlayback(true)}
             className="flex max-w-full flex-wrap items-center justify-center gap-2 rounded-full bg-gold px-5 py-4 text-center text-sm font-semibold uppercase leading-tight tracking-[0.14em] text-background shadow-xl shadow-gold/20 transition-transform active:scale-95 disabled:cursor-wait disabled:opacity-90"
           >
             {isRequestingPlayback ? (
