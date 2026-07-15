@@ -31,10 +31,14 @@ test("direct VSL uses the new conversion header only", () => {
 })
 
 test("direct video fills its tall mobile frame and has muted sound overlay", () => {
-  assert.match(directSource, /h-\[min\(70vh,calc\(\(100vw-24px\)\*1\.42\)\)\]/)
+  assert.match(
+    directSource,
+    /h-\[min\(70vh,calc\(\(100vw-48px\)\*1\.42\+20px\)\)\]/,
+  )
   assert.match(directSource, /md:aspect-\[3\/4\]/)
-  assert.match(directSource, /w-\[calc\(100vw-24px\)\]/)
-  assert.match(directSource, /max-w-\[520px\]/)
+  assert.match(directSource, /w-\[calc\(100vw-48px\)\]/)
+  assert.doesNotMatch(directSource, /w-\[calc\(100vw-24px\)\]/)
+  assert.match(directSource, /max-w-\[500px\]/)
   assert.match(directSource, /videoFit="cover"/)
   assert.match(directSource, /videoScale=\{1\.12\}/)
   assert.match(directSource, /startMuted/)
@@ -56,7 +60,16 @@ test("CTA is delayed and never duplicated on mobile", () => {
   assert.match(directSource, /window\.setTimeout\([\s\S]+directVslCtaDelaySeconds \* 1000/)
   assert.match(directSource, /\{showCta \? \(/)
   assert.match(directSource, /hidden w-full[\s\S]+md:flex/)
-  assert.match(directSource, /backdrop-blur-xl md:hidden/)
+  assert.match(directSource, /to-transparent[\s\S]+md:hidden/)
+  assert.match(directSource, /min-h-16[\s\S]+VER EL RETO AHORA/)
+  assert.match(
+    directSource,
+    /<button[\s\S]+VER EL RETO AHORA[\s\S]+Reto guiado de 7 días para volver a ti[\s\S]+<\/button>/,
+  )
+  assert.doesNotMatch(
+    directSource,
+    /<\/button>\s*<p[^>]*>\s*Accede al reto guiado de 7 días para volver a ti\./,
+  )
 })
 
 test("direct CTA retains existing handoff and immersive VSL defaults stay unchanged", () => {

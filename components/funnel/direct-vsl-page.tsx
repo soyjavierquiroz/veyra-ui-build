@@ -115,20 +115,20 @@ export function DirectVslPage() {
   }, [hasCompleted])
 
   return (
-    <main className="min-h-dvh bg-[radial-gradient(circle_at_50%_18%,#251130_0%,#08030d_48%)] px-4 pb-32 pt-4 text-white sm:py-10 md:pb-10">
+    <main className="min-h-dvh bg-[radial-gradient(circle_at_50%_18%,#251130_0%,#08030d_48%)] px-4 pb-28 pt-3 text-white sm:py-10 md:pb-10">
       <div className="mx-auto flex w-full max-w-xl flex-col items-center text-center">
-        <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.24em] text-gold sm:text-xs">
+        <p className="mb-1 text-[9px] font-semibold uppercase tracking-[0.24em] text-gold sm:text-xs">
           Mujer, No Le Escribas
         </p>
-        <h1 className="font-serif text-base font-semibold uppercase leading-[1.12] text-white min-[360px]:text-xl sm:text-3xl">
+        <h1 className="font-serif text-base font-semibold uppercase leading-none text-white min-[360px]:text-xl sm:text-3xl">
           <span className="block whitespace-nowrap">Si le escribes ahora,</span>
           <span className="block whitespace-nowrap">no vas a decir lo que sientes.</span>
         </h1>
-        <p className="mt-2 max-w-sm text-xs font-medium leading-relaxed text-white/75 sm:text-sm">
+        <p className="mt-1.5 max-w-sm text-xs font-medium leading-relaxed text-white/75 sm:text-sm">
           Vas a escribir desde la herida que él activó.
         </p>
 
-        <div className="relative mt-3 h-[min(70vh,calc((100vw-24px)*1.42))] w-[calc(100vw-24px)] max-w-[520px] overflow-hidden rounded-[1.75rem] border border-gold/30 bg-black shadow-[0_22px_70px_rgba(109,55,139,0.35)] md:aspect-[3/4] md:h-auto">
+        <div className="relative mt-2.5 h-[min(70vh,calc((100vw-48px)*1.42+20px))] w-[calc(100vw-48px)] max-w-[500px] overflow-hidden rounded-[1.75rem] border border-gold/30 bg-black shadow-[0_22px_70px_rgba(109,55,139,0.35)] md:aspect-[3/4] md:h-auto">
           <VslVideoPlayer
             src={funnelConfig.directVslVideoUrl}
             title="Mensaje de Janny"
@@ -157,29 +157,28 @@ export function DirectVslPage() {
               VER EL RETO AHORA
               <ArrowRight className="size-4" aria-hidden="true" />
             </button>
-            <p className="mt-3 hidden text-xs text-white/50 md:block">
-              Accede al reto guiado de 7 días para volver a ti.
-            </p>
           </>
         ) : null}
       </div>
 
       {showCta ? (
-      <div className="fixed inset-x-0 bottom-0 z-[70] border-t border-white/10 bg-[#08030d]/95 px-3 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-2.5 shadow-[0_-18px_45px_rgba(0,0,0,0.45)] backdrop-blur-xl md:hidden">
-        <div className="mx-auto w-full max-w-md">
-          <button
-            type="button"
-            onClick={goToOffer}
-            className="flex w-full items-center justify-center gap-2 rounded-full bg-gold px-5 py-3 text-sm font-extrabold tracking-[0.08em] text-[#16091e] shadow-lg shadow-gold/20 active:scale-[0.98]"
-          >
-            VER EL RETO AHORA
-            <ArrowRight className="size-4" aria-hidden="true" />
-          </button>
-          <p className="mt-1.5 text-center text-[10px] leading-tight text-white/55">
-            Accede al reto guiado de 7 días para volver a ti.
-          </p>
+        <div className="fixed inset-x-0 bottom-0 z-[70] bg-gradient-to-t from-[#08030d] via-[#08030d]/96 to-transparent px-3 pb-[calc(env(safe-area-inset-bottom)+10px)] pt-3 shadow-[0_-14px_36px_rgba(0,0,0,0.32)] md:hidden">
+          <div className="mx-auto w-full max-w-md">
+            <button
+              type="button"
+              onClick={goToOffer}
+              className="flex min-h-16 w-full flex-col items-center justify-center rounded-[1.35rem] bg-gold px-5 py-2.5 text-[#16091e] shadow-lg shadow-gold/20 active:scale-[0.98]"
+            >
+              <span className="flex items-center gap-1.5 text-[15px] font-black tracking-[0.12em]">
+                VER EL RETO AHORA
+                <ArrowRight className="size-4" aria-hidden="true" />
+              </span>
+              <span className="mt-0.5 block text-[10px] font-medium tracking-normal opacity-75">
+                Reto guiado de 7 días para volver a ti
+              </span>
+            </button>
+          </div>
         </div>
-      </div>
       ) : null}
     </main>
   )
